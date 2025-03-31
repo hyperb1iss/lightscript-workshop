@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Puff Stuff Tunnel - A ray marched tunnel effect for SignalRGB" />
+  <meta name="keywords" content="SignalRGB, lightscript, raymarching, shader, tunnel, effect" />
+  <title>Puff Stuff Tunnel</title>
+  
+  <!-- Controls -->
+  <meta
+    property="speed"
+    label="Animation Speed"
+    type="number"
+    min="0.1"
+    max="5"
+    default="1"
+  />
+  <meta
+    property="detail"
+    label="Detail Level"
+    type="number"
+    min="1"
+    max="5"
+    default="2"
+  />
+  <meta
+    property="colorShift"
+    label="Color Shift"
+    type="boolean"
+    default="1"
+  />
+</head>
+<body>
+  <canvas id="exCanvas" width="320" height="200"></canvas>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+  <script>
+    // Injected code will be placed here by build process
+    {{bundledCode}}
+  </script>
+</body>
+</html> 

@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="Puff Stuff Tunnel - A ray marched tunnel effect for SignalRGB" />
+    <meta name="keywords" content="SignalRGB, lightscript, raymarching, shader, tunnel, effect" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lightscript Dev Environment</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #111;
+        color: #eee;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+        padding-top: 20px;
+      }
+      
+      h1 {
+        margin-bottom: 10px;
+        background: linear-gradient(to right, #ff4d94, #9900cc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: bold;
+      }
+      
+      .container {
+        display: flex;
+        gap: 20px;
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      
+      .canvas-container {
+        position: relative;
+        border: 2px solid #333;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      
+      canvas {
+        display: block;
+      }
+      
+      .controls {
+        background-color: #222;
+        padding: 20px;
+        border-radius: 10px;
+        min-width: 250px;
+      }
+      
+      .control-group {
+        margin-bottom: 15px;
+      }
+      
+      label {
+        display: block;
+        margin-bottom: 5px;
+        color: #ccc;
+      }
+      
+      input[type="range"] {
+        width: 100%;
+        background: #333;
+        height: 8px;
+        border-radius: 4px;
+        -webkit-appearance: none;
+      }
+      
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        background: #7f00ff;
+        height: 16px;
+        width: 16px;
+        border-radius: 50%;
+        cursor: pointer;
+      }
+      
+      input[type="checkbox"] {
+        accent-color: #7f00ff;
+      }
+      
+      .value-display {
+        display: inline-block;
+        min-width: 40px;
+        text-align: right;
+        margin-left: 10px;
+        color: #aaa;
+      }
+      
+      footer {
+        margin-top: 20px;
+        color: #666;
+        font-size: 0.8rem;
+      }
+      
+      a {
+        color: #9966ff;
+        text-decoration: none;
+      }
+      
+      .fps-counter {
+        position: absolute;
+        top: 5px;
+        right: 10px;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+      
+      .debug-controls {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+      }
+      
+      .debug-button {
+        padding: 8px 16px;
+        background: #444;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      
+      .debug-button:hover {
+        background: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>✨ Puff Stuff Tunnel ✨</h1>
+    <div class="container">
+      <div class="canvas-container">
+        <canvas id="exCanvas" width="320" height="200"></canvas>
+        <div class="fps-counter" id="fpsCounter">0 FPS</div>
+      </div>
+      <div class="controls">
+        <h2>Controls</h2>
+        <div class="control-group">
+          <label for="speedSlider">Animation Speed</label>
+          <input 
+            id="speedSlider" 
+            type="range" 
+            min="0.1" 
+            max="5" 
+            step="0.1" 
+            value="1"
+          />
+          <span class="value-display" id="speedValue">1.0</span>
+        </div>
+        <div class="control-group">
+          <label for="detailSlider">Detail Level</label>
+          <input 
+            id="detailSlider" 
+            type="range" 
+            min="1" 
+            max="5" 
+            step="1" 
+            value="2"
+          />
+          <span class="value-display" id="detailValue">2</span>
+        </div>
+        <div class="control-group">
+          <label>
+            <input id="colorShiftToggle" type="checkbox" checked /> 
+            Color Shift
+          </label>
+        </div>
+      </div>
+    </div>
+    <footer>
+      Based on <a href="https://www.shadertoy.com/view/t3s3Rs" target="_blank">Puff Stuff by Shane</a> 
+      | Developed for <a href="https://www.signalrgb.com" target="_blank">SignalRGB</a>
+    </footer>
+    
+    <!-- Debug controls -->
+    <div class="debug-controls">
+      <button id="debugButton" class="debug-button">Test Debug Mode</button>
+      <button id="toggleModeButton" class="debug-button">Enable Simple Debug Mode</button>
+    </div>
+    
+    <!-- Directly include script tag for development -->
+    <script type="module">
+      // Check if script is running
+      console.log('Index HTML script loaded');
+      
+      // Toggle between TypeScript and JS implementations
+      document.getElementById('toggleModeButton')?.addEventListener('click', () => {
+        console.log('Toggling debug mode');
+        
+        // Disable existing scripts and reload with debug.js
+        const scripts = document.querySelectorAll('script[type="module"]');
+        scripts.forEach(script => {
+          if (script.src.includes('dev.ts')) {
+            script.remove();
+          }
+        });
+        
+        // Create and append debug.js script
+        const debugScript = document.createElement('script');
+        debugScript.src = '/src/debug.js';
+        debugScript.type = 'module';
+        document.body.appendChild(debugScript);
+      });
+    </script>
+    
+    <!-- Import our main development script -->
+    <script type="module" src="/src/dev.ts"></script>
+  </body>
+</html> 
