@@ -50,6 +50,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       input: {
         main: resolve(process.cwd(), 'src/main.ts'),
