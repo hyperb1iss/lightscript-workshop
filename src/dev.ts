@@ -1,40 +1,45 @@
-import { PuffStuffEffect, Controls } from './puff-stuff';
-import { vec3 } from 'gl-matrix';
+import * as THREE from 'three';
+import { Controls } from './main';
 
 // Debug logging
-console.log('✨ Dev script loaded ✨');
-
-// Test gl-matrix
-try {
-  const v = vec3.create();
-  vec3.set(v, 1, 2, 3);
-  console.log('gl-matrix test:', v);
-} catch (e) {
-  console.error('gl-matrix error:', e);
-}
+console.log('✨ WebGL Tunnel initialized ✨');
 
 // Declare global variables that would normally be set by SignalRGB
 declare global {
   interface Window {
     speed: number;
-    detail: number;
     colorShift: number;
+    colorScheme: number;
+    effectStyle: number;
   }
 }
 
 // Set initial values on window
 window.speed = 1;
-window.detail = 2;
 window.colorShift = 1;
+window.colorScheme = 0;
+window.effectStyle = 0;
+
+// Color scheme to CSS mapping for the indicator
+const colorSchemeStyles = [
+  "linear-gradient(135deg, #3b83ff, #0052cc)", // Classic Blue
+  "linear-gradient(135deg, #9d4edd, #5a189a)", // Cyberpunk
+  "linear-gradient(135deg, #ff7b00, #ff0000)", // Fire
+  "linear-gradient(135deg, #a7f542, #2d801c)", // Toxic 
+  "linear-gradient(135deg, #caf0f8, #9381ff)", // Ethereal
+  "linear-gradient(135deg, #ffffff, #333333)", // Monochrome
+  "linear-gradient(135deg, #ff0000, #00ff00, #0000ff)", // Rainbow
+  "linear-gradient(135deg, #00d4ff, #090979)" // Electric
+];
 
 // FPS tracking
 let frameCount = 0;
 let lastTime = performance.now();
 let fps = 0;
 
-// Immediately check if canvas exists in the DOM
-const canvas = document.getElementById('exCanvas') as HTMLCanvasElement;
-console.log('Canvas element found:', !!canvas);
+// Import main script to run WebGL effect
+// This is necessary because we're just setting up UI here
+import './main';
 
 // Create effect when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -44,23 +49,35 @@ document.addEventListener('DOMContentLoaded', () => {
   const canvas = document.getElementById('exCanvas') as HTMLCanvasElement;
   const fpsCounter = document.getElementById('fpsCounter');
   const speedSlider = document.getElementById('speedSlider') as HTMLInputElement;
-  const detailSlider = document.getElementById('detailSlider') as HTMLInputElement;
   const colorShiftToggle = document.getElementById('colorShiftToggle') as HTMLInputElement;
+  const colorSchemeSelect = document.getElementById('colorScheme') as HTMLSelectElement;
+  const effectStyleSelect = document.getElementById('effectStyle') as HTMLSelectElement;
   const speedValue = document.getElementById('speedValue');
-  const detailValue = document.getElementById('detailValue');
+  const colorIndicator = document.getElementById('colorIndicator');
   
   console.log('Canvas:', !!canvas);
   console.log('FPS Counter:', !!fpsCounter);
   console.log('Controls:', {
     speedSlider: !!speedSlider,
-    detailSlider: !!detailSlider,
-    colorShiftToggle: !!colorShiftToggle
+    colorShiftToggle: !!colorShiftToggle,
+    colorSchemeSelect: !!colorSchemeSelect,
+    effectStyleSelect: !!effectStyleSelect
   });
   
   if (!canvas) {
     console.error('Canvas element not found!');
     return;
   }
+  
+  // Update color indicator
+  const updateColorIndicator = (scheme: number) => {
+    if (colorIndicator) {
+      colorIndicator.style.background = colorSchemeStyles[scheme];
+    }
+  };
+  
+  // Set initial color indicator
+  updateColorIndicator(0);
   
   // Set up UI controls
   speedSlider.addEventListener('input', () => {
@@ -69,63 +86,39 @@ document.addEventListener('DOMContentLoaded', () => {
     if (speedValue) speedValue.textContent = value.toFixed(1);
   });
   
-  detailSlider.addEventListener('input', () => {
-    const value = parseInt(detailSlider.value);
-    window.detail = value;
-    if (detailValue) detailValue.textContent = value.toString();
-  });
-  
   colorShiftToggle.addEventListener('change', () => {
     window.colorShift = colorShiftToggle.checked ? 1 : 0;
   });
   
-  // Get control values from UI elements
-  const getControls = (): Controls => {
-    return {
-      speed: window.speed,
-      detail: window.detail,
-      colorShift: window.colorShift !== 0
-    };
-  };
+  colorSchemeSelect.addEventListener('change', () => {
+    const value = parseInt(colorSchemeSelect.value);
+    window.colorScheme = value;
+    updateColorIndicator(value);
+  });
   
-  try {
-    console.log('Creating PuffStuffEffect...');
-    // Create effect
-    const effect = new PuffStuffEffect(canvas);
-    console.log('Effect created successfully');
+  effectStyleSelect.addEventListener('change', () => {
+    const value = parseInt(effectStyleSelect.value);
+    window.effectStyle = value;
+  });
+  
+  // FPS counter update
+  function updateFPS() {
+    frameCount++;
+    const now = performance.now();
     
-    // Animation loop with FPS counter
-    const animate = (timestamp: number) => {
-      // Track FPS
-      frameCount++;
-      if (timestamp - lastTime >= 1000) {
-        fps = Math.round((frameCount * 1000) / (timestamp - lastTime));
-        frameCount = 0;
-        lastTime = timestamp;
-        if (fpsCounter) fpsCounter.textContent = `${fps} FPS`;
+    if (now - lastTime >= 1000) {
+      fps = Math.round((frameCount * 1000) / (now - lastTime));
+      frameCount = 0;
+      lastTime = now;
+      
+      if (fpsCounter) {
+        fpsCounter.textContent = `${fps} FPS`;
       }
-      
-      // Get current time in seconds
-      const time = timestamp * 0.001;
-      
-      // Get current controls
-      const controls = getControls();
-      
-      try {
-        // Render frame
-        effect.render(time, controls);
-      } catch (e) {
-        console.error('Render error:', e);
-      }
-      
-      // Request next frame
-      window.requestAnimationFrame(animate);
-    };
+    }
     
-    // Start animation
-    console.log('Starting animation loop');
-    window.requestAnimationFrame(animate);
-  } catch (e) {
-    console.error('Error setting up effect:', e);
+    requestAnimationFrame(updateFPS);
   }
+  
+  // Start FPS counter
+  updateFPS();
 }); 

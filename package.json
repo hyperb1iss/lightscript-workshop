@@ -18,6 +18,8 @@
     "vite-plugin-eslint": "^1.8.1"
   },
   "dependencies": {
-    "gl-matrix": "^3.4.3"
+    "@types/three": "^0.175.0",
+    "gl-matrix": "^3.4.3",
+    "three": "^0.175.0"
   }
 }
