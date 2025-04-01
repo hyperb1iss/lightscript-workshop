@@ -43,12 +43,20 @@ if (typeof (window as any).colorSaturation === 'undefined') {
 const colorSchemeStyles = [
   "linear-gradient(135deg, #3b83ff, #0052cc)", // Classic Blue
   "linear-gradient(135deg, #9d4edd, #5a189a)", // Cyberpunk
-  "linear-gradient(135deg, #ff7b00, #ff0000)", // Fire
+  "linear-gradient(135deg, #ff5500, #ff0000, #cc0000)", // Fire - updated to be more red/orange without green
   "linear-gradient(135deg, #a7f542, #2d801c)", // Toxic 
   "linear-gradient(135deg, #caf0f8, #9381ff)", // Ethereal
   "linear-gradient(135deg, #ffffff, #333333)", // Monochrome
   "linear-gradient(135deg, #ff0000, #00ff00, #0000ff)", // Rainbow
-  "linear-gradient(135deg, #00d4ff, #090979)" // Electric
+  "linear-gradient(135deg, #00d4ff, #090979)", // Electric
+  "linear-gradient(135deg, #9b5de5, #6a0dad)", // Amethyst
+  "linear-gradient(135deg, #ff9e00, #e35757, #00b4d8)", // Coral Reef 
+  "linear-gradient(135deg, #03045e, #023e8a, #0077b6)", // Deep Sea
+  "linear-gradient(135deg, #2d6a4f, #40916c, #52b788)", // Emerald
+  "linear-gradient(135deg, #ff2a6d, #05d9e8, #d1f7ff)", // Neon
+  "linear-gradient(135deg, #e8a598, #c89f9c, #ddbea9)", // Rose Gold
+  "linear-gradient(135deg, #ff7e00, #fe6d73, #9381ff)", // Sunset
+  "linear-gradient(135deg, #ff71ce, #01cdfe, #b967ff)" // Vapor Wave
 ];
 
 // FPS tracking
@@ -137,10 +145,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const colorSchemeSelect = document.createElement('select');
     colorSchemeSelect.id = 'colorScheme';
     
-    const schemeOptions = ['Classic Blue', 'Cyberpunk', 'Fire', 'Toxic', 'Ethereal', 'Monochrome', 'Rainbow', 'Electric'];
-    schemeOptions.forEach((option, index) => {
+    // Create a sorted array of color scheme names
+    const schemeOptions = [
+      'Amethyst',
+      'Classic Blue', 
+      'Coral Reef',
+      'Cyberpunk', 
+      'Deep Sea',
+      'Electric',
+      'Emerald',
+      'Ethereal', 
+      'Fire', 
+      'Monochrome', 
+      'Neon',
+      'Rainbow', 
+      'Rose Gold',
+      'Sunset',
+      'Toxic',
+      'Vapor Wave'
+    ];
+    
+    // Create a mapping of display names to indices in the original array
+    const schemeIndices: { [key: string]: number } = {
+      'Classic Blue': 0,
+      'Cyberpunk': 1,
+      'Fire': 2,
+      'Toxic': 3,
+      'Ethereal': 4,
+      'Monochrome': 5,
+      'Rainbow': 6,
+      'Electric': 7,
+      'Amethyst': 8,
+      'Coral Reef': 9,
+      'Deep Sea': 10,
+      'Emerald': 11,
+      'Neon': 12,
+      'Rose Gold': 13,
+      'Sunset': 14,
+      'Vapor Wave': 15
+    };
+    
+    schemeOptions.forEach((option) => {
       const optElement = document.createElement('option');
-      optElement.value = index.toString();
+      optElement.value = schemeIndices[option].toString();
       optElement.textContent = option;
       colorSchemeSelect.appendChild(optElement);
     });

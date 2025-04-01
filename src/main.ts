@@ -68,7 +68,8 @@ export interface Controls {
   
   // Convert string values to indices if needed (for SignalRGB)
   if (typeof globalColorScheme === 'string') {
-    const schemes = ["Classic Blue", "Cyberpunk", "Fire", "Toxic", "Ethereal", "Monochrome", "Rainbow", "Electric"];
+    const schemes = ["Classic Blue", "Cyberpunk", "Fire", "Toxic", "Ethereal", "Monochrome", "Rainbow", "Electric", 
+                    "Amethyst", "Coral Reef", "Deep Sea", "Emerald", "Neon", "Rose Gold", "Sunset", "Vapor Wave"];
     globalColorScheme = schemes.indexOf(globalColorScheme);
     if (globalColorScheme === -1) globalColorScheme = 0;
   }
@@ -346,8 +347,9 @@ function initWebGLEffect() {
               // Fire - Dynamic reds, oranges and yellow tones
               float flicker = sin(iTime * 8.0) * sin(iTime * 5.7) * 0.1;
               float glow = sin(iTime * 0.4) * 0.2 + 0.8;
-              color = enhancedBase * vec3(1.7 * glow, (0.65 + flicker), 0.1) + 
-                     vec3(flicker * 0.1, 0.0, 0.0);
+              // Reduce green component and increase red for a more intense fire look
+              color = enhancedBase * vec3(1.9 * glow, (0.4 + flicker), 0.05) + 
+                     vec3(flicker * 0.2, 0.0, 0.0);
           }
           else if (scheme == 3) {
               // Toxic - Pulsing greens and yellows
@@ -386,14 +388,126 @@ function initWebGLEffect() {
           }
           else if (scheme == 7) {
               // Electric - Dynamic blues and whites with lightning flashes
+              // Make flash less frequent (reduced threshold from 0.95 to 0.98)
               float flash = pow(sin(iTime * 10.0) * 0.5 + 0.5, 4.0) * sin(iTime * 5.0);
               float glow = sin(iTime * 0.5) * 0.2 + 0.8;
               color = enhancedBase * vec3(0.2, 0.7, 1.8 * glow) + 
                     vec3(0.3 * sin(T * 0.3)) + vec3(flash);
               
-              // Occasional lightning strike (more visible with higher color pulse)
-              if (sin(iTime * 0.73) > 0.95 || flash > 0.7) {
+              // Occasional lightning strike (reduced frequency by changing threshold)
+              if (sin(iTime * 0.73) > 0.98 || flash > 0.85) { // Changed from 0.95 to 0.98 and 0.7 to 0.85
                   color += vec3(0.2, 0.3, 0.6) * flash * (1.0 + iColorPulse);
+              }
+          }
+          else if (scheme == 8) {
+              // Amethyst - Rich purples with subtle sparkle
+              float shimmer = pow(sin(iTime * 7.0 + enhancedBase.x * 20.0) * 0.5 + 0.5, 8.0) * 0.2;
+              float purpleShift = sin(iTime * 0.3) * 0.1;
+              color = enhancedBase * vec3(0.8 + purpleShift, 0.3, 1.2 - purpleShift) + 
+                     vec3(shimmer) + vec3(0.05, 0.0, 0.1);
+          }
+          else if (scheme == 9) {
+              // Coral Reef - Vibrant underwater colors
+              float waveMotion = sin(iTime * 0.5 + enhancedBase.y * 3.0) * 0.1;
+              float blueOverlay = sin(iTime * 0.2) * 0.1 + 0.2;
+              color = enhancedBase * vec3(1.3 + waveMotion, 0.8 - waveMotion, 0.4) + 
+                     vec3(0.0, 0.1, blueOverlay);
+              
+              // Occasional bright coral highlights
+              if (sin(enhancedBase.x * 10.0 + iTime) > 0.8) {
+                  color += vec3(0.15, 0.05, 0.0);
+              }
+          }
+          else if (scheme == 10) {
+              // Deep Sea - Dark blues with bioluminescent accents
+              float luminescence = pow(sin(enhancedBase.z * 8.0 + iTime) * 0.5 + 0.5, 4.0) * 0.4;
+              float depth = sin(iTime * 0.1) * 0.1 + 0.8;
+              color = enhancedBase * vec3(0.1, 0.3, depth) + 
+                     vec3(0.0, luminescence * 0.6, luminescence);
+              
+              // Add occasional glowing particles
+              if (fract(sin(dot(vec2(enhancedBase.x, enhancedBase.y * iTime * 0.1), vec2(12.9898, 78.233))) * 43758.5453) > 0.99) {
+                  color += vec3(0.0, 0.2, 0.3) * (sin(iTime * 2.0) * 0.5 + 0.5);
+              }
+          }
+          else if (scheme == 11) {
+              // Emerald - Deep greens with crystal-like reflections
+              float crystalFlash = pow(sin(enhancedBase.y * 10.0 + iTime * 2.0) * 0.5 + 0.5, 6.0) * 0.3;
+              float greenShift = sin(iTime * 0.4) * 0.1;
+              color = enhancedBase * vec3(0.2, 1.1 + greenShift, 0.5) + 
+                     vec3(crystalFlash * 0.7, crystalFlash, crystalFlash * 0.6);
+          }
+          else if (scheme == 12) {
+              // Neon - Vibrant glowing colors with dark backdrop
+              float neonPulse = sin(iTime * 1.5) * 0.15 + 0.85;
+              vec3 neonColor;
+              
+              // Shifting neon hue based on position and time
+              float hueShift = fract(enhancedBase.z * 0.2 + iTime * 0.05);
+              float hueSector = floor(hueShift * 3.0);
+              
+              if (hueSector < 1.0) {
+                  neonColor = vec3(1.0, 0.1, 0.8); // Pink
+              } else if (hueSector < 2.0) {
+                  neonColor = vec3(0.1, 1.0, 0.8); // Cyan
+              } else {
+                  neonColor = vec3(0.9, 0.8, 0.1); // Yellow
+              }
+              
+              // Apply the neon color with glow effect
+              color = enhancedBase * neonColor * neonPulse + vec3(0.05);
+              
+              // Add dark backdrop for contrast
+              color = mix(vec3(0.02, 0.02, 0.05), color, min(1.0, color.r + color.g + color.b));
+          }
+          else if (scheme == 13) {
+              // Rose Gold - Warm metallic pinks and golds
+              float metallic = pow(sin(enhancedBase.x * 5.0 + enhancedBase.y * 3.0 + iTime) * 0.5 + 0.5, 2.0);
+              float warmth = sin(iTime * 0.3) * 0.1 + 0.9;
+              color = enhancedBase * vec3(1.1 * warmth, 0.7, 0.6) + 
+                     vec3(metallic * 0.3, metallic * 0.2, metallic * 0.1);
+          }
+          else if (scheme == 14) {
+              // Sunset - Warm oranges, reds and purples
+              float skyGradient = enhancedBase.y * 2.0;
+              float sunsetPhase = sin(iTime * 0.2) * 0.5 + 0.5; // Time of sunset
+              
+              // Sky colors transition from orange/red to purple/blue
+              vec3 horizon = mix(
+                  vec3(1.5, 0.6, 0.2), // Orange-red
+                  vec3(0.9, 0.2, 0.5), // Pink-red
+                  sunsetPhase
+              );
+              
+              vec3 zenith = mix(
+                  vec3(0.7, 0.3, 0.9), // Purple
+                  vec3(0.2, 0.2, 0.8), // Deep blue
+                  sunsetPhase
+              );
+              
+              // Blend based on position
+              color = enhancedBase * mix(horizon, zenith, skyGradient);
+              
+              // Add sun glow
+              float sun = pow(max(0.0, 1.0 - length(enhancedBase.xy * 2.0)), 5.0);
+              color += vec3(1.0, 0.6, 0.2) * sun * 0.5;
+          }
+          else if (scheme == 15) {
+              // Vapor Wave - Retro 80s aesthetic
+              float gridEffect = max(0.0, 
+                  sin(enhancedBase.x * 10.0 + iTime) * sin(enhancedBase.y * 10.0 + iTime) - 0.8) * 0.5;
+              
+              // Pink and cyan palette with subtle movement
+              float vaporShift = sin(iTime * 0.2) * 0.1;
+              color = enhancedBase * vec3(0.9 + vaporShift, 0.4, 0.9 - vaporShift) + 
+                     vec3(0.1, 0.1 + gridEffect, 0.3);
+              
+              // Add occasional glitch lines
+              if (fract(iTime * 2.0) < 0.03) {
+                  float glitchPos = floor(sin(iTime * 10.0) * 10.0) / 10.0;
+                  if (abs(enhancedBase.y - glitchPos) < 0.02) {
+                      color *= vec3(0.8, 1.2, 1.5);
+                  }
               }
           }
           
