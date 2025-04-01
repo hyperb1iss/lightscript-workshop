@@ -39,12 +39,12 @@ export interface Controls {
 // This will update the shader uniforms from the global variables
 (window as any).update = function(force = false) {
   // Only log on forced updates or occasionally to reduce spam
-  if (force || Math.random() < 0.01) {
+  if (force || (DEBUG && Math.random() < 0.01)) {
     debug('Update called');
   }
   
   if (!material) {
-    debug('Material not initialized yet in update()');
+    if (force) debug('Material not initialized yet in update()');
     return;
   }
   
@@ -81,19 +81,15 @@ export interface Controls {
   }
   
   // Get new control values
-  let globalColorIntensity = (window as any).colorIntensity;
-  let globalColorPulse = (window as any).colorPulse;
-  let globalMotionWave = (window as any).motionWave;
-  let globalMotionReverse = (window as any).motionReverse ? 1 : 0;
-  let globalColorSaturation = (window as any).colorSaturation;
+  const globalColorIntensity = Number((window as any).colorIntensity) || 100;
+  const globalColorPulse = Number((window as any).colorPulse) || 0;
+  const globalMotionWave = Number((window as any).motionWave) || 0;
+  const globalMotionReverse = (window as any).motionReverse ? 1 : 0;
+  const globalColorSaturation = Number((window as any).colorSaturation) || 100;
   
-  // Ensure we have numeric values
-  globalColorScheme = Number(globalColorScheme) || 0;
-  globalEffectStyle = Number(globalEffectStyle) || 0;
-  globalColorIntensity = Number(globalColorIntensity) || 100;
-  globalColorPulse = Number(globalColorPulse) || 0;
-  globalMotionWave = Number(globalMotionWave) || 0;
-  globalColorSaturation = Number(globalColorSaturation) || 100;
+  // Ensure we have numeric values for color scheme and effect style
+  const normalizedColorScheme = Number(globalColorScheme) || 0;
+  const normalizedEffectStyle = Number(globalEffectStyle) || 0;
   
   // Normalize color intensity to a 0-2 range (100 = 1.0), minimum 0.01
   const normalizedColorIntensity = Math.max(0.01, globalColorIntensity / 100);
@@ -109,8 +105,8 @@ export interface Controls {
     debug('Control values:', { 
       speed: globalSpeed, 
       colorShift: globalColorShift, 
-      colorScheme: globalColorScheme, 
-      effectStyle: globalEffectStyle,
+      colorScheme: normalizedColorScheme, 
+      effectStyle: normalizedEffectStyle,
       colorIntensity: normalizedColorIntensity,
       colorSaturation: normalizedColorSaturation,
       colorPulse: normalizedColorPulse, 
@@ -122,8 +118,8 @@ export interface Controls {
   // Update shader uniforms
   material.uniforms.iSpeed.value = globalSpeed;
   material.uniforms.iColorShift.value = globalColorShift === 1;
-  material.uniforms.iColorScheme.value = globalColorScheme;
-  material.uniforms.iEffectStyle.value = globalEffectStyle;
+  material.uniforms.iColorScheme.value = normalizedColorScheme;
+  material.uniforms.iEffectStyle.value = normalizedEffectStyle;
   material.uniforms.iColorIntensity.value = normalizedColorIntensity;
   material.uniforms.iColorPulse.value = normalizedColorPulse;
   material.uniforms.iMotionWave.value = normalizedMotionWave;
@@ -599,13 +595,17 @@ function initWebGLEffect() {
       
       float triSurface(vec3 p) {
           // Add motion wave effect to the surface
-          float waveEffect = iMotionWave > 0.0 ? 
-              sin(p.z * 0.2 + iTime * 2.0) * iMotionWave * 0.5 : 
-              0.0;
+          // Only calculate wave effect if actually used
+          float waveEffect = 0.0;
+          if (iMotionWave > 0.0) {
+              waveEffect = sin(p.z * 0.2 + iTime * 2.0) * iMotionWave * 0.5;
+          }
               
-          return (1. -  dot(tri(.15*T+p*.25+tri(.05*T+p*.2 + waveEffect))+
-                            tri(p + waveEffect)*.2,
-                            vec3(2.5)));
+          // Optimize with fewer calculations
+          vec3 p1 = p + waveEffect;
+          vec3 p2 = p*.2 + waveEffect + tri(.05*T+p1);
+          
+          return (1.0 - dot(tri(.15*T+p*.25+tri(p2)) + tri(p1)*.2, vec3(2.5)));
       }
       
       float map(vec3 p) {
@@ -615,10 +615,10 @@ function initWebGLEffect() {
           s = min(6.5 + p.y, s);
           s -= triSurface(p);
           
-          // Add surface detail regardless of color shift
-          for (a = .05; a < 1.;
+          // Reduce iterations in surface detail loop and use larger steps
+          for (a = .1; a < 1.;
               s -= abs(dot(sin(T+p * a * 40.), vec3(.01))) / a,
-              a += a);
+              a += a * 1.5); // Increased step size from a+=a to a+=a*1.5
               
           // Add base color
           rgb += sin(p)*.15+.175;
@@ -654,15 +654,18 @@ function initWebGLEffect() {
           fragColor = vec4(0.0);
           rgb = vec3(0);
           
-          #define MAX_DISTANCE 100.0 // Limit ray marching distance
+          #define MAX_DISTANCE 100.0
+          #define MAX_ITER 60.0
           
-          while(i++ < 90. && s > .001 && d < MAX_DISTANCE) // Added max distance check
+          // More aggressive step size for faster convergence
+          while(i++ < MAX_ITER && s > .001 && d < MAX_DISTANCE)
               p = ro + D * d,
-              d += s = map(p)*.3;
+              d += s = map(p)*.4; // Increased step multiplier from 0.3 to 0.4
           
-          for (a = .4; a < 4.;
+          // Reduce iterations in color detail loop
+          for (a = .5; a < 4.; // Start from 0.5 instead of 0.4
               rgb +=  abs(dot(sin(p* a * 8.),
-              vec3(.07))) / a, a *= 1.4142);
+              vec3(.07))) / a, a *= 1.6); // Increased step multiplier from 1.4142 to 1.6
           
           // Apply color scheme
           rgb = getColorPalette(iColorScheme, rgb);
