@@ -28,6 +28,11 @@ export interface Controls {
   colorShift: boolean;
   colorScheme: number;
   effectStyle: number;
+  colorIntensity: number;
+  colorPulse: number;
+  motionWave: number;
+  motionReverse: boolean;
+  colorSaturation: number;
 }
 
 // Make an update function globally available
@@ -45,7 +50,16 @@ export interface Controls {
   
   // Access variables directly from global scope
   // These come from SignalRGB's meta properties
-  const globalSpeed = (window as any).speed || 1.0;
+  let globalSpeed = (window as any).speed;
+  
+  // Convert the integer speed (1-10) to a reasonable multiplier (0.2-3.0)
+  if (typeof globalSpeed === 'number') {
+    // Use a non-linear curve for better control at lower speeds
+    globalSpeed = Math.max(0.2, Math.pow(globalSpeed / 5, 1.5));
+  } else {
+    globalSpeed = 1.0; // Default
+  }
+  
   const globalColorShift = (window as any).colorShift ? 1 : 0;
   
   // Handle both string and number values for colorScheme and effectStyle
@@ -65,16 +79,42 @@ export interface Controls {
     if (globalEffectStyle === -1) globalEffectStyle = 0;
   }
   
+  // Get new control values
+  let globalColorIntensity = (window as any).colorIntensity;
+  let globalColorPulse = (window as any).colorPulse;
+  let globalMotionWave = (window as any).motionWave;
+  let globalMotionReverse = (window as any).motionReverse ? 1 : 0;
+  let globalColorSaturation = (window as any).colorSaturation;
+  
   // Ensure we have numeric values
   globalColorScheme = Number(globalColorScheme) || 0;
   globalEffectStyle = Number(globalEffectStyle) || 0;
+  globalColorIntensity = Number(globalColorIntensity) || 100;
+  globalColorPulse = Number(globalColorPulse) || 0;
+  globalMotionWave = Number(globalMotionWave) || 0;
+  globalColorSaturation = Number(globalColorSaturation) || 100;
+  
+  // Normalize color intensity to a 0-2 range (100 = 1.0), minimum 0.01
+  const normalizedColorIntensity = Math.max(0.01, globalColorIntensity / 100);
+  
+  // Normalize saturation to a 0-2 range (100 = 1.0), minimum 0.01
+  const normalizedColorSaturation = Math.max(0.01, globalColorSaturation / 100);
+  
+  // Normalize other sliders to 0-1 range
+  const normalizedColorPulse = globalColorPulse / 10;
+  const normalizedMotionWave = globalMotionWave / 10;
   
   if (force) {
     debug('Control values:', { 
       speed: globalSpeed, 
       colorShift: globalColorShift, 
       colorScheme: globalColorScheme, 
-      effectStyle: globalEffectStyle 
+      effectStyle: globalEffectStyle,
+      colorIntensity: normalizedColorIntensity,
+      colorSaturation: normalizedColorSaturation,
+      colorPulse: normalizedColorPulse, 
+      motionWave: normalizedMotionWave,
+      motionReverse: globalMotionReverse 
     });
   }
   
@@ -83,6 +123,11 @@ export interface Controls {
   material.uniforms.iColorShift.value = globalColorShift === 1;
   material.uniforms.iColorScheme.value = globalColorScheme;
   material.uniforms.iEffectStyle.value = globalEffectStyle;
+  material.uniforms.iColorIntensity.value = normalizedColorIntensity;
+  material.uniforms.iColorPulse.value = normalizedColorPulse;
+  material.uniforms.iMotionWave.value = normalizedMotionWave;
+  material.uniforms.iMotionReverse.value = globalMotionReverse === 1;
+  material.uniforms.iColorSaturation.value = normalizedColorSaturation;
 };
 
 // Initialize everything
@@ -131,10 +176,15 @@ function initWebGLEffect() {
       uniform bool iColorShift;
       uniform int iColorScheme;
       uniform int iEffectStyle;
+      uniform float iColorIntensity;
+      uniform float iColorPulse;
+      uniform float iMotionWave;
+      uniform bool iMotionReverse;
+      uniform float iColorSaturation;
       
-      #define T (iTime*3.5*iSpeed)
-      #define P(z) (vec3(tanh(cos((z) * .2) * .4) * 12., \
-                      5.+tanh(cos((z) * .14) * .5) * 24., (z)))
+      #define T (iTime*3.5*iSpeed*(iMotionReverse ? -1.0 : 1.0))
+      #define P(z) (vec3(tanh(cos((z) * .2 + sin(iTime * iMotionWave) * 2.0 * iMotionWave) * .4) * 12., \
+                      5.+tanh(cos((z) * .14 + cos(iTime * iMotionWave * 0.5) * 3.0 * iMotionWave) * .5) * 24., (z)))
       #define rot(a) mat2(cos(a), -sin(a), sin(a), cos(a))
       #define N normalize
       
@@ -144,48 +194,212 @@ function initWebGLEffect() {
       
       vec3 rgb = vec3(0);
       
-      // Color scheme palettes
+      // Improved color mixing function with more dynamic variation
+      vec3 colorMix(vec3 a, vec3 b, float t) {
+          // Non-linear mixing for more interesting transitions
+          float curve = smoothstep(0.0, 1.0, t);
+          vec3 mixed = mix(a, b, curve);
+          
+          // Add subtle hue variation
+          float hueShift = sin(iTime * 0.5) * 0.1;
+          mixed.r = mix(mixed.r, mixed.g, hueShift);
+          mixed.b = mix(mixed.b, mixed.r, hueShift * 0.5);
+          
+          return mixed;
+      }
+      
+      // Enhanced hsv<->rgb conversion
+      vec3 hsv2rgb(vec3 c) {
+        vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+      }
+      
+      vec3 rgb2hsv(vec3 c) {
+        vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+        vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+        vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+        
+        float d = q.x - min(q.w, q.y);
+        float e = 1.0e-10;
+        return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+      }
+      
+      // Blend modes for richer colors
+      vec3 blendOverlay(vec3 base, vec3 blend) {
+        return mix(
+          2.0 * base * blend,
+          1.0 - 2.0 * (1.0 - base) * (1.0 - blend),
+          step(0.5, base)
+        );
+      }
+      
+      vec3 blendSoftLight(vec3 base, vec3 blend) {
+        return mix(
+          2.0 * base * blend + base * base * (1.0 - 2.0 * blend),
+          sqrt(base) * (2.0 * blend - 1.0) + 2.0 * base * (1.0 - blend),
+          step(0.5, blend)
+        );
+      }
+      
+      // Boost saturation without increasing brightness too much
+      vec3 saturateColor(vec3 color, float factor) {
+        vec3 hsv = rgb2hsv(color);
+        hsv.y = clamp(hsv.y * factor, 0.0, 1.0);
+        
+        // Reduce value slightly to avoid washing out with high saturation
+        if (factor > 1.0) {
+          hsv.z = hsv.z / (1.0 + (factor - 1.0) * 0.3);
+        }
+        
+        return hsv2rgb(hsv);
+      }
+      
+      // Prevent colors from blowing out to white
+      vec3 limitWhiteness(vec3 color, float threshold) {
+        float brightness = max(max(color.r, color.g), color.b);
+        
+        if (brightness > threshold) {
+          // If too bright, preserve the hue but reduce value
+          vec3 hsv = rgb2hsv(color);
+          hsv.z = mix(hsv.z, threshold, smoothstep(threshold, threshold + 0.2, hsv.z));
+          
+          // Boost saturation as we reduce brightness to keep colors rich
+          hsv.y = min(1.0, hsv.y * 1.2);
+          
+          return hsv2rgb(hsv);
+        }
+        
+        return color;
+      }
+      
+      // Color scheme palettes with enhanced dynamism
       vec3 getColorPalette(int scheme, vec3 baseColor) {
-          // Default blue palette (original)
-          vec3 color = baseColor * vec3(.3, .6, 1.0);
+          // Calculate more dramatic color pulse with multiple frequencies
+          float pulseFactor = 1.0;
+          if (iColorPulse > 0.0) {
+              // Multi-frequency pulsing for more complex effect
+              float fastPulse = sin(iTime * 5.0) * 0.5 + 0.5;
+              float slowPulse = sin(iTime * 2.0) * 0.5 + 0.5;
+              float weirdPulse = sin(iTime * 0.7) * sin(iTime * 1.3) * 0.5 + 0.5;
+              
+              // Mix between different pulse frequencies
+              float mixedPulse = mix(
+                  mix(fastPulse, slowPulse, 0.5),
+                  weirdPulse,
+                  sin(iTime * 0.3) * 0.5 + 0.5
+              );
+              
+              // Apply a more dramatic effect (up to 50% variation at max pulse)
+              pulseFactor = 1.0 + (mixedPulse - 0.5) * iColorPulse * 0.8;
+          }
+          
+          // Convert baseColor to HSV for more flexible manipulation
+          vec3 baseHSV = rgb2hsv(baseColor);
+          
+          // Apply non-linear intensity adjustment (preserves some color at 0 intensity)
+          float intensityFactor = max(0.01, iColorIntensity) * pulseFactor;
+          
+          // Dynamic positions on the tunnel affect color
+          float depthEffect = sin(baseHSV.x * 10.0 + iTime) * 0.1;
+          float spatialEffect = sin(baseHSV.z * 8.0 + iTime * 0.5) * 0.15;
+          
+          // Apply these effects to the base HSV
+          baseHSV.x += depthEffect;  // Hue shift
+          baseHSV.y = min(1.0, baseHSV.y * (1.0 + spatialEffect) * iColorSaturation);  // Saturation
+          
+          // Base intensity with non-linear curve for better low-intensity look
+          baseHSV.z = pow(baseHSV.z, 0.5) * intensityFactor;
+          
+          // Convert enhanced HSV back to RGB
+          vec3 enhancedBase = hsv2rgb(baseHSV);
+          
+          // Default blue palette with enhanced dynamism
+          vec3 color = enhancedBase * vec3(.5, .8, 1.3);
           
           if (scheme == 1) {
-              // Cyberpunk - Purple and teal
-              color = baseColor * vec3(0.7, 0.2, 0.8) + vec3(0.0, 0.1, 0.2);
+              // Cyberpunk - Purple and teal with dynamic shifting
+              float cybShift = sin(iTime * 0.2) * 0.2;
+              color = enhancedBase * vec3(1.0 + cybShift, 0.25, 1.4 - cybShift) + 
+                     vec3(0.03, 0.05 + sin(iTime * 0.7) * 0.03, 0.25);
           }
           else if (scheme == 2) {
-              // Fire - Red and orange tones
-              color = baseColor * vec3(1.0, 0.4, 0.1);
+              // Fire - Dynamic reds, oranges and yellow tones
+              float flicker = sin(iTime * 8.0) * sin(iTime * 5.7) * 0.1;
+              float glow = sin(iTime * 0.4) * 0.2 + 0.8;
+              color = enhancedBase * vec3(1.7 * glow, (0.65 + flicker), 0.1) + 
+                     vec3(flicker * 0.1, 0.0, 0.0);
           }
           else if (scheme == 3) {
-              // Toxic - Green and yellow hues
-              color = baseColor * vec3(0.2, 0.9, 0.3);
+              // Toxic - Pulsing greens and yellows
+              float toxicPulse = sin(iTime * 1.2) * 0.15 + 0.85;
+              float yellowShift = cos(iTime * 0.7) * 0.3;
+              color = enhancedBase * vec3(0.25 + yellowShift, 1.6 * toxicPulse, 0.35) +
+                     vec3(sin(iTime * 3.1) * 0.05, 0.0, 0.0);
           }
           else if (scheme == 4) {
-              // Ethereal - Soft pastels
-              color = baseColor * vec3(0.6, 0.8, 0.9) + vec3(0.2, 0.0, 0.3);
+              // Ethereal - Color cycling pastels
+              float etherealShift = sin(iTime * 0.3);
+              float blueShift = cos(iTime * 0.5) * 0.2;
+              color = enhancedBase * vec3(0.7 + etherealShift * 0.1, 0.9, 1.3 - blueShift) + 
+                     vec3(0.25 + sin(iTime * 1.1) * 0.1, etherealShift * 0.1, 0.4 + blueShift * 0.2);
           }
           else if (scheme == 5) {
-              // Monochrome - Grayscale
-              float luminance = dot(baseColor, vec3(0.299, 0.587, 0.114));
-              color = vec3(luminance * 1.5);
+              // Monochrome - With subtle, shifting tint
+              float tint = sin(iTime * 0.2) * 0.05;
+              float luminance = dot(enhancedBase, vec3(0.299, 0.587, 0.114));
+              color = vec3(luminance * 1.6) + vec3(tint, tint, tint * 1.5);
           }
           else if (scheme == 6) {
-              // Rainbow - Color cycling based on time
-              float hue = iTime * 0.1;
+              // Rainbow - Spectrum cycling with spatial variation
+              float hueBase = iTime * 0.1;
+              float hueSpatial = sin(enhancedBase.x * 5.0 + enhancedBase.y * 3.0) * 0.2;
               vec3 rainbow;
               
-              // Simple RGB rainbow
-              rainbow.r = sin(hue) * 0.5 + 0.5;
-              rainbow.g = sin(hue + 2.0) * 0.5 + 0.5;
-              rainbow.b = sin(hue + 4.0) * 0.5 + 0.5;
+              // Enhanced RGB rainbow with spatial variation
+              rainbow.r = sin(hueBase + hueSpatial) * 0.5 + 0.7;
+              rainbow.g = sin(hueBase + 2.0 + hueSpatial) * 0.5 + 0.7;
+              rainbow.b = sin(hueBase + 4.0 + hueSpatial) * 0.5 + 0.7;
               
-              color = baseColor * rainbow + vec3(0.2);
+              // Add some saturation pulsing
+              float rainbowPulse = sin(iTime * 2.0) * 0.1 + 0.9;
+              color = enhancedBase * (rainbow * rainbowPulse) + vec3(0.15);
           }
           else if (scheme == 7) {
-              // Electric - Blues and whites with high contrast
-              color = baseColor * vec3(0.1, 0.4, 1.0) + vec3(0.3 * sin(T * 0.3));
+              // Electric - Dynamic blues and whites with lightning flashes
+              float flash = pow(sin(iTime * 10.0) * 0.5 + 0.5, 4.0) * sin(iTime * 5.0);
+              float glow = sin(iTime * 0.5) * 0.2 + 0.8;
+              color = enhancedBase * vec3(0.2, 0.7, 1.8 * glow) + 
+                    vec3(0.3 * sin(T * 0.3)) + vec3(flash);
+              
+              // Occasional lightning strike (more visible with higher color pulse)
+              if (sin(iTime * 0.73) > 0.95 || flash > 0.7) {
+                  color += vec3(0.2, 0.3, 0.6) * flash * (1.0 + iColorPulse);
+              }
           }
+          
+          // Dynamic color adjustments - apply different effects based on depth and position
+          // Convert to HSV for easier manipulation
+          vec3 resultHSV = rgb2hsv(color);
+          
+          // Dynamic saturation based on position and time
+          float saturationMod = sin(iTime * 0.4 + resultHSV.x * 10.0) * 0.15;
+          resultHSV.y = clamp(resultHSV.y + saturationMod, 0.0, 1.0) * iColorSaturation;
+          
+          // Subtle hue rotation over time, different for each position
+          resultHSV.x += sin(iTime * 0.1 + resultHSV.z * 3.0) * 0.02;
+          
+          // Convert back to RGB
+          color = hsv2rgb(resultHSV);
+          
+          // Final contrast enhancement with reduced brightness
+          color = pow(color, vec3(0.95));
+          
+          // Apply soft light blend for richer colors
+          color = blendSoftLight(color, vec3(0.7, 0.8, 0.9));
+          
+          // Limit whiteness for punchier color
+          color = limitWhiteness(color, 0.85);
           
           return color;
       }
@@ -243,8 +457,13 @@ function initWebGLEffect() {
       }
       
       float triSurface(vec3 p) {
-          return (1. -  dot(tri(.15*T+p*.25+tri(.05*T+p*.2))+
-                            tri(p)*.2,
+          // Add motion wave effect to the surface
+          float waveEffect = iMotionWave > 0.0 ? 
+              sin(p.z * 0.2 + iTime * 2.0) * iMotionWave * 0.5 : 
+              0.0;
+              
+          return (1. -  dot(tri(.15*T+p*.25+tri(.05*T+p*.2 + waveEffect))+
+                            tri(p + waveEffect)*.2,
                             vec3(2.5)));
       }
       
@@ -277,7 +496,9 @@ function initWebGLEffect() {
           fragColor = vec4(0.0);
           rgb = vec3(0);
           
-          while(i++ < 90. && s > .001)
+          #define MAX_DISTANCE 100.0 // Limit ray marching distance
+          
+          while(i++ < 90. && s > .001 && d < MAX_DISTANCE) // Added max distance check
               p = ro + D * d,
               d += s = map(p)*.3;
           
@@ -288,10 +509,22 @@ function initWebGLEffect() {
           // Apply color scheme
           rgb = getColorPalette(iColorScheme, rgb);
           
-          vec4 baseColor = vec4(pow(rgb*exp(-d/2.), vec3(.45)), 1.);
+          // Use a custom power curve to preserve more saturation
+          vec3 baseColor = pow(rgb*exp(-d/2.5), vec3(.45));
+          
+          // Apply extra saturation to the final color before intensity adjustment
+          baseColor = saturateColor(baseColor, iColorSaturation);
+          
+          // Limit white areas
+          baseColor = limitWhiteness(baseColor, 0.9);
+          
+          // Add final color richness through overlay blend
+          baseColor = blendOverlay(baseColor, baseColor * vec3(0.95, 1.0, 1.05));
+          
+          vec4 finalColor = vec4(baseColor, 1.0);
           
           // Apply effect style
-          fragColor = applyEffectStyle(baseColor, d, iEffectStyle);
+          fragColor = applyEffectStyle(finalColor, d, iEffectStyle);
       }
       
       void main() {
@@ -316,7 +549,12 @@ function initWebGLEffect() {
         iSpeed: { value: 1.0 },
         iColorShift: { value: true },
         iColorScheme: { value: 0 },
-        iEffectStyle: { value: 0 }
+        iEffectStyle: { value: 0 },
+        iColorIntensity: { value: 1.0 },
+        iColorPulse: { value: 0.0 },
+        iMotionWave: { value: 0.0 },
+        iMotionReverse: { value: false },
+        iColorSaturation: { value: 1.0 }
       }
     });
     debug('Shader material created');

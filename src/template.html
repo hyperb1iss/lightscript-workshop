@@ -12,10 +12,10 @@
     property="speed"
     label="Animation Speed"
     type="number"
-    min="0.1"
-    max="5"
-    default="1"
-    tooltip="Controls the speed of the animation effect"
+    min="1"
+    max="10"
+    default="5"
+    tooltip="Controls the speed of the animation effect (1=Slow, 10=Fast)"
   />
   <meta
     property="colorShift"
@@ -39,6 +39,49 @@
     values="Standard,Wireframe,Glitch,Hologram,Film Noir"
     default="Standard"
     tooltip="Choose the visual style of the effect"
+  />
+  <meta
+    property="colorIntensity"
+    label="Color Intensity"
+    type="number"
+    min="1"
+    max="200"
+    default="100"
+    tooltip="Adjust the intensity of colors (0=Muted, 100=Normal, 200=Vibrant)"
+  />
+  <meta
+    property="colorPulse"
+    label="Color Pulse"
+    type="number"
+    min="0"
+    max="10"
+    default="0"
+    tooltip="Add rhythmic color pulsing (0=Off, 10=Intense)"
+  />
+  <meta
+    property="motionWave"
+    label="Motion Wave"
+    type="number"
+    min="0"
+    max="10"
+    default="0"
+    tooltip="Add wave distortion to the tunnel (0=None, 10=Maximum)"
+  />
+  <meta
+    property="motionReverse"
+    label="Reverse Direction"
+    type="boolean"
+    default="0"
+    tooltip="Reverse the direction of tunnel movement"
+  />
+  <meta
+    property="colorSaturation"
+    label="Color Saturation"
+    type="number"
+    min="1"
+    max="200"
+    default="100"
+    tooltip="Adjust the saturation level of colors (100=Normal, 200=Super Saturated)"
   />
   <style>
     body {
@@ -67,10 +110,14 @@
     
     // Log initial values from SignalRGB
     log('Initial values received', {
-      speed: typeof speed !== 'undefined' ? speed : 1,
+      speed: typeof speed !== 'undefined' ? speed : 5,
       colorShift: typeof colorShift !== 'undefined' ? colorShift : 1,
       colorScheme: typeof colorScheme !== 'undefined' ? colorScheme : 'Classic Blue',
-      effectStyle: typeof effectStyle !== 'undefined' ? effectStyle : 'Standard'
+      effectStyle: typeof effectStyle !== 'undefined' ? effectStyle : 'Standard',
+      colorIntensity: typeof colorIntensity !== 'undefined' ? colorIntensity : 100,
+      colorPulse: typeof colorPulse !== 'undefined' ? colorPulse : 0,
+      motionWave: typeof motionWave !== 'undefined' ? motionWave : 0,
+      motionReverse: typeof motionReverse !== 'undefined' ? motionReverse : 0
     });
 
     // No need for complex conversion here - we'll handle it in main.ts

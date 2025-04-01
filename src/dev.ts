@@ -19,6 +19,26 @@ if (typeof (window as any).effectStyle === 'undefined') {
   (window as any).effectStyle = 0;
 }
 
+if (typeof (window as any).colorIntensity === 'undefined') {
+  (window as any).colorIntensity = 100;
+}
+
+if (typeof (window as any).colorPulse === 'undefined') {
+  (window as any).colorPulse = 0;
+}
+
+if (typeof (window as any).motionWave === 'undefined') {
+  (window as any).motionWave = 0;
+}
+
+if (typeof (window as any).motionReverse === 'undefined') {
+  (window as any).motionReverse = 0;
+}
+
+if (typeof (window as any).colorSaturation === 'undefined') {
+  (window as any).colorSaturation = 100;
+}
+
 // Color scheme to CSS mapping for the indicator
 const colorSchemeStyles = [
   "linear-gradient(135deg, #3b83ff, #0052cc)", // Classic Blue
@@ -148,6 +168,108 @@ document.addEventListener('DOMContentLoaded', () => {
     uiContainer.appendChild(effectStyleLabel);
     uiContainer.appendChild(effectStyleSelect);
     
+    // Add color intensity slider
+    const colorIntensityLabel = document.createElement('label');
+    colorIntensityLabel.textContent = 'Color Intensity: ';
+    colorIntensityLabel.style.display = 'block';
+    colorIntensityLabel.style.marginTop = '10px';
+    
+    const colorIntensityValue = document.createElement('span');
+    colorIntensityValue.id = 'colorIntensityValue';
+    colorIntensityValue.textContent = '100';
+    colorIntensityLabel.appendChild(colorIntensityValue);
+    
+    const colorIntensitySlider = document.createElement('input');
+    colorIntensitySlider.id = 'colorIntensitySlider';
+    colorIntensitySlider.type = 'range';
+    colorIntensitySlider.min = '0';
+    colorIntensitySlider.max = '200';
+    colorIntensitySlider.step = '5';
+    colorIntensitySlider.value = '100';
+    
+    uiContainer.appendChild(colorIntensityLabel);
+    uiContainer.appendChild(colorIntensitySlider);
+    
+    // Add color pulse slider
+    const colorPulseLabel = document.createElement('label');
+    colorPulseLabel.textContent = 'Color Pulse: ';
+    colorPulseLabel.style.display = 'block';
+    colorPulseLabel.style.marginTop = '10px';
+    
+    const colorPulseValue = document.createElement('span');
+    colorPulseValue.id = 'colorPulseValue';
+    colorPulseValue.textContent = '0';
+    colorPulseLabel.appendChild(colorPulseValue);
+    
+    const colorPulseSlider = document.createElement('input');
+    colorPulseSlider.id = 'colorPulseSlider';
+    colorPulseSlider.type = 'range';
+    colorPulseSlider.min = '0';
+    colorPulseSlider.max = '10';
+    colorPulseSlider.step = '1';
+    colorPulseSlider.value = '0';
+    
+    uiContainer.appendChild(colorPulseLabel);
+    uiContainer.appendChild(colorPulseSlider);
+    
+    // Add motion wave slider
+    const motionWaveLabel = document.createElement('label');
+    motionWaveLabel.textContent = 'Motion Wave: ';
+    motionWaveLabel.style.display = 'block';
+    motionWaveLabel.style.marginTop = '10px';
+    
+    const motionWaveValue = document.createElement('span');
+    motionWaveValue.id = 'motionWaveValue';
+    motionWaveValue.textContent = '0';
+    motionWaveLabel.appendChild(motionWaveValue);
+    
+    const motionWaveSlider = document.createElement('input');
+    motionWaveSlider.id = 'motionWaveSlider';
+    motionWaveSlider.type = 'range';
+    motionWaveSlider.min = '0';
+    motionWaveSlider.max = '10';
+    motionWaveSlider.step = '1';
+    motionWaveSlider.value = '0';
+    
+    uiContainer.appendChild(motionWaveLabel);
+    uiContainer.appendChild(motionWaveSlider);
+    
+    // Add motion reverse toggle
+    const motionReverseLabel = document.createElement('label');
+    motionReverseLabel.textContent = 'Reverse Direction: ';
+    motionReverseLabel.style.display = 'block';
+    motionReverseLabel.style.marginTop = '10px';
+    
+    const motionReverseToggle = document.createElement('input');
+    motionReverseToggle.id = 'motionReverseToggle';
+    motionReverseToggle.type = 'checkbox';
+    motionReverseToggle.checked = false;
+    
+    motionReverseLabel.appendChild(motionReverseToggle);
+    uiContainer.appendChild(motionReverseLabel);
+    
+    // Add color saturation slider
+    const colorSaturationLabel = document.createElement('label');
+    colorSaturationLabel.textContent = 'Color Saturation: ';
+    colorSaturationLabel.style.display = 'block';
+    colorSaturationLabel.style.marginTop = '10px';
+    
+    const colorSaturationValue = document.createElement('span');
+    colorSaturationValue.id = 'colorSaturationValue';
+    colorSaturationValue.textContent = '100';
+    colorSaturationLabel.appendChild(colorSaturationValue);
+    
+    const colorSaturationSlider = document.createElement('input');
+    colorSaturationSlider.id = 'colorSaturationSlider';
+    colorSaturationSlider.type = 'range';
+    colorSaturationSlider.min = '1';
+    colorSaturationSlider.max = '200';
+    colorSaturationSlider.step = '5';
+    colorSaturationSlider.value = '100';
+    
+    uiContainer.appendChild(colorSaturationLabel);
+    uiContainer.appendChild(colorSaturationSlider);
+    
     // Add color indicator
     const colorIndicator = document.createElement('div');
     colorIndicator.id = 'colorIndicator';
@@ -177,6 +299,34 @@ document.addEventListener('DOMContentLoaded', () => {
     effectStyleSelect.addEventListener('change', () => {
       const value = parseInt(effectStyleSelect.value);
       (window as any).effectStyle = value;
+    });
+    
+    colorIntensitySlider.addEventListener('input', () => {
+      const value = parseInt(colorIntensitySlider.value);
+      (window as any).colorIntensity = value;
+      colorIntensityValue.textContent = value.toString();
+    });
+    
+    colorPulseSlider.addEventListener('input', () => {
+      const value = parseInt(colorPulseSlider.value);
+      (window as any).colorPulse = value;
+      colorPulseValue.textContent = value.toString();
+    });
+    
+    motionWaveSlider.addEventListener('input', () => {
+      const value = parseInt(motionWaveSlider.value);
+      (window as any).motionWave = value;
+      motionWaveValue.textContent = value.toString();
+    });
+    
+    motionReverseToggle.addEventListener('change', () => {
+      (window as any).motionReverse = motionReverseToggle.checked ? 1 : 0;
+    });
+    
+    colorSaturationSlider.addEventListener('input', () => {
+      const value = parseInt(colorSaturationSlider.value);
+      (window as any).colorSaturation = value;
+      colorSaturationValue.textContent = value.toString();
     });
     
     // FPS counter update
