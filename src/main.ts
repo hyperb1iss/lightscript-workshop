@@ -242,20 +242,7 @@ function initWebGLEffect() {
         );
       }
       
-      // Boost saturation without increasing brightness too much
-      vec3 saturateColor(vec3 color, float factor) {
-        vec3 hsv = rgb2hsv(color);
-        hsv.y = clamp(hsv.y * factor, 0.0, 1.0);
-        
-        // Reduce value slightly to avoid washing out with high saturation
-        if (factor > 1.0) {
-          hsv.z = hsv.z / (1.0 + (factor - 1.0) * 0.3);
-        }
-        
-        return hsv2rgb(hsv);
-      }
-      
-      // Prevent colors from blowing out to white
+      // Limit whiteness to preserve color richness
       vec3 limitWhiteness(vec3 color, float threshold) {
         float brightness = max(max(color.r, color.g), color.b);
         
@@ -271,6 +258,23 @@ function initWebGLEffect() {
         }
         
         return color;
+      }
+      
+      // Boost saturation without increasing brightness too much
+      vec3 saturateColor(vec3 color, float factor) {
+        vec3 hsv = rgb2hsv(color);
+        hsv.y = clamp(hsv.y * factor, 0.0, 1.0);
+        
+        // Reduce value slightly to avoid washing out with high saturation
+        // Use a gentler curve for brightness reduction at high saturation
+        if (factor > 1.0) {
+          hsv.z = hsv.z / (1.0 + (factor - 1.0) * 0.15);  // Reduced from 0.3 to 0.15
+        }
+        
+        // Ensure we never go completely dark
+        hsv.z = max(hsv.z, 0.05); 
+        
+        return hsv2rgb(hsv);
       }
       
       // Color scheme palettes with enhanced dynamism
@@ -306,7 +310,22 @@ function initWebGLEffect() {
           
           // Apply these effects to the base HSV
           baseHSV.x += depthEffect;  // Hue shift
-          baseHSV.y = min(1.0, baseHSV.y * (1.0 + spatialEffect) * iColorSaturation);  // Saturation
+          
+          // Enhance hue variations with color shift
+          if (iColorShift) {
+              // More gradual hue rotation when color shift is enabled
+              // Use depth-based variation that changes smoothly
+              float depthCoord = baseHSV.z * 3.0 + iTime * 0.1;
+              float hueShift = sin(depthCoord) * sin(depthCoord * 0.7) * 0.07; // Gentler shift with multiple frequencies
+              
+              // Apply smoothstep to create more continuous transitions
+              float smoothFactor = smoothstep(0.0, 1.0, sin(iTime * 0.15) * 0.5 + 0.5);
+              hueShift *= smoothFactor;
+              
+              baseHSV.x = fract(baseHSV.x + hueShift); // Wrap around the hue circle
+          }
+          
+          baseHSV.y = min(1.0, baseHSV.y * (1.0 + spatialEffect));  // Saturation - removed iColorSaturation here
           
           // Base intensity with non-linear curve for better low-intensity look
           baseHSV.z = pow(baseHSV.z, 0.5) * intensityFactor;
@@ -384,7 +403,7 @@ function initWebGLEffect() {
           
           // Dynamic saturation based on position and time
           float saturationMod = sin(iTime * 0.4 + resultHSV.x * 10.0) * 0.15;
-          resultHSV.y = clamp(resultHSV.y + saturationMod, 0.0, 1.0) * iColorSaturation;
+          resultHSV.y = clamp(resultHSV.y + saturationMod, 0.0, 1.0);  // Removed iColorSaturation here
           
           // Subtle hue rotation over time, different for each position
           resultHSV.x += sin(iTime * 0.1 + resultHSV.z * 3.0) * 0.02;
@@ -406,6 +425,14 @@ function initWebGLEffect() {
       
       // Apply visual effects based on style
       vec4 applyEffectStyle(vec4 color, float depth, int style) {
+          // Add color shift specific anti-banding in all modes
+          if (iColorShift) {
+              // Very subtle dithering to break up color bands
+              vec2 uv = gl_FragCoord.xy / iResolution.xy;
+              float dither = fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453) * 0.01 - 0.005;
+              color.rgb += vec3(dither);
+          }
+          
           if (style == 0) {
               // Standard - Original look
               return color;
@@ -474,13 +501,30 @@ function initWebGLEffect() {
           s = min(6.5 + p.y, s);
           s -= triSurface(p);
           
-          if (!iColorShift) {
-              for (a = .05; a < 1.;
-                  s -= abs(dot(sin(T+p * a * 40.), vec3(.01))) / a,
-                  a += a);
-          }
+          // Add surface detail regardless of color shift
+          for (a = .05; a < 1.;
+              s -= abs(dot(sin(T+p * a * 40.), vec3(.01))) / a,
+              a += a);
               
+          // Add base color
           rgb += sin(p)*.15+.175;
+          
+          // When color shift is enabled, add extra color variation
+          if (iColorShift) {
+              // Use smoother functions with smaller multipliers for gentler variation
+              vec3 colorVar = vec3(
+                  sin(p.x * 0.2 + p.z * 0.1 + iTime * 0.23),
+                  sin(p.y * 0.2 + p.z * 0.12 + iTime * 0.19),
+                  sin(p.z * 0.2 + p.x * 0.11 + iTime * 0.17)
+              ) * 0.02; // Much smaller magnitude for subtlety
+              
+              // Apply smoothstep to soften the transition
+              colorVar = smoothstep(-0.02, 0.02, colorVar) * 0.03;
+              
+              // Add the smoothed color variation
+              rgb += colorVar;
+          }
+          
           return s;
       }
       
@@ -510,9 +554,12 @@ function initWebGLEffect() {
           rgb = getColorPalette(iColorScheme, rgb);
           
           // Use a custom power curve to preserve more saturation
-          vec3 baseColor = pow(rgb*exp(-d/2.5), vec3(.45));
+          // Apply a less aggressive distance attenuation with a minimum brightness floor
+          float distanceAttenuation = mix(1.0, exp(-d/3.5), 0.85); // Less aggressive falloff (was -d/2.5)
+          vec3 baseColor = pow(rgb * distanceAttenuation + 0.03, vec3(0.43)); // Added brightness floor and slightly adjusted power
           
           // Apply extra saturation to the final color before intensity adjustment
+          // Only apply saturation here, not in getColorPalette
           baseColor = saturateColor(baseColor, iColorSaturation);
           
           // Limit white areas
