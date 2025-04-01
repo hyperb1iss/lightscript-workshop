@@ -3,79 +3,144 @@
   <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Puff Stuff Tunnel - A WebGL ray marched tunnel effect based on Shane's Shadertoy demo">
-  <meta name="keywords" content="WebGL, Three.js, shader, raymarching, tunnel, effect, shadertoy">
-  <title>Puff Stuff WebGL - Development</title>
+  <meta name="description" content="SignalRGB Lightscripts - Development Environment">
+  <meta name="keywords" content="WebGL, Three.js, shader, SignalRGB, lightscripts, RGB">
+  <title>SignalRGB Lightscripts - Development</title>
     <style>
       body {
         margin: 0;
         padding: 0;
-      background: #000;
-      color: #fff;
-      font-family: sans-serif;
-      overflow: hidden;
+        background: #000;
+        color: #fff;
+        font-family: sans-serif;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
         align-items: center;
-    }
+      }
     
-    #exCanvas {
-      display: block;
-      margin: 0 auto;
-      max-width: 100%;
-      max-height: 90vh;
-    }
+      #exCanvas {
+        display: block;
+        margin: 0 auto;
+        max-width: 100%;
+        max-height: 90vh;
+      }
     
-    #controls {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 10px;
-      border-radius: 5px;
+      .controls {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+        border-radius: 5px;
         display: flex;
-      flex-direction: column;
-      gap: 10px;
-      z-index: 10;
-    }
+        flex-direction: column;
+        gap: 10px;
+        z-index: 10;
+      }
     
-    .control {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
+      .control {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
     
-    #fpsCounter {
-      margin-top: 10px;
-      text-align: center;
-      font-weight: bold;
-      color: #0f0;
-    }
+      #fpsCounter {
+        margin-top: 10px;
+        text-align: center;
+        font-weight: bold;
+        color: #0f0;
+      }
     
-    select {
-      background: #222;
-      color: #fff;
-      border: 1px solid #444;
-      padding: 4px;
-      border-radius: 4px;
-    }
-    
-    .color-display {
-      width: 20px;
-      height: 20px;
-      display: inline-block;
-      border-radius: 3px;
-      margin-left: 8px;
-      background: linear-gradient(135deg, #3b83ff, #0052cc);
-      box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-    }
-  </style>
+      select, input {
+        background: #222;
+        color: #fff;
+        border: 1px solid #444;
+        padding: 4px;
+        border-radius: 4px;
+      }
+      
+      .effect-selector {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+        border-radius: 5px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 10;
+      }
+      
+      .welcome {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.85);
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 80%;
+        text-align: center;
+        z-index: 100;
+        display: none;
+      }
+      
+      .welcome h1 {
+        color: #ff71ce;
+        margin-top: 0;
+      }
+      
+      .welcome p {
+        margin-bottom: 20px;
+        color: #eee;
+      }
+      
+      .welcome button {
+        background: #ff71ce;
+        color: #000;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      
+      .welcome button:hover {
+        background: #01cdfe;
+      }
+    </style>
 </head>
 <body>
   <canvas id="exCanvas" width="800" height="600"></canvas>
+  
+  <div class="welcome" id="welcomeModal">
+    <h1>✨ SignalRGB Lightscripts Workshop ✨</h1>
+    <p>Welcome to the development environment for creating custom RGB effects!</p>
+    <p>This environment allows you to create and test multiple lightscripts that share common utilities.</p>
+    <p>Select an effect from the dropdown in the top-right corner to get started.</p>
+    <button id="closeWelcome">Let's Go!</button>
+  </div>
 
   <!-- Load our development script -->
   <script type="module" src="/src/dev.ts"></script>
+  
+  <script>
+    // Show welcome modal on first visit
+    window.addEventListener('DOMContentLoaded', () => {
+      const hasVisited = localStorage.getItem('hasVisitedLightscripts');
+      const welcomeModal = document.getElementById('welcomeModal');
+      
+      if (!hasVisited) {
+        welcomeModal.style.display = 'block';
+        document.getElementById('closeWelcome').addEventListener('click', () => {
+          welcomeModal.style.display = 'none';
+          localStorage.setItem('hasVisitedLightscripts', 'true');
+        });
+      }
+    });
+  </script>
 </body>
 </html> 

@@ -1,26 +1,27 @@
 import * as THREE from 'three';
+import { 
+  createDebugLogger, 
+  initializeWebGL, 
+  createShaderQuad, 
+  startAnimationLoop,
+  createStandardUniforms,
+  initializeEffect,
+  WebGLContext,
+  normalizeSpeed,
+  comboboxValueToIndex,
+  normalizePercentage,
+  boolToInt
+} from '../../common';
 
-// Debug flag - set to false to disable debug logging
-const DEBUG = true;
-
-// Helper debug function
-function debug(...args: any[]) {
-  if (DEBUG) {
-    console.log('[PuffStuff]', ...args);
-  }
-}
+// Create a debug logger for this effect
+const debug = createDebugLogger('PuffStuff', true);
 
 // Log initialization immediately
 debug('Script loaded', { timestamp: new Date().toISOString() });
 
-// Canvas and renderer setup
-let canvas: HTMLCanvasElement;
-let renderer: THREE.WebGLRenderer;
-let scene: THREE.Scene;
-let camera: THREE.Camera;
+// WebGL context and objects
+let webGLContext: WebGLContext;
 let material: THREE.ShaderMaterial;
-let clock: THREE.Clock;
-let isInitialized = false;
 
 // Controls interface
 export interface Controls {
@@ -39,7 +40,7 @@ export interface Controls {
 // This will update the shader uniforms from the global variables
 (window as any).update = function(force = false) {
   // Only log on forced updates or occasionally to reduce spam
-  if (force || (DEBUG && Math.random() < 0.01)) {
+  if (force || Math.random() < 0.01) {
     debug('Update called');
   }
   
@@ -54,13 +55,13 @@ export interface Controls {
   
   // Convert the integer speed (1-10) to a reasonable multiplier (0.2-3.0)
   if (typeof globalSpeed === 'number') {
-    // Use a non-linear curve for better control at lower speeds
-    globalSpeed = Math.max(0.2, Math.pow(globalSpeed / 5, 1.5));
+    // Use normalizeSpeed from common utilities
+    globalSpeed = normalizeSpeed(globalSpeed);
   } else {
     globalSpeed = 1.0; // Default
   }
   
-  const globalColorShift = (window as any).colorShift ? 1 : 0;
+  const globalColorShift = boolToInt((window as any).colorShift);
   
   // Handle both string and number values for colorScheme and effectStyle
   let globalColorScheme = (window as any).colorScheme;
@@ -70,14 +71,12 @@ export interface Controls {
   if (typeof globalColorScheme === 'string') {
     const schemes = ["Classic Blue", "Cyberpunk", "Fire", "Toxic", "Ethereal", "Monochrome", "Rainbow", "Electric", 
                     "Amethyst", "Coral Reef", "Deep Sea", "Emerald", "Neon", "Rose Gold", "Sunset", "Vapor Wave"];
-    globalColorScheme = schemes.indexOf(globalColorScheme);
-    if (globalColorScheme === -1) globalColorScheme = 0;
+    globalColorScheme = comboboxValueToIndex(globalColorScheme, schemes, 0);
   }
   
   if (typeof globalEffectStyle === 'string') {
     const styles = ["Standard", "Wireframe", "Glitch", "Hologram", "Film Noir"];
-    globalEffectStyle = styles.indexOf(globalEffectStyle);
-    if (globalEffectStyle === -1) globalEffectStyle = 0;
+    globalEffectStyle = comboboxValueToIndex(globalEffectStyle, styles, 0);
   }
   
   // Get new control values
@@ -91,11 +90,9 @@ export interface Controls {
   const normalizedColorScheme = Number(globalColorScheme) || 0;
   const normalizedEffectStyle = Number(globalEffectStyle) || 0;
   
-  // Normalize color intensity to a 0-2 range (100 = 1.0), minimum 0.01
-  const normalizedColorIntensity = Math.max(0.01, globalColorIntensity / 100);
-  
-  // Normalize saturation to a 0-2 range (100 = 1.0), minimum 0.01
-  const normalizedColorSaturation = Math.max(0.01, globalColorSaturation / 100);
+  // Use normalizePercentage from common utilities
+  const normalizedColorIntensity = normalizePercentage(globalColorIntensity);
+  const normalizedColorSaturation = normalizePercentage(globalColorSaturation);
   
   // Normalize other sliders to 0-1 range
   const normalizedColorPulse = globalColorPulse / 10;
@@ -132,38 +129,33 @@ function initWebGLEffect() {
   debug('Initializing WebGL tunnel effect');
   
   try {
-    // Get the canvas element
-    canvas = document.getElementById('exCanvas') as HTMLCanvasElement;
-    if (!canvas) {
-      debug('Canvas not found!');
-      // Try creating one if it doesn't exist
-      canvas = document.createElement('canvas');
-      canvas.id = 'exCanvas';
-      canvas.width = 320;
-      canvas.height = 200;
-      document.body.appendChild(canvas);
-      debug('Created canvas element dynamically');
-    } else {
-      debug('Found canvas:', { 
-        width: canvas.width, 
-        height: canvas.height 
-      });
-    }
-
-    // Create renderer
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
-    renderer.setSize(canvas.width, canvas.height);
+    // Use our common WebGL initialization function
+    webGLContext = initializeWebGL({
+      canvasId: 'exCanvas',
+      canvasWidth: 320,
+      canvasHeight: 200,
+      antialias: false
+    });
+    
+    const { canvas, scene } = webGLContext;
+    
     debug(`Renderer initialized with canvas size: ${canvas.width}x${canvas.height}`);
-
-    // Create scene and camera (orthographic for fullscreen quad)
-    scene = new THREE.Scene();
-    camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    debug('Scene and camera initialized');
-
-    // Create a full-screen quad for the shader
-    const geometry = new THREE.PlaneGeometry(2, 2);
-    debug('Created geometry');
-
+    
+    // Create standard uniforms
+    const uniforms = {
+      ...createStandardUniforms(canvas),
+      // Additional uniforms specific to this effect
+      iSpeed: { value: 1.0 },
+      iColorShift: { value: true },
+      iColorScheme: { value: 0 },
+      iEffectStyle: { value: 0 },
+      iColorIntensity: { value: 1.0 },
+      iColorPulse: { value: 0.0 },
+      iMotionWave: { value: 0.0 },
+      iMotionReverse: { value: false },
+      iColorSaturation: { value: 1.0 }
+    };
+    
     // Shadertoy-compatible shader
     const fragmentShader = `
       uniform float iTime;
@@ -702,43 +694,38 @@ function initWebGLEffect() {
       }
     `;
 
-    // Create shader material
-    material = new THREE.ShaderMaterial({
+    // Create shader mesh and material using our common utility
+    const { mesh, material: shaderMaterial } = createShaderQuad(
       fragmentShader,
-      vertexShader,
-      uniforms: {
-        iTime: { value: 0 },
-        iResolution: { value: new THREE.Vector2(canvas.width, canvas.height) },
-        iMouse: { value: new THREE.Vector2(0, 0) },
-        iSpeed: { value: 1.0 },
-        iColorShift: { value: true },
-        iColorScheme: { value: 0 },
-        iEffectStyle: { value: 0 },
-        iColorIntensity: { value: 1.0 },
-        iColorPulse: { value: 0.0 },
-        iMotionWave: { value: 0.0 },
-        iMotionReverse: { value: false },
-        iColorSaturation: { value: 1.0 }
-      }
-    });
+      uniforms,
+      vertexShader
+    );
+    
+    // Store material for global updates
+    material = shaderMaterial;
+    
     debug('Shader material created');
 
-    // Create mesh with geometry and material
-    const mesh = new THREE.Mesh(geometry, material);
+    // Add mesh to scene
     scene.add(mesh);
     debug('Mesh added to scene');
 
-    // Initialize clock for time tracking
-    clock = new THREE.Clock();
-    debug('Clock initialized');
-
     // Make initial update call
-    (window as any).update();
+    (window as any).update(true);
 
-    // Start render loop
-    isInitialized = true;
+    // Start animation loop using our common utility
     debug('Starting animation loop');
-    animate();
+    
+    startAnimationLoop(webGLContext, material, (time) => {
+      // Force update every frame to catch any control changes from SignalRGB
+      // This ensures the controls work even if SignalRGB doesn't trigger events
+      (window as any).update();
+      
+      // Log occasionally to avoid flooding the console
+      if (time % 5 < 0.1) {
+        debug('Animation frame', { time: time.toFixed(2) });
+      }
+    });
     
   } catch (error) {
     debug('ERROR during initialization:', error);
@@ -746,62 +733,5 @@ function initWebGLEffect() {
   }
 }
 
-// Animation loop
-function animate() {
-  if (!isInitialized) {
-    debug('Animation called but not initialized');
-    return;
-  }
-  
-  try {
-    requestAnimationFrame(animate);
-    
-    // Update time uniform
-    const elapsedTime = clock.getElapsedTime();
-    material.uniforms.iTime.value = elapsedTime;
-    
-    if (elapsedTime % 5 < 0.1) {
-      // Log occasionally to avoid flooding the console
-      debug('Animation frame', { time: elapsedTime.toFixed(2) });
-    }
-    
-    // Force update every frame to catch any control changes from SignalRGB
-    // This ensures the controls work even if SignalRGB doesn't trigger events
-    (window as any).update();
-    
-    // Render the scene
-    renderer.render(scene, camera);
-  } catch (error) {
-    debug('ERROR during animation:', error);
-    console.error('Animation error:', error);
-  }
-}
-
-// Start initialization when the script runs
-// This is crucial - we need to run the initialization directly,
-// not wait for DOMContentLoaded which SignalRGB might not trigger properly
-debug('Attempting initialization...');
-try {
-  // Try immediate initialization
-  if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    debug('Document ready, initializing now');
-    initWebGLEffect();
-  } else {
-    debug('Document not ready, will initialize on load');
-    window.addEventListener('load', () => {
-      debug('Window load event fired');
-      initWebGLEffect();
-    });
-    
-    // Backup: also try with a timeout
-    setTimeout(() => {
-      if (!isInitialized) {
-        debug('Fallback initialization after timeout');
-        initWebGLEffect();
-      }
-    }, 1000);
-  }
-} catch (error) {
-  debug('ERROR during script execution:', error);
-  console.error('Failed to start initialization:', error);
-} 
+// Use our common effect initialization utility
+initializeEffect(initWebGLEffect); 
