@@ -1,58 +1,49 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import fs from 'node:fs';
-import type { Plugin, OutputChunk } from 'rollup';
+import type { Plugin } from 'rollup';
 
-// Custom plugin to bundle JS and inject into HTML template
-function lightscriptsPlugin(): Plugin {
+// Check if NO_MINIFY environment variable is set
+const noMinify = process.env.NO_MINIFY === 'true';
+
+// Custom plugin to create SignalRGB-compatible HTML file
+function signalRGBPlugin(): Plugin {
   return {
-    name: 'lightscripts-plugin',
-    // For Vite 'build' is a valid apply value
-    // @ts-ignore
+    name: 'signalrgb-plugin',
+    // @ts-expect-error: apply is a valid property for Vite plugins but not in the type definition
     apply: 'build',
     
-    // After bundle is generated, create lightscripts HTML file
-    generateBundle(options, bundle) {
-      // Find main chunk
-      const mainChunk = Object.values(bundle).find(
-        (chunk): chunk is OutputChunk => chunk.type === 'chunk' && 'isEntry' in chunk && chunk.isEntry
-      );
-      
-      if (!mainChunk) return;
-      
-      // Read template
+    // After build is complete
+    closeBundle() {
+      // Read the template
       const templatePath = resolve(process.cwd(), 'src/template.html');
       const template = fs.readFileSync(templatePath, 'utf-8');
       
-      // Replace placeholder with bundled code
-      const html = template.replace('{{bundledCode}}', mainChunk.code);
+      // Read the compiled output JavaScript
+      const jsOutputPath = resolve(process.cwd(), 'dist/assets/main.js');
+      const jsContent = fs.existsSync(jsOutputPath) 
+        ? fs.readFileSync(jsOutputPath, 'utf-8')
+        : '// No JS content found';
       
-      // Add to output as a new asset
-      this.emitFile({
-        type: 'asset',
-        fileName: 'puff-stuff.html',
-        source: html
-      });
+      // Create final HTML with JS content
+      const finalHtml = template.replace('{{bundledCode}}', jsContent);
       
-      // Clean up the original JS file since we don't need it
-      delete bundle[mainChunk.fileName];
+      // Write the output file
+      fs.writeFileSync(resolve(process.cwd(), 'dist/puff-stuff.html'), finalHtml);
+      
+      // Also save the raw JS to help debugging
+      fs.writeFileSync(resolve(process.cwd(), 'dist/puff-stuff-raw.js'), jsContent);
+      
+      console.log('SignalRGB HTML file created successfully!');
     }
   };
 }
 
 export default defineConfig({
-  // Development server configuration
+  // Development server
   server: {
     port: 3000,
-    open: true,
-    host: true
-  },
-  
-  // Metadata for better dev experience
-  resolve: {
-    alias: {
-      '@': resolve(process.cwd(), 'src')
-    }
+    open: true
   },
   
   // Build configuration
@@ -61,22 +52,50 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        // In build mode, we're targeting the main.ts entry point
         main: resolve(process.cwd(), 'src/main.ts'),
       },
+      output: {
+        // Ensure the output file has a consistent name
+        entryFileNames: 'assets/[name].js',
+        format: 'iife', // Use IIFE format for browser compatibility
+        compact: false, // Avoid compact output for better readability/compatibility
+        globals: {
+          three: 'THREE'
+        }
+      },
+      external: [] // Keep three.js in the bundle
     },
-    // Recommended settings for small bundles
-    target: 'es2018',
-    minify: 'terser',
-    terserOptions: {
+    
+    // More browser-compatible output
+    target: 'es2018', // ES2018 has better browser compatibility
+    minify: noMinify ? false : 'terser',
+    terserOptions: !noMinify ? {
+      // These options aim for maximum compatibility with SignalRGB
       compress: {
-        // Optimize for size
-        passes: 2,
-        drop_console: true,
-      }
-    }
+        passes: 1,
+        drop_console: false, // Keep console logs for debugging
+        ecma: 2018,
+        keep_fnames: true,
+        keep_classnames: true,
+        unsafe: false, // Avoid unsafe optimizations
+        unsafe_math: false
+      },
+      mangle: {
+        keep_fnames: true,
+        keep_classnames: true
+      },
+      format: {
+        comments: false,
+        ecma: 2018,
+        keep_numbers: true,
+        beautify: true,
+        indent_level: 1
+      },
+      ecma: 2018
+    } : undefined
   },
+  
   plugins: [
-    lightscriptsPlugin()
+    signalRGBPlugin()
   ]
 }); 

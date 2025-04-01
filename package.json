@@ -1,25 +1,46 @@
 {
-  "name": "lightscripts",
-  "private": true,
-  "version": "0.0.0",
+  "name": "bliss-lightscripts",
+  "version": "1.0.0",
+  "description": "WebGL ports of various shadertoys to SignalRGB",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build:debug": "tsc && NO_MINIFY=true vite build",
+    "preview": "vite preview",
+    "format": "prettier --write \"src/**/*.{ts,js,html,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,js,html,css}\"",
+    "lint": "eslint src --ext ts,js --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint src --ext ts,js --fix",
+    "typecheck": "tsc --noEmit",
+    "prepare-release": "npm run format && npm run lint:fix && npm run build"
   },
+  "keywords": [
+    "webgl",
+    "shader",
+    "tunnel",
+    "signalrgb",
+    "lightscript",
+    "threejs"
+  ],
+  "author": "",
+  "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.13.14",
+    "@types/three": "^0.175.0",
+    "@typescript-eslint/eslint-plugin": "^8.29.0",
+    "@typescript-eslint/parser": "^8.29.0",
     "eslint": "^9.23.0",
     "prettier": "^3.5.3",
     "terser": "^5.39.0",
-    "typescript": "~5.7.2",
+    "typescript": "5.8.2",
     "vite": "^6.2.0",
     "vite-plugin-eslint": "^1.8.1"
   },
   "dependencies": {
-    "@types/three": "^0.175.0",
-    "gl-matrix": "^3.4.3",
     "three": "^0.175.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }

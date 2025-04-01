@@ -1,24 +1,23 @@
-import * as THREE from 'three';
-import { Controls } from './main';
-
 // Debug logging
-console.log('✨ WebGL Tunnel initialized ✨');
+console.log('✨ WebGL Tunnel Test Init ✨');
 
-// Declare global variables that would normally be set by SignalRGB
-declare global {
-  interface Window {
-    speed: number;
-    colorShift: number;
-    colorScheme: number;
-    effectStyle: number;
-  }
+// Set up global variables for local testing only
+// These won't be used in SignalRGB, which sets them via the meta properties
+if (typeof (window as any).speed === 'undefined') {
+  (window as any).speed = 1;
 }
 
-// Set initial values on window
-window.speed = 1;
-window.colorShift = 1;
-window.colorScheme = 0;
-window.effectStyle = 0;
+if (typeof (window as any).colorShift === 'undefined') {
+  (window as any).colorShift = 1;
+}
+
+if (typeof (window as any).colorScheme === 'undefined') {
+  (window as any).colorScheme = 0;
+}
+
+if (typeof (window as any).effectStyle === 'undefined') {
+  (window as any).effectStyle = 0;
+}
 
 // Color scheme to CSS mapping for the indicator
 const colorSchemeStyles = [
@@ -41,84 +40,164 @@ let fps = 0;
 // This is necessary because we're just setting up UI here
 import './main';
 
-// Create effect when DOM is loaded
+// Create local testing UI when running in a browser (not SignalRGB)
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM content loaded');
+  console.log('DOM content loaded, setting up local testing UI');
   
-  // Get UI elements
-  const canvas = document.getElementById('exCanvas') as HTMLCanvasElement;
-  const fpsCounter = document.getElementById('fpsCounter');
-  const speedSlider = document.getElementById('speedSlider') as HTMLInputElement;
-  const colorShiftToggle = document.getElementById('colorShiftToggle') as HTMLInputElement;
-  const colorSchemeSelect = document.getElementById('colorScheme') as HTMLSelectElement;
-  const effectStyleSelect = document.getElementById('effectStyle') as HTMLSelectElement;
-  const speedValue = document.getElementById('speedValue');
-  const colorIndicator = document.getElementById('colorIndicator');
-  
-  console.log('Canvas:', !!canvas);
-  console.log('FPS Counter:', !!fpsCounter);
-  console.log('Controls:', {
-    speedSlider: !!speedSlider,
-    colorShiftToggle: !!colorShiftToggle,
-    colorSchemeSelect: !!colorSchemeSelect,
-    effectStyleSelect: !!effectStyleSelect
-  });
-  
-  if (!canvas) {
-    console.error('Canvas element not found!');
-    return;
-  }
-  
-  // Update color indicator
-  const updateColorIndicator = (scheme: number) => {
-    if (colorIndicator) {
-      colorIndicator.style.background = colorSchemeStyles[scheme];
+  // Only run this setup if we're in a browser context with a body element
+  // SignalRGB might not have a complete DOM or might load things differently
+  if (document.body) {
+    const canvas = document.getElementById('exCanvas') as HTMLCanvasElement;
+    if (!canvas) {
+      console.error('Canvas element not found!');
+      return;
     }
-  };
-  
-  // Set initial color indicator
-  updateColorIndicator(0);
-  
-  // Set up UI controls
-  speedSlider.addEventListener('input', () => {
-    const value = parseFloat(speedSlider.value);
-    window.speed = value;
-    if (speedValue) speedValue.textContent = value.toFixed(1);
-  });
-  
-  colorShiftToggle.addEventListener('change', () => {
-    window.colorShift = colorShiftToggle.checked ? 1 : 0;
-  });
-  
-  colorSchemeSelect.addEventListener('change', () => {
-    const value = parseInt(colorSchemeSelect.value);
-    window.colorScheme = value;
-    updateColorIndicator(value);
-  });
-  
-  effectStyleSelect.addEventListener('change', () => {
-    const value = parseInt(effectStyleSelect.value);
-    window.effectStyle = value;
-  });
-  
-  // FPS counter update
-  function updateFPS() {
-    frameCount++;
-    const now = performance.now();
     
-    if (now - lastTime >= 1000) {
-      fps = Math.round((frameCount * 1000) / (now - lastTime));
-      frameCount = 0;
-      lastTime = now;
+    // Create UI container
+    const uiContainer = document.createElement('div');
+    uiContainer.style.position = 'fixed';
+    uiContainer.style.top = '10px';
+    uiContainer.style.left = '10px';
+    uiContainer.style.padding = '10px';
+    uiContainer.style.backgroundColor = 'rgba(0,0,0,0.7)';
+    uiContainer.style.color = 'white';
+    uiContainer.style.fontFamily = 'Arial, sans-serif';
+    uiContainer.style.borderRadius = '5px';
+    uiContainer.style.zIndex = '1000';
+    document.body.appendChild(uiContainer);
+    
+    // Add FPS counter
+    const fpsCounter = document.createElement('div');
+    fpsCounter.id = 'fpsCounter';
+    fpsCounter.textContent = '-- FPS';
+    uiContainer.appendChild(fpsCounter);
+    
+    // Add speedSlider
+    const speedLabel = document.createElement('label');
+    speedLabel.textContent = 'Speed: ';
+    speedLabel.style.display = 'block';
+    speedLabel.style.marginTop = '10px';
+    
+    const speedValue = document.createElement('span');
+    speedValue.id = 'speedValue';
+    speedValue.textContent = '1.0';
+    speedLabel.appendChild(speedValue);
+    
+    const speedSlider = document.createElement('input');
+    speedSlider.id = 'speedSlider';
+    speedSlider.type = 'range';
+    speedSlider.min = '0.1';
+    speedSlider.max = '5';
+    speedSlider.step = '0.1';
+    speedSlider.value = '1';
+    
+    uiContainer.appendChild(speedLabel);
+    uiContainer.appendChild(speedSlider);
+    
+    // Add colorShift toggle
+    const colorShiftLabel = document.createElement('label');
+    colorShiftLabel.textContent = 'Color Shift: ';
+    colorShiftLabel.style.display = 'block';
+    colorShiftLabel.style.marginTop = '10px';
+    
+    const colorShiftToggle = document.createElement('input');
+    colorShiftToggle.id = 'colorShiftToggle';
+    colorShiftToggle.type = 'checkbox';
+    colorShiftToggle.checked = true;
+    
+    colorShiftLabel.appendChild(colorShiftToggle);
+    uiContainer.appendChild(colorShiftLabel);
+    
+    // Add color scheme selector
+    const colorSchemeLabel = document.createElement('label');
+    colorSchemeLabel.textContent = 'Color Scheme: ';
+    colorSchemeLabel.style.display = 'block';
+    colorSchemeLabel.style.marginTop = '10px';
+    
+    const colorSchemeSelect = document.createElement('select');
+    colorSchemeSelect.id = 'colorScheme';
+    
+    const schemeOptions = ['Classic Blue', 'Cyberpunk', 'Fire', 'Toxic', 'Ethereal', 'Monochrome', 'Rainbow', 'Electric'];
+    schemeOptions.forEach((option, index) => {
+      const optElement = document.createElement('option');
+      optElement.value = index.toString();
+      optElement.textContent = option;
+      colorSchemeSelect.appendChild(optElement);
+    });
+    
+    uiContainer.appendChild(colorSchemeLabel);
+    uiContainer.appendChild(colorSchemeSelect);
+    
+    // Add effect style selector
+    const effectStyleLabel = document.createElement('label');
+    effectStyleLabel.textContent = 'Effect Style: ';
+    effectStyleLabel.style.display = 'block';
+    effectStyleLabel.style.marginTop = '10px';
+    
+    const effectStyleSelect = document.createElement('select');
+    effectStyleSelect.id = 'effectStyle';
+    
+    const styleOptions = ['Standard', 'Wireframe', 'Glitch', 'Hologram', 'Film Noir'];
+    styleOptions.forEach((option, index) => {
+      const optElement = document.createElement('option');
+      optElement.value = index.toString();
+      optElement.textContent = option;
+      effectStyleSelect.appendChild(optElement);
+    });
+    
+    uiContainer.appendChild(effectStyleLabel);
+    uiContainer.appendChild(effectStyleSelect);
+    
+    // Add color indicator
+    const colorIndicator = document.createElement('div');
+    colorIndicator.id = 'colorIndicator';
+    colorIndicator.style.height = '20px';
+    colorIndicator.style.marginTop = '10px';
+    colorIndicator.style.borderRadius = '3px';
+    colorIndicator.style.background = colorSchemeStyles[0];
+    uiContainer.appendChild(colorIndicator);
+    
+    // Wire up UI controls
+    speedSlider.addEventListener('input', () => {
+      const value = parseFloat(speedSlider.value);
+      (window as any).speed = value;
+      speedValue.textContent = value.toFixed(1);
+    });
+    
+    colorShiftToggle.addEventListener('change', () => {
+      (window as any).colorShift = colorShiftToggle.checked ? 1 : 0;
+    });
+    
+    colorSchemeSelect.addEventListener('change', () => {
+      const value = parseInt(colorSchemeSelect.value);
+      (window as any).colorScheme = value;
+      colorIndicator.style.background = colorSchemeStyles[value];
+    });
+    
+    effectStyleSelect.addEventListener('change', () => {
+      const value = parseInt(effectStyleSelect.value);
+      (window as any).effectStyle = value;
+    });
+    
+    // FPS counter update
+    function updateFPS() {
+      frameCount++;
+      const now = performance.now();
       
-      if (fpsCounter) {
-        fpsCounter.textContent = `${fps} FPS`;
+      if (now - lastTime >= 1000) {
+        fps = Math.round((frameCount * 1000) / (now - lastTime));
+        frameCount = 0;
+        lastTime = now;
+        
+        if (fpsCounter) {
+          fpsCounter.textContent = `${fps} FPS`;
+        }
       }
+      
+      requestAnimationFrame(updateFPS);
     }
     
-    requestAnimationFrame(updateFPS);
+    // Start FPS counter
+    updateFPS();
   }
-  
-  // Start FPS counter
-  updateFPS();
 }); 
