@@ -18,7 +18,12 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    
+    /* GLSL shader imports */
+    "types": [
+      "vite-plugin-glsl/ext"
+    ]
   },
   "include": ["src"]
 }

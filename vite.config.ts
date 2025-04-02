@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { execSync } from 'node:child_process';
 import type { Plugin } from 'vite';
 import { effects } from './src';
+import glsl from 'vite-plugin-glsl';
 
 // Check if NO_MINIFY environment variable is set
 const noMinify = process.env.NO_MINIFY === 'true';
@@ -120,7 +121,10 @@ export default defineConfig(({ mode }) => {
           }
         } : undefined
       },
-      plugins: [signalRGBPlugin()]
+      plugins: [
+        glsl(),
+        signalRGBPlugin()
+      ]
     };
   } else {
     // Main build - build the first effect and then trigger builds for the others
@@ -158,6 +162,7 @@ export default defineConfig(({ mode }) => {
         } : undefined
       },
       plugins: [
+        glsl(),
         {
           name: 'build-remaining-effects',
           apply: 'build',

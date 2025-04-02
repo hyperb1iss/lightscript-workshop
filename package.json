@@ -35,7 +35,8 @@
     "terser": "^5.39.0",
     "typescript": "5.8.2",
     "vite": "^6.2.0",
-    "vite-plugin-eslint": "^1.8.1"
+    "vite-plugin-eslint": "^1.8.1",
+    "vite-plugin-glsl": "^1.4.0"
   },
   "dependencies": {
     "three": "^0.175.0"
