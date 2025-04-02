@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="SignalRGB Lightscripts - Development Environment">
   <meta name="keywords" content="WebGL, Three.js, shader, SignalRGB, lightscripts, RGB">
-  <title>SignalRGB Lightscripts - Development</title>
+  <title>SignalRGB Lightscripts - Enhanced Dev Environment</title>
     <style>
       body {
         margin: 0;
@@ -85,7 +85,6 @@
         max-width: 80%;
         text-align: center;
         z-index: 100;
-        display: none;
       }
       
       .welcome h1 {
@@ -118,8 +117,8 @@
   
   <div class="welcome" id="welcomeModal">
     <h1>✨ SignalRGB Lightscripts Workshop ✨</h1>
-    <p>Welcome to the development environment for creating custom RGB effects!</p>
-    <p>This environment allows you to create and test multiple lightscripts that share common utilities.</p>
+    <p>Welcome to the enhanced development environment for creating custom RGB effects!</p>
+    <p>This environment now features an improved control system that automatically generates UI from your effect templates.</p>
     <p>Select an effect from the dropdown in the top-right corner to get started.</p>
     <button id="closeWelcome">Let's Go!</button>
   </div>
@@ -130,16 +129,11 @@
   <script>
     // Show welcome modal on first visit
     window.addEventListener('DOMContentLoaded', () => {
-      const hasVisited = localStorage.getItem('hasVisitedLightscripts');
       const welcomeModal = document.getElementById('welcomeModal');
       
-      if (!hasVisited) {
-        welcomeModal.style.display = 'block';
-        document.getElementById('closeWelcome').addEventListener('click', () => {
-          welcomeModal.style.display = 'none';
-          localStorage.setItem('hasVisitedLightscripts', 'true');
-        });
-      }
+      document.getElementById('closeWelcome').addEventListener('click', () => {
+        welcomeModal.style.display = 'none';
+      });
     });
   </script>
 </body>

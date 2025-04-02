@@ -6,8 +6,17 @@
 // Debug utilities
 export * from "./debug";
 
-// Control interfaces and helpers
+// Legacy control interfaces and helpers
+// Export directly to maintain backward compatibility with existing effects
 export * from "./controls";
+
+// New control system exports
+export * from "./definitions";
+export * from "./parser";
+export * from "./registry";
+
+// Development engine
+export * from "./engine";
 
 // WebGL and Three.js utilities
 export * from "./webgl";
