@@ -56,7 +56,6 @@ function processEffect(effect: typeof effects[0]) {
     
     // Read the template
     const templateFullPath = resolve(process.cwd(), 'src', templatePath);
-    const template = fs.readFileSync(templateFullPath, 'utf-8');
     
     // Read the compiled output JavaScript
     const jsOutputPath = resolve(process.cwd(), `dist/${effect.id}.js`);
@@ -70,8 +69,12 @@ function processEffect(effect: typeof effects[0]) {
       jsContent = '// No JS content found';
     }
     
-    // Create final HTML with JS content
-    const finalHtml = template.replace('{{bundledCode}}', jsContent);
+    // Use a simple HTML comment replacement strategy
+    const template = fs.readFileSync(templateFullPath, 'utf-8');
+    
+    // Replace the bundle marker comment with the actual script content
+    const bundleMarker = '<!-- BUNDLE_SCRIPT_INJECT -->';
+    const finalHtml = template.replace(bundleMarker, jsContent);
     
     // Write the output files
     fs.writeFileSync(resolve(process.cwd(), `dist/${effect.id}.html`), finalHtml);
