@@ -28,10 +28,10 @@ export function getControlValue<T>(propertyName: string, defaultValue: T): T {
  * @returns Normalized speed value (0.2-3.0)
  */
 export function normalizeSpeed(speed: number): number {
-  if (typeof speed !== 'number' || isNaN(speed)) {
+  if (typeof speed !== "number" || isNaN(speed)) {
     return 1.0; // Default value
   }
-  
+
   // Use a non-linear curve for better control at lower speeds
   return Math.max(0.2, Math.pow(speed / 5, 1.5));
 }
@@ -43,11 +43,15 @@ export function normalizeSpeed(speed: number): number {
  * @param defaultIndex - Default index if not found
  * @returns Numeric index of the value in the options array
  */
-export function comboboxValueToIndex(value: string | number, options: string[], defaultIndex = 0): number {
-  if (typeof value === 'number') {
+export function comboboxValueToIndex(
+  value: string | number,
+  options: string[],
+  defaultIndex = 0,
+): number {
+  if (typeof value === "number") {
     return value;
   }
-  
+
   const index = options.indexOf(value);
   return index === -1 ? defaultIndex : index;
 }
@@ -59,8 +63,12 @@ export function comboboxValueToIndex(value: string | number, options: string[], 
  * @param minValue - Minimum allowed output value
  * @returns Normalized factor value
  */
-export function normalizePercentage(value: number, defaultValue = 100, minValue = 0.01): number {
-  const rawValue = typeof value === 'number' ? value : defaultValue;
+export function normalizePercentage(
+  value: number,
+  defaultValue = 100,
+  minValue = 0.01,
+): number {
+  const rawValue = typeof value === "number" ? value : defaultValue;
   return Math.max(minValue, rawValue / 100);
 }
 
@@ -70,7 +78,7 @@ export function normalizePercentage(value: number, defaultValue = 100, minValue 
  * @returns 1 if true, 0 if false
  */
 export function boolToInt(value: boolean | number): number {
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     return value === 0 ? 0 : 1;
   }
   return value ? 1 : 0;
@@ -83,10 +91,10 @@ export function boolToInt(value: boolean | number): number {
  */
 export function getAllControls<T extends Record<string, any>>(controls: T): T {
   const result: Record<string, any> = {};
-  
+
   for (const [key, defaultValue] of Object.entries(controls)) {
     result[key] = getControlValue(key, defaultValue);
   }
-  
+
   return result as T;
-} 
+}

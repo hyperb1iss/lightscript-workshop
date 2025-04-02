@@ -1,118 +1,123 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Simple Wave</title>
-  <meta name="description" content="A simple wave-based RGB effect with minimal resource usage" />
-  <meta name="keywords" content="SignalRGB, wave, webgl, shader, effect" />
-  <meta publisher="Bliss" />
-  
-  <!-- Controls -->
-  <meta
-    property="speed"
-    label="Animation Speed"
-    type="number"
-    min="1"
-    max="10"
-    default="5"
-    tooltip="Controls the speed of the wave animation (1=Slow, 10=Fast)"
-  />
-  <meta
-    property="waveCount"
-    label="Wave Count"
-    type="number"
-    min="1"
-    max="20"
-    default="5"
-    tooltip="Number of waves displayed across the width"
-  />
-  <meta
-    property="colorMode"
-    label="Color Mode"
-    type="combobox"
-    values="Rainbow,Ocean,Fire,Neon,Mono"
-    default="Rainbow"
-    tooltip="Select the color palette for the waves"
-  />
-  <meta
-    property="colorSpeed"
-    label="Color Transition"
-    type="number"
-    min="1"
-    max="10"
-    default="3"
-    tooltip="Controls how quickly colors transition (1=Slow, 10=Fast)"
-  />
-  <meta
-    property="reverseDirection"
-    label="Reverse Direction"
-    type="boolean"
-    default="0"
-    tooltip="Reverse the direction of wave movement"
-  />
-  <meta
-    property="colorIntensity"
-    label="Color Intensity"
-    type="number"
-    min="1"
-    max="200"
-    default="100"
-    tooltip="Adjust the intensity of colors (100=Normal, 200=Brighter)"
-  />
-  <meta
-    property="waveHeight"
-    label="Wave Height"
-    type="number"
-    min="1"
-    max="100"
-    default="50"
-    tooltip="Controls how high the waves appear (percentage of display height)"
-  />
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background-color: #000;
-    }
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-  </style>
-</head>
-<body>
-  <canvas id="exCanvas" width="320" height="200"></canvas>
-  
-  <script>
-    // Simple log helper
-    function log(msg, data) {
-      if (typeof console !== 'undefined') {
-        console.log('[SimpleWave] ' + msg, data || '');
+  <head>
+    <meta charset="UTF-8" />
+    <title>Simple Wave</title>
+    <meta
+      name="description"
+      content="A simple wave-based RGB effect with minimal resource usage"
+    />
+    <meta name="keywords" content="SignalRGB, wave, webgl, shader, effect" />
+    <meta publisher="Bliss" />
+
+    <!-- Controls -->
+    <meta
+      property="speed"
+      label="Animation Speed"
+      type="number"
+      min="1"
+      max="10"
+      default="5"
+      tooltip="Controls the speed of the wave animation (1=Slow, 10=Fast)"
+    />
+    <meta
+      property="waveCount"
+      label="Wave Count"
+      type="number"
+      min="1"
+      max="20"
+      default="5"
+      tooltip="Number of waves displayed across the width"
+    />
+    <meta
+      property="colorMode"
+      label="Color Mode"
+      type="combobox"
+      values="Rainbow,Ocean,Fire,Neon,Mono"
+      default="Rainbow"
+      tooltip="Select the color palette for the waves"
+    />
+    <meta
+      property="colorSpeed"
+      label="Color Transition"
+      type="number"
+      min="1"
+      max="10"
+      default="3"
+      tooltip="Controls how quickly colors transition (1=Slow, 10=Fast)"
+    />
+    <meta
+      property="reverseDirection"
+      label="Reverse Direction"
+      type="boolean"
+      default="0"
+      tooltip="Reverse the direction of wave movement"
+    />
+    <meta
+      property="colorIntensity"
+      label="Color Intensity"
+      type="number"
+      min="1"
+      max="200"
+      default="100"
+      tooltip="Adjust the intensity of colors (100=Normal, 200=Brighter)"
+    />
+    <meta
+      property="waveHeight"
+      label="Wave Height"
+      type="number"
+      min="1"
+      max="100"
+      default="50"
+      tooltip="Controls how high the waves appear (percentage of display height)"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #000;
       }
-    }
-    
-    // Log initial values from SignalRGB
-    log('Initial values received', {
-      speed: typeof speed !== 'undefined' ? speed : 5,
-      waveCount: typeof waveCount !== 'undefined' ? waveCount : 5,
-      colorMode: typeof colorMode !== 'undefined' ? colorMode : 'Rainbow',
-      colorSpeed: typeof colorSpeed !== 'undefined' ? colorSpeed : 3,
-      reverseDirection: typeof reverseDirection !== 'undefined' ? reverseDirection : 0,
-      colorIntensity: typeof colorIntensity !== 'undefined' ? colorIntensity : 100,
-      waveHeight: typeof waveHeight !== 'undefined' ? waveHeight : 50
-    });
-    
-    // Initialize THREE.js (included in the bundle)
-    <!-- BUNDLE_SCRIPT_INJECT -->
-    
-    // Immediately force an update to ensure controls are applied
-    setTimeout(function() {
-      if (typeof update === 'function') {
-        update(true);
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
       }
-    }, 100);
-  </script>
-</body>
-</html> 
+    </style>
+  </head>
+  <body>
+    <canvas id="exCanvas" width="320" height="200"></canvas>
+
+    <script>
+      // Simple log helper
+      function log(msg, data) {
+        if (typeof console !== "undefined") {
+          console.log("[SimpleWave] " + msg, data || "");
+        }
+      }
+
+      // Log initial values from SignalRGB
+      log("Initial values received", {
+        speed: typeof speed !== "undefined" ? speed : 5,
+        waveCount: typeof waveCount !== "undefined" ? waveCount : 5,
+        colorMode: typeof colorMode !== "undefined" ? colorMode : "Rainbow",
+        colorSpeed: typeof colorSpeed !== "undefined" ? colorSpeed : 3,
+        reverseDirection:
+          typeof reverseDirection !== "undefined" ? reverseDirection : 0,
+        colorIntensity:
+          typeof colorIntensity !== "undefined" ? colorIntensity : 100,
+        waveHeight: typeof waveHeight !== "undefined" ? waveHeight : 50,
+      });
+
+      // Initialize THREE.js (included in the bundle)
+      <!-- BUNDLE_SCRIPT_INJECT -->
+
+      // Immediately force an update to ensure controls are applied
+      setTimeout(function () {
+        if (typeof update === "function") {
+          update(true);
+        }
+      }, 100);
+    </script>
+  </body>
+</html>

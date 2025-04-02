@@ -21,5 +21,5 @@ export function createDebugLogger(namespace: string, enabled = true) {
  * Default debug logger with no namespace
  */
 export function debug(...args: any[]) {
-  console.log('[LightScript]', ...args);
-} 
+  console.log("[LightScript]", ...args);
+}
