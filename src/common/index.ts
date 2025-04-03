@@ -15,6 +15,9 @@ export * from "./definitions";
 export * from "./parser";
 export * from "./registry";
 
+// Base effect class
+export * from "./effect";
+
 // Development engine
 export * from "./engine";
 

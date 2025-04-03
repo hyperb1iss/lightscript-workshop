@@ -1,133 +1,88 @@
-import * as THREE from "three";
+/**
+ * SimpleWave - Wave-based RGB effect with minimal resource usage
+ */
+import { BaseEffect } from "../../common/effect";
 import {
-  createDebugLogger,
-  initializeWebGL,
-  createShaderQuad,
-  startAnimationLoop,
-  createStandardUniforms,
-  initializeEffect,
-  WebGLContext,
   normalizeSpeed,
   normalizePercentage,
   boolToInt,
-} from "../../common";
+} from "../../common/controls";
+import { initializeEffect } from "../../common";
+import * as THREE from "three";
 
-// Import shader code
+// Import shaders
 import fragmentShader from "./fragment.glsl";
 import vertexShader from "./vertex.glsl";
 
-// Create a debug logger for this effect
-const debug = createDebugLogger("SimpleWave", true);
-
-// Log initialization immediately
-debug("Script loaded", { timestamp: new Date().toISOString() });
-
-// WebGL context and objects
-let webGLContext: WebGLContext;
-let material: THREE.ShaderMaterial;
-
-// Controls interface
-export interface Controls {
+// Define control interface
+export interface SimpleWaveControls {
   speed: number;
   waveCount: number;
-  colorMode: number;
+  colorMode: string | number;
   colorSpeed: number;
-  reverseDirection: boolean;
+  reverseDirection: boolean | number;
   colorIntensity: number;
   waveHeight: number;
 }
 
-// Make an update function globally available
-// This will update the shader uniforms from the global variables
-(window as any).update = function (force = false) {
-  // Only log on forced updates or occasionally to reduce spam
-  if (force || Math.random() < 0.01) {
-    debug("Update called");
-  }
-
-  if (!material) {
-    if (force) debug("Material not initialized yet in update()");
-    return;
-  }
-
-  // Access variables directly from global scope
-  const globalSpeed = normalizeSpeed((window as any).speed || 5);
-  const globalWaveCount = Number((window as any).waveCount || 5);
-
-  // Handle string/number for colorMode
-  let globalColorMode = (window as any).colorMode;
-  if (typeof globalColorMode === "string") {
-    const modes = ["Rainbow", "Ocean", "Fire", "Neon", "Mono"];
-    globalColorMode = modes.indexOf(globalColorMode);
-    if (globalColorMode === -1) globalColorMode = 0;
-  } else {
-    globalColorMode = Number(globalColorMode || 0);
-  }
-
-  const globalColorSpeed = normalizeSpeed((window as any).colorSpeed || 3);
-  const globalReverseDirection = boolToInt((window as any).reverseDirection);
-  const globalColorIntensity = normalizePercentage(
-    (window as any).colorIntensity || 100,
-  );
-  const globalWaveHeight = Number((window as any).waveHeight || 50) / 100;
-
-  if (force) {
-    debug("Control values:", {
-      speed: globalSpeed,
-      waveCount: globalWaveCount,
-      colorMode: globalColorMode,
-      colorSpeed: globalColorSpeed,
-      reverseDirection: globalReverseDirection,
-      colorIntensity: globalColorIntensity,
-      waveHeight: globalWaveHeight,
+/**
+ * SimpleWave effect implementation
+ */
+export class SimpleWaveEffect extends BaseEffect<SimpleWaveControls> {
+  constructor() {
+    super({
+      id: "simple-wave",
+      name: "SimpleWave",
+      debug: true,
+      fragmentShader,
+      vertexShader,
     });
   }
 
-  // Update shader uniforms
-  material.uniforms.iSpeed.value = globalSpeed;
-  material.uniforms.iWaveCount.value = globalWaveCount;
-  material.uniforms.iColorMode.value = globalColorMode;
-  material.uniforms.iColorSpeed.value = globalColorSpeed;
-  material.uniforms.iReverseDirection.value = globalReverseDirection === 1;
-  material.uniforms.iColorIntensity.value = globalColorIntensity;
-  material.uniforms.iWaveHeight.value = globalWaveHeight;
-};
+  /**
+   * Initialize the controls and their default values
+   */
+  protected initializeControls(): void {
+    // Set default values to make them available globally for SignalRGB
+    (window as any).speed = 5;
+    (window as any).waveCount = 5;
+    (window as any).colorMode = "Rainbow";
+    (window as any).colorSpeed = 3;
+    (window as any).reverseDirection = 0;
+    (window as any).colorIntensity = 100;
+    (window as any).waveHeight = 50;
+  }
 
-// Initialize everything
-function initWebGLEffect() {
-  debug("Initializing Simple Wave effect");
-
-  try {
-    // Check for existing canvas
-    const existingCanvas = document.getElementById("exCanvas");
-    if (!existingCanvas) {
-      console.error(
-        'Canvas element with ID "exCanvas" not found. Cannot initialize effect.',
-      );
-      return;
+  /**
+   * Get current control values from global scope
+   */
+  protected getControlValues(): SimpleWaveControls {
+    // Handle colorMode string/number conversion
+    let colorMode = (window as any).colorMode;
+    if (typeof colorMode === "string") {
+      const modes = ["Rainbow", "Ocean", "Fire", "Neon", "Mono"];
+      colorMode = modes.indexOf(colorMode);
+      if (colorMode === -1) colorMode = 0;
     }
 
-    // Use our common WebGL initialization function
-    webGLContext = initializeWebGL({
-      canvasId: "exCanvas",
-      canvasWidth: 320,
-      canvasHeight: 200,
-      antialias: false,
-    });
+    return {
+      speed: normalizeSpeed((window as any).speed || 5),
+      waveCount: Number((window as any).waveCount || 5),
+      colorMode,
+      colorSpeed: normalizeSpeed((window as any).colorSpeed || 3),
+      reverseDirection: boolToInt((window as any).reverseDirection),
+      colorIntensity: normalizePercentage(
+        (window as any).colorIntensity || 100,
+      ),
+      waveHeight: ((window as any).waveHeight || 50) / 100,
+    };
+  }
 
-    const { canvas, scene } = webGLContext;
-
-    // Ensure canvas is visible
-    canvas.style.display = "block";
-
-    debug(
-      `Renderer initialized with canvas size: ${canvas.width}x${canvas.height}`,
-    );
-
-    // Create standard uniforms
-    const uniforms = {
-      ...createStandardUniforms(canvas),
-      // Additional uniforms specific to this effect
+  /**
+   * Create custom uniforms specific to this effect
+   */
+  protected createUniforms(): Record<string, THREE.IUniform> {
+    return {
       iSpeed: { value: 1.0 },
       iWaveCount: { value: 5.0 },
       iColorMode: { value: 0 },
@@ -136,77 +91,33 @@ function initWebGLEffect() {
       iColorIntensity: { value: 1.0 },
       iWaveHeight: { value: 0.5 },
     };
+  }
 
-    // Create shader mesh and material using our common utility and imported shaders
-    const { mesh, material: shaderMaterial } = createShaderQuad(
-      fragmentShader,
-      uniforms,
-      vertexShader,
-    );
+  /**
+   * Update shader uniforms based on control values
+   */
+  protected updateUniforms(controls: SimpleWaveControls): void {
+    if (!this.material) return;
 
-    // Store material for global updates
-    material = shaderMaterial;
-
-    debug("Shader material created");
-
-    // Add mesh to scene
-    scene.add(mesh);
-    debug("Mesh added to scene");
-
-    // Make initial update call to ensure all controls are applied
-    (window as any).update(true);
-
-    // Start animation loop using our common utility
-    debug("Starting animation loop");
-
-    startAnimationLoop(webGLContext, material, (time) => {
-      // Update to catch any control changes from SignalRGB
-      if (time % 0.1 < 0.02) {
-        // Less frequent updates
-        (window as any).update();
-      }
-
-      // Log occasionally to avoid flooding the console
-      if (time % 10 < 0.1) {
-        debug("Animation frame", { time: time.toFixed(2) });
-      }
-    });
-
-    debug("Initialization complete");
-  } catch (error) {
-    debug("ERROR during initialization:", error);
-    console.error("Failed to initialize WebGL effect:", error);
-
-    // Try to display error message on canvas
-    try {
-      const canvas = document.getElementById("exCanvas") as HTMLCanvasElement;
-      if (canvas) {
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.fillStyle = "black";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.fillStyle = "red";
-          ctx.font = "14px Arial";
-          ctx.fillText("Error initializing effect", 20, 50);
-          ctx.fillText(String(error).substring(0, 40), 20, 70);
-        }
-      }
-    } catch (e) {
-      // If even this fails, just log it
-      console.error("Could not display error message:", e);
-    }
+    this.material.uniforms.iSpeed.value = controls.speed;
+    this.material.uniforms.iWaveCount.value = controls.waveCount;
+    this.material.uniforms.iColorMode.value = controls.colorMode;
+    this.material.uniforms.iColorSpeed.value = controls.colorSpeed;
+    this.material.uniforms.iReverseDirection.value =
+      controls.reverseDirection === 1;
+    this.material.uniforms.iColorIntensity.value = controls.colorIntensity;
+    this.material.uniforms.iWaveHeight.value = controls.waveHeight;
   }
 }
 
-// Wait a moment to ensure the DOM is ready before initializing
-setTimeout(() => {
-  initializeEffect(initWebGLEffect);
-}, 10);
+// Create effect instance
+const effect = new SimpleWaveEffect();
 
-// Also trigger initialization on window load just to be safe
-window.addEventListener("load", () => {
-  if (!material) {
-    debug("Initializing on window load event");
-    initializeEffect(initWebGLEffect);
-  }
+// Initialize the effect using the common initializer for SignalRGB
+initializeEffect(() => {
+  console.log("[SimpleWave] Initializing through common initializer");
+  effect.initialize();
 });
+
+// Export the effect instance
+export default effect;
