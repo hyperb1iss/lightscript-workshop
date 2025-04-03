@@ -1,97 +1,154 @@
-# 🌈 SignalRGB Lightscripts Workshop
+# ✨ LightScript Workshop ✨
 
-> _Transform your RGB setup into a dazzling lightshow with custom effects_
+<div align="center">
 
-## 💫 Overview
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Three.js](https://img.shields.io/badge/Three.js-000000?style=for-the-badge&logo=three.js&logoColor=white)
+![WebGL](https://img.shields.io/badge/WebGL-990000?style=for-the-badge&logo=webgl&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 
-This repository contains comprehensive documentation and examples for creating custom lighting effects with SignalRGB's Lightscripts. SignalRGB allows you to synchronize RGB lighting across devices from different manufacturers, and Lightscripts give you the power to program your own effects.
+*Create stunning RGB lighting effects with modern tools*
 
-## 📚 Documentation
+</div>
 
-The `docs` directory contains:
+LightScript Workshop is a modern TypeScript framework for creating beautiful RGB lighting effects for [SignalRGB](https://signalrgb.com/). Transform the way you build Lightscripts with a type-safe, component-based approach featuring hot reloading, WebGL integration, and an efficient build system.
 
-- [**SignalRGB Lightscripts: The Complete Guide**](docs/signalrgb-lightscripts.md) - Comprehensive reference documentation
-- [**Example Lightscript**](docs/example-lightscript.html) - A working example effect with comments
+## 💫 Features
 
-## ✨ Lightscripts Collection
+- **🔷 Modern TypeScript** - Full type safety prevents runtime errors
+- **🔮 Three.js Integration** - Powerful WebGL rendering capabilities
+- **⚡ Hot Reloading** - Instant visual feedback while coding
+- **🎛️ Declarative Controls** - Define UI elements with simple HTML
+- **🚀 Optimized Build Pipeline** - Production-ready effects
+- **🧪 Testing Framework** - Maintain quality with Vitest
 
-Explore the samples in the `examples` directory to see various lighting effect techniques:
-
-- Audio visualizers
-- Color cycling effects
-- Interactive animations
-- Game integrations
-- And more!
-
-## 🚀 Getting Started
-
-1. Install [SignalRGB](https://www.signalrgb.com/) on your system
-2. Browse the documentation to understand Lightscripts concepts
-3. Experiment with the example scripts
-4. Create your own custom lighting effects!
-
-## 🔮 What's Next?
-
-We'll be adding more examples and tutorials as we explore creative ways to illuminate your setup. Stay tuned for advanced techniques like:
-
-- Complex particle systems
-- Game integrations
-- Audio reactive masterpieces
-- Hardware-specific optimizations
-
-## 💖 Contributing
-
-Feel free to contribute your own Lightscripts or improvements to the documentation. Pull requests welcome!
-
----
-
-_Created with ✨ by Bliss & Nova_
-
-# SignalRGB Lightscripts Development Framework
-
-This project provides a TypeScript-based development environment for creating SignalRGB Lightscripts. It uses Vite for fast bundling and includes support for GPU-like operations through the gl-matrix library.
-
-## Current Effects
-
-- **Puff Stuff Tunnel**: A raymarched tunnel effect converted from a ShaderToy shader (https://www.shadertoy.com/view/t3s3Rs)
-
-## Development
+## 🚀 Quick Start
 
 ```bash
+# Clone the repository
+git clone https://github.com/hyperb1iss/lightscript-workshop.git
+cd lightscript-workshop
+
 # Install dependencies
 npm install
 
 # Start development server
 npm run dev
+```
 
-# Build production version
+Then open your browser to http://localhost:3000 to see the default effect. Add `?effect=effect-name` to the URL to view specific effects.
+
+## 📚 Documentation
+
+We've created comprehensive documentation to help you get the most out of LightScript Workshop:
+
+- [**Developer Guide**](/docs/developer-guide.md) - Start here for a complete introduction
+- [**API Reference**](/docs/api-reference.md) - Detailed technical documentation
+- [**Examples**](/docs/examples.md) - Ready-to-use effect examples with explanations
+- [**Advanced Guide**](/docs/advanced.md) - Deep dives into advanced techniques
+
+## 🌈 Example Effects
+
+The framework includes these demonstration effects:
+
+### 🌀 Puff Stuff Tunnel
+
+A ray-marched tunnel effect with dynamic colors and style options.
+
+**Key features:**
+- Ray marching in fragment shader
+- Multiple color schemes
+- Dynamically adjustable parameters
+
+### 🌊 Simple Wave
+
+A wave-based RGB effect showcasing smooth animation and minimal resource usage.
+
+**Key features:**
+- Sine wave generation
+- Multiple color modes
+- Optimized for performance
+
+## 💻 Development Workflow
+
+1. **Create** a new effect directory in `src/effects/your-effect-name/`
+   ```
+   effects/your-effect-name/
+   ├── fragment.glsl  # Shader code
+   ├── main.ts        # Effect implementation
+   └── template.html  # HTML template with controls
+   ```
+
+2. **Register** your effect in `src/index.ts`
+
+3. **Develop** with live reloading
+   ```bash
+   npm run dev
+   ```
+
+4. **Build** for SignalRGB
+   ```bash
+   EFFECT=your-effect-name npm run build
+   ```
+
+5. **Import** the generated HTML file into SignalRGB
+
+## 🏗️ Creating a Custom Effect
+
+Creating a new effect is easy with the LightScript framework:
+
+1. Create effect directory structure
+2. Define HTML template with controls
+3. Create GLSL shader for visuals
+4. Implement TypeScript class extending BaseEffect
+5. Register your effect
+
+Check the [Developer Guide](/docs/developer-guide.md) for a complete walkthrough.
+
+## 🛠️ Building & Deployment
+
+### Building a Single Effect
+
+```bash
+EFFECT=effect-name npm run build
+```
+
+### Building All Effects
+
+```bash
 npm run build
 ```
 
-## How It Works
+### Debug Builds
 
-1. Effects are written in TypeScript using modern ES6+ features
-2. The build process:
-   - Compiles the TypeScript code
-   - Bundles all dependencies
-   - Injects the bundle into our HTML template
-   - Creates a standalone HTML file ready for SignalRGB
+For easier troubleshooting:
 
-## Project Structure
+```bash
+NO_MINIFY=true EFFECT=effect-name npm run build:debug
+```
 
-- `src/glsl-utils.ts` - GLSL shader operations implementation
-- `src/raymarching.ts` - Ray marching implementation for shaders
-- `src/puff-stuff.ts` - The Puff Stuff Tunnel effect implementation
-- `src/main.ts` - Entry point that sets up the canvas and animation loop
-- `src/template.html` - HTML template for SignalRGB
+## 🎮 SignalRGB Integration
 
-## Adding New Effects
+1. Build your effect using the commands above
+2. Open SignalRGB application
+3. Navigate to "Lighting Effects"
+4. Click "Import from File"
+5. Select your HTML file from the `dist/` directory
 
-1. Create a new effect file in the `src` directory
-2. Update the `vite.config.ts` to add the new effect
-3. Run `npm run build` to generate the HTML file for SignalRGB
+## 🤝 Contributing
 
-## Credits
+Contributions are welcome! Whether you're fixing bugs, improving documentation, or creating new effects, please feel free to jump in. Check out our existing issues or open a new one to discuss proposed changes.
 
-- Original "Puff Stuff" shader by Shane on ShaderToy
-- Based on the SignalRGB Lightscripts documentation
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+
+Created by [Stefanie Jane 🌠](https://github.com/hyperb1iss)
+
+If you love lightscript-workshop, star the repo and [buy me a Monster Ultra Violet](https://ko-fi.com/hyperb1iss)! ⚡️
+
+</div>
