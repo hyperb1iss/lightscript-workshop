@@ -49,8 +49,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     await engine.loadEffect(effectId);
 
     // Force UI update by calling the global update function
-    if (typeof (window as any).update === "function") {
-      (window as any).update(true);
+    if (typeof window.update === "function") {
+      window.update(true);
     }
 
     // Hide welcome modal if it exists

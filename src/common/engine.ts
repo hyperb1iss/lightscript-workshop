@@ -165,7 +165,7 @@ export class DevEngine {
         this.controlValues[def.id] = def.default;
 
         // Set global variables for backwards compatibility
-        (window as any)[def.id] = def.default;
+        window[def.id] = def.default;
       }
 
       // Generate UI
@@ -237,18 +237,18 @@ export class DevEngine {
   /**
    * Handle control value changes
    */
-  private handleControlChange(id: string, value: any): void {
+  private handleControlChange(id: string, value: unknown): void {
     debug(`Control changed: ${id} = ${value}`);
 
     // Update internal state
     this.controlValues[id] = value;
 
     // Update global variable for backward compatibility
-    (window as any)[id] = value;
+    window[id] = value;
 
     // Try to call the global update function if it exists
-    if (typeof (window as any).update === "function") {
-      (window as any).update();
+    if (typeof window.update === "function") {
+      window.update();
     }
   }
 
@@ -258,7 +258,7 @@ export class DevEngine {
   private clearGlobalVariables(): void {
     if (this.controlDefinitions.length > 0) {
       for (const def of this.controlDefinitions) {
-        delete (window as any)[def.id];
+        delete window[def.id];
       }
     }
   }

@@ -28,8 +28,9 @@ export interface EffectConfig {
 
 /**
  * Abstract base class for all effects
+ * @template T - The control values type, can be any type with string keys
  */
-export abstract class BaseEffect<T extends Record<string, any>> {
+export abstract class BaseEffect<T> {
   // Core properties
   protected id: string;
   protected name: string;
@@ -106,7 +107,7 @@ export abstract class BaseEffect<T extends Record<string, any>> {
       this.initializeControls();
 
       // Make the update function globally available for SignalRGB
-      (window as any).update = this.update.bind(this);
+      window.update = this.update.bind(this);
 
       // Start animation loop
       this.startAnimation();
@@ -190,7 +191,7 @@ export abstract class BaseEffect<T extends Record<string, any>> {
   /**
    * Handle initialization errors
    */
-  protected handleInitError(error: any): void {
+  protected handleInitError(error: unknown): void {
     console.error(`Failed to initialize ${this.name}:`, error);
 
     // Try to display error message on canvas

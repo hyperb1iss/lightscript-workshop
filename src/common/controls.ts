@@ -19,7 +19,7 @@ export interface BaseControls {
  * @returns The control value from the window object
  */
 export function getControlValue<T>(propertyName: string, defaultValue: T): T {
-  return ((window as any)[propertyName] as T) ?? defaultValue;
+  return (window[propertyName] as T) ?? defaultValue;
 }
 
 /**
@@ -89,8 +89,10 @@ export function boolToInt(value: boolean | number): number {
  * @param controls - Dictionary of control names and default values
  * @returns Object with all control values
  */
-export function getAllControls<T extends Record<string, any>>(controls: T): T {
-  const result: Record<string, any> = {};
+export function getAllControls<T extends Record<string, unknown>>(
+  controls: T,
+): T {
+  const result: Record<string, unknown> = {};
 
   for (const [key, defaultValue] of Object.entries(controls)) {
     result[key] = getControlValue(key, defaultValue);

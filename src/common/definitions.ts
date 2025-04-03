@@ -10,9 +10,9 @@ export interface ControlDefinition {
   id: string; // Control identifier (from property/name attribute)
   type: string; // Control type (number, boolean, combobox, etc.)
   label: string; // Display label
-  default: any; // Default value
+  default: unknown; // Default value
   tooltip?: string; // Optional tooltip
-  [key: string]: any; // Additional type-specific properties
+  [key: string]: unknown; // Additional type-specific properties
 }
 
 /**
@@ -55,5 +55,5 @@ export type ControlDefinitionType =
  * Represents the runtime values for all controls in an effect
  */
 export interface ControlValues {
-  [key: string]: any;
+  [key: string]: unknown;
 }

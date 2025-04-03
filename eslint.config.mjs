@@ -15,7 +15,6 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   // Base configuration for all files
-  ...compat.extends("next/core-web-vitals"),
 
   // Configuration for JavaScript files
   {
@@ -53,8 +52,6 @@ const eslintConfig = [
   // Add TypeScript recommended rules for TypeScript files
   ...compat.extends("plugin:@typescript-eslint/recommended"),
 
-  // Add Prettier config last to override any conflicting rules
-  ...compat.extends("prettier"),
 ];
 
 export default eslintConfig;

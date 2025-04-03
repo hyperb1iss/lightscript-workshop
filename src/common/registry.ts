@@ -53,7 +53,7 @@ const defaultStyles = {
 export function generateControlUI(
   definitions: ControlDefinition[],
   initialValues: ControlValues,
-  onChange: (id: string, value: any) => void,
+  onChange: (id: string, value: unknown) => void,
 ): HTMLElement {
   const container = document.createElement("div");
   container.classList.add("controls-container");
@@ -85,8 +85,8 @@ export function generateControlUI(
  */
 function createControlElement(
   def: ControlDefinition,
-  initialValue: any,
-  onChange: (id: string, value: any) => void,
+  initialValue: unknown,
+  onChange: (id: string, value: unknown) => void,
 ): HTMLElement {
   const container = document.createElement("div");
   Object.assign(container.style, defaultStyles.container);
@@ -130,8 +130,8 @@ function createControlElement(
 function createNumberControl(
   container: HTMLElement,
   def: ControlDefinition,
-  initialValue: number,
-  onChange: (id: string, value: any) => void,
+  initialValue: unknown,
+  onChange: (id: string, value: unknown) => void,
 ): void {
   const min = def.min ?? 0;
   const max = def.max ?? 100;
@@ -139,7 +139,7 @@ function createNumberControl(
 
   // Create value display
   const valueDisplay = document.createElement("span");
-  valueDisplay.textContent = initialValue.toString();
+  valueDisplay.textContent = String(initialValue);
   valueDisplay.classList.add("control-value");
   Object.assign(valueDisplay.style, defaultStyles.value);
   container.querySelector("label")?.appendChild(valueDisplay);
@@ -147,17 +147,17 @@ function createNumberControl(
   // Create slider
   const slider = document.createElement("input");
   slider.type = "range";
-  slider.min = min.toString();
-  slider.max = max.toString();
-  slider.step = step.toString();
-  slider.value = initialValue.toString();
+  slider.min = String(min);
+  slider.max = String(max);
+  slider.step = String(step);
+  slider.value = String(initialValue);
   Object.assign(slider.style, defaultStyles.slider);
   container.appendChild(slider);
 
   // Set up event listener
   slider.addEventListener("input", () => {
     const value = parseFloat(slider.value);
-    valueDisplay.textContent = value.toString();
+    valueDisplay.textContent = String(value);
     onChange(def.id, value);
   });
 }
@@ -168,8 +168,8 @@ function createNumberControl(
 function createBooleanControl(
   container: HTMLElement,
   def: ControlDefinition,
-  initialValue: boolean | number,
-  onChange: (id: string, value: any) => void,
+  initialValue: unknown,
+  onChange: (id: string, value: unknown) => void,
 ): void {
   // Normalize initial value
   const boolValue = initialValue === true || initialValue === 1;
@@ -193,10 +193,10 @@ function createBooleanControl(
 function createComboboxControl(
   container: HTMLElement,
   def: ControlDefinition,
-  initialValue: string,
-  onChange: (id: string, value: any) => void,
+  initialValue: unknown,
+  onChange: (id: string, value: unknown) => void,
 ): void {
-  const values = def.values || [];
+  const values = (def.values as string[]) || [];
 
   // Create select element
   const select = document.createElement("select");
@@ -211,7 +211,7 @@ function createComboboxControl(
   }
 
   // Set initial value
-  select.value = initialValue;
+  select.value = String(initialValue);
 
   container.appendChild(select);
 

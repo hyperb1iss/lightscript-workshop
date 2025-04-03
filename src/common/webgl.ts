@@ -59,6 +59,9 @@ export function initializeWebGL(options: WebGLSetupOptions = {}): WebGLContext {
 
   // Check if we need to force software renderer
   if (forceFallback) {
+    // Make WebGLRenderingContext unavailable to force software fallback
+    // Need to use 'any' here because we're deliberately doing something unsafe
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).WebGLRenderingContext = undefined;
   }
 
@@ -94,7 +97,9 @@ export function createShaderQuad(
   const geometry = new THREE.PlaneGeometry(2, 2);
 
   // Use default vertex shader if none provided
+  // Note: In the GLSL shader, 'position' is available as a built-in attribute in Three.js
   const defaultVertexShader = `
+    attribute vec3 position;
     void main() {
       gl_Position = vec4(position, 1.0);
     }

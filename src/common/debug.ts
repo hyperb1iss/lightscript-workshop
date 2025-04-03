@@ -10,7 +10,7 @@
  * @returns A function that logs messages with the specified namespace
  */
 export function createDebugLogger(namespace: string, enabled = true) {
-  return function debug(...args: any[]) {
+  return function debug(...args: unknown[]) {
     if (enabled) {
       console.log(`[${namespace}]`, ...args);
     }
@@ -20,6 +20,6 @@ export function createDebugLogger(namespace: string, enabled = true) {
 /**
  * Default debug logger with no namespace
  */
-export function debug(...args: any[]) {
+export function debug(...args: unknown[]) {
   console.log("[LightScript]", ...args);
 }

@@ -6,6 +6,7 @@ import {
   normalizeSpeed,
   normalizePercentage,
   boolToInt,
+  getControlValue,
 } from "../../common/controls";
 import { initializeEffect } from "../../common";
 import * as THREE from "three";
@@ -75,15 +76,15 @@ export class PuffStuffEffect extends BaseEffect<PuffStuffControls> {
    */
   protected initializeControls(): void {
     // Set default values to make them available globally for SignalRGB
-    (window as any).speed = 5;
-    (window as any).colorShift = 1;
-    (window as any).colorScheme = "Classic Blue";
-    (window as any).effectStyle = "Standard";
-    (window as any).colorIntensity = 100;
-    (window as any).colorPulse = 0;
-    (window as any).motionWave = 0;
-    (window as any).motionReverse = 0;
-    (window as any).colorSaturation = 100;
+    window.speed = 5;
+    window.colorShift = 1;
+    window.colorScheme = "Classic Blue";
+    window.effectStyle = "Standard";
+    window.colorIntensity = 100;
+    window.colorPulse = 0;
+    window.motionWave = 0;
+    window.motionReverse = 0;
+    window.colorSaturation = 100;
   }
 
   /**
@@ -91,7 +92,12 @@ export class PuffStuffEffect extends BaseEffect<PuffStuffControls> {
    */
   protected getControlValues(): PuffStuffControls {
     // Handle colorScheme string/number conversion
-    let colorScheme = (window as any).colorScheme;
+    const rawColorScheme = getControlValue<string | number>(
+      "colorScheme",
+      "Classic Blue",
+    );
+    let colorScheme: number | string = rawColorScheme;
+
     if (typeof colorScheme === "string") {
       const schemeIndex = this.colorSchemes.indexOf(colorScheme);
       colorScheme = schemeIndex === -1 ? 0 : schemeIndex;
@@ -100,7 +106,12 @@ export class PuffStuffEffect extends BaseEffect<PuffStuffControls> {
     }
 
     // Handle effectStyle string/number conversion
-    let effectStyle = (window as any).effectStyle;
+    const rawEffectStyle = getControlValue<string | number>(
+      "effectStyle",
+      "Standard",
+    );
+    let effectStyle: number | string = rawEffectStyle;
+
     if (typeof effectStyle === "string") {
       const styleIndex = this.effectStyles.indexOf(effectStyle);
       effectStyle = styleIndex === -1 ? 0 : styleIndex;
@@ -109,18 +120,20 @@ export class PuffStuffEffect extends BaseEffect<PuffStuffControls> {
     }
 
     return {
-      speed: normalizeSpeed((window as any).speed || 5),
-      colorShift: boolToInt((window as any).colorShift),
+      speed: normalizeSpeed(getControlValue<number>("speed", 5)),
+      colorShift: boolToInt(getControlValue<boolean | number>("colorShift", 1)),
       colorScheme,
       effectStyle,
       colorIntensity: normalizePercentage(
-        (window as any).colorIntensity || 100,
+        getControlValue<number>("colorIntensity", 100),
       ),
-      colorPulse: Number((window as any).colorPulse || 0) / 10,
-      motionWave: Number((window as any).motionWave || 0) / 10,
-      motionReverse: boolToInt((window as any).motionReverse),
+      colorPulse: Number(getControlValue<number>("colorPulse", 0)) / 10,
+      motionWave: Number(getControlValue<number>("motionWave", 0)) / 10,
+      motionReverse: boolToInt(
+        getControlValue<boolean | number>("motionReverse", 0),
+      ),
       colorSaturation: normalizePercentage(
-        (window as any).colorSaturation || 100,
+        getControlValue<number>("colorSaturation", 100),
       ),
     };
   }

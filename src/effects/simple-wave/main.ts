@@ -6,6 +6,7 @@ import {
   normalizeSpeed,
   normalizePercentage,
   boolToInt,
+  getControlValue,
 } from "../../common/controls";
 import { initializeEffect } from "../../common";
 import * as THREE from "three";
@@ -29,6 +30,9 @@ export interface SimpleWaveControls {
  * SimpleWave effect implementation
  */
 export class SimpleWaveEffect extends BaseEffect<SimpleWaveControls> {
+  // Define color mode options for conversion
+  private readonly colorModes = ["Rainbow", "Ocean", "Fire", "Neon", "Mono"];
+
   constructor() {
     super({
       id: "simple-wave",
@@ -44,13 +48,13 @@ export class SimpleWaveEffect extends BaseEffect<SimpleWaveControls> {
    */
   protected initializeControls(): void {
     // Set default values to make them available globally for SignalRGB
-    (window as any).speed = 5;
-    (window as any).waveCount = 5;
-    (window as any).colorMode = "Rainbow";
-    (window as any).colorSpeed = 3;
-    (window as any).reverseDirection = 0;
-    (window as any).colorIntensity = 100;
-    (window as any).waveHeight = 50;
+    window.speed = 5;
+    window.waveCount = 5;
+    window.colorMode = "Rainbow";
+    window.colorSpeed = 3;
+    window.reverseDirection = 0;
+    window.colorIntensity = 100;
+    window.waveHeight = 50;
   }
 
   /**
@@ -58,23 +62,31 @@ export class SimpleWaveEffect extends BaseEffect<SimpleWaveControls> {
    */
   protected getControlValues(): SimpleWaveControls {
     // Handle colorMode string/number conversion
-    let colorMode = (window as any).colorMode;
+    const rawColorMode = getControlValue<string | number>(
+      "colorMode",
+      "Rainbow",
+    );
+    let colorMode: number | string = rawColorMode;
+
     if (typeof colorMode === "string") {
-      const modes = ["Rainbow", "Ocean", "Fire", "Neon", "Mono"];
-      colorMode = modes.indexOf(colorMode);
-      if (colorMode === -1) colorMode = 0;
+      const modeIndex = this.colorModes.indexOf(colorMode);
+      colorMode = modeIndex === -1 ? 0 : modeIndex;
+    } else {
+      colorMode = Number(colorMode || 0);
     }
 
     return {
-      speed: normalizeSpeed((window as any).speed || 5),
-      waveCount: Number((window as any).waveCount || 5),
+      speed: normalizeSpeed(getControlValue<number>("speed", 5)),
+      waveCount: Number(getControlValue<number>("waveCount", 5)),
       colorMode,
-      colorSpeed: normalizeSpeed((window as any).colorSpeed || 3),
-      reverseDirection: boolToInt((window as any).reverseDirection),
-      colorIntensity: normalizePercentage(
-        (window as any).colorIntensity || 100,
+      colorSpeed: normalizeSpeed(getControlValue<number>("colorSpeed", 3)),
+      reverseDirection: boolToInt(
+        getControlValue<boolean | number>("reverseDirection", 0),
       ),
-      waveHeight: ((window as any).waveHeight || 50) / 100,
+      colorIntensity: normalizePercentage(
+        getControlValue<number>("colorIntensity", 100),
+      ),
+      waveHeight: getControlValue<number>("waveHeight", 50) / 100,
     };
   }
 
