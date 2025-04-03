@@ -78,16 +78,16 @@ export function generateControlUI(
         initialValues[def.id] ?? def.default,
         onChange,
       );
-      
+
       // Add hover effect for controls
       controlElement.addEventListener("mouseover", () => {
         controlElement.style.boxShadow = "0 0 8px rgba(1, 205, 254, 0.4)";
       });
-      
+
       controlElement.addEventListener("mouseout", () => {
         controlElement.style.boxShadow = "none";
       });
-      
+
       container.appendChild(controlElement);
     } catch (error) {
       debug(`Error creating control element for ${def.id}:`, error);

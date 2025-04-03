@@ -197,24 +197,58 @@
     <div class="spinner"></div>
   </div>
   
-  <div class="welcome">
-    <h1>✨ SignalRGB Dev Console ✨</h1>
-    <p>Welcome to the new and improved development environment for SignalRGB Lightscripts. Design and test your effects with this sleek, cyberpunk-inspired interface.</p>
+  <div id="welcomeModal" class="welcome">
+    <h1>✨ LightScripts Workshop ✨</h1>
+    <p>Welcome to the LightScripts development environment. This workspace allows you to create, test, and refine RGB lighting effects for the SignalRGB platform.</p>
+    <p style="font-size: 0.95rem; color: #e0e0e0; margin-bottom: 10px;">
+      <strong style="color: var(--neon-blue);">Quick Guide:</strong><br>
+      • Left panel: Effect selector, stats, and metadata<br>
+      • Right panel: Interactive controls for your effect<br>
+      • Ctrl+C: Toggle the controls panel visibility<br>
+      • Screenshot button: Capture your creations
+    </p>
+    <div style="margin: 15px 0; display: flex; align-items: center; justify-content: center;">
+      <input type="checkbox" id="dontShowAgain" style="margin-right: 8px;">
+      <label for="dontShowAgain" style="color: #b0b0b0; font-size: 0.9rem;">Don't show this again</label>
+    </div>
+    <div style="margin: 0 0 15px; text-align: center; font-size: 0.8rem;">
+      <span style="color: var(--neon-pink);">Created by</span> 
+      <a href="https://github.com/hyperb1iss" target="_blank" style="color: var(--neon-green); text-decoration: none; font-weight: bold; position: relative; display: inline-block; transition: all 0.2s ease;" 
+         onmouseover="this.style.textShadow='0 0 10px var(--neon-green)'; this.querySelector('span').style.transform='scaleX(1)';" 
+         onmouseout="this.style.textShadow='none'; this.querySelector('span').style.transform='scaleX(0)';">
+        @hyperb1iss
+        <span style="position: absolute; bottom: -2px; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--neon-green), transparent); transform: scaleX(0); transition: transform 0.3s ease; transform-origin: center;"></span>
+      </a>
+    </div>
     <button id="startBtn">START CREATING</button>
   </div>
   
   <script type="module" src="./src/dev.ts"></script>
   <script>
-    // Show welcome screen after loading
+    // Check if user has chosen to hide welcome screen
+    const hideWelcome = localStorage.getItem('hideWelcomeScreen') === 'true';
+    
+    // Show welcome screen after loading (unless user opted to hide it)
     window.addEventListener('load', function() {
       setTimeout(() => {
         document.querySelector('.loader').style.display = 'none';
-        document.querySelector('.welcome').style.display = 'block';
-      }, 1500);
+        
+        // Only show welcome if user hasn't opted to hide it
+        if (!hideWelcome) {
+          document.querySelector('#welcomeModal').style.display = 'block';
+        }
+      }, 500);
       
       // Handle start button
       document.getElementById('startBtn').addEventListener('click', function() {
-        document.querySelector('.welcome').style.display = 'none';
+        const dontShowAgain = document.getElementById('dontShowAgain').checked;
+        
+        // Save preference if "don't show again" is checked
+        if (dontShowAgain) {
+          localStorage.setItem('hideWelcomeScreen', 'true');
+        }
+        
+        document.querySelector('#welcomeModal').style.display = 'none';
       });
     });
   </script>

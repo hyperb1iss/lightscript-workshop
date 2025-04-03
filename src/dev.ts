@@ -42,16 +42,8 @@ async function preloadEffect(id: string): Promise<void> {
 // Initialize the DevEngine and load the effect
 async function initializeDevEnvironment(): Promise<void> {
   console.log("🔧 Initializing development environment...");
-  
+
   try {
-    // Hide the welcome modal after a short delay
-    setTimeout(() => {
-      const welcomeModal = document.getElementById("welcomeModal");
-      if (welcomeModal) {
-        welcomeModal.style.display = "none";
-      }
-    }, 2000);
-    
     // First load the effect module - this ensures the global update function is available
     await preloadEffect(effectId);
 
@@ -77,9 +69,11 @@ async function initializeDevEnvironment(): Promise<void> {
     }
 
     console.log("✨ DevEngine initialized successfully");
-    
+
     // Show a little notification that appears and fades out
-    showNotification(`${effects.find(e => e.id === effectId)?.name || 'Effect'} loaded successfully!`);
+    showNotification(
+      `${effects.find((e) => e.id === effectId)?.name || "Effect"} loaded successfully!`,
+    );
   } catch (error) {
     console.error("❌ Error initializing DevEngine:", error);
 
@@ -116,7 +110,7 @@ async function initializeDevEnvironment(): Promise<void> {
     errorTitle.style.color = "#ff71ce";
     errorTitle.style.margin = "0 0 15px 0";
     errorTitle.style.textShadow = "0 0 5px rgba(255, 113, 206, 0.5)";
-    
+
     const errorMessage = document.createElement("pre");
     errorMessage.textContent = String(error);
     errorMessage.style.color = "#fffb96";
@@ -126,7 +120,7 @@ async function initializeDevEnvironment(): Promise<void> {
     errorMessage.style.fontFamily = "monospace";
     errorMessage.style.overflow = "auto";
     errorMessage.style.maxHeight = "200px";
-    
+
     errorDiv.appendChild(errorTitle);
     errorDiv.appendChild(errorMessage);
 
@@ -144,23 +138,23 @@ async function initializeDevEnvironment(): Promise<void> {
     closeButton.style.letterSpacing = "1px";
     closeButton.style.boxShadow = "0 0 5px rgba(5, 255, 161, 0.3)";
     closeButton.style.transition = "all 0.2s ease";
-    
+
     closeButton.addEventListener("mouseover", () => {
       closeButton.style.background = "#05ffa1";
       closeButton.style.color = "#0c0c16";
       closeButton.style.boxShadow = "0 0 10px rgba(5, 255, 161, 0.7)";
     });
-    
+
     closeButton.addEventListener("mouseout", () => {
       closeButton.style.background = "transparent";
       closeButton.style.color = "#05ffa1";
       closeButton.style.boxShadow = "0 0 5px rgba(5, 255, 161, 0.3)";
     });
-    
+
     closeButton.addEventListener("click", () => {
       errorDiv.remove();
     });
-    
+
     errorDiv.appendChild(closeButton);
     document.body.appendChild(errorDiv);
 
@@ -190,11 +184,12 @@ function showNotification(message: string, duration = 3000): void {
   notification.style.fontWeight = "bold";
   notification.style.boxShadow = "0 0 15px rgba(5, 255, 161, 0.4)";
   notification.style.border = "1px solid rgba(5, 255, 161, 0.3)";
-  notification.style.transition = "opacity 0.5s ease-in-out, transform 0.3s ease-out";
+  notification.style.transition =
+    "opacity 0.5s ease-in-out, transform 0.3s ease-out";
   notification.style.fontFamily = "'Rajdhani', sans-serif";
   notification.style.letterSpacing = "1px";
   notification.style.textShadow = "0 0 5px rgba(5, 255, 161, 0.7)";
-  
+
   // Add glowing top border
   const topBorder = document.createElement("div");
   topBorder.style.position = "absolute";
@@ -205,15 +200,15 @@ function showNotification(message: string, duration = 3000): void {
   topBorder.style.background = "linear-gradient(90deg, #05ffa1, #01cdfe)";
   topBorder.style.borderRadius = "4px 4px 0 0";
   notification.appendChild(topBorder);
-  
+
   document.body.appendChild(notification);
-  
+
   // Add a little pop animation on entrance
   notification.style.transform = "translateX(-50%) translateY(20px)";
   setTimeout(() => {
     notification.style.transform = "translateX(-50%) translateY(0)";
   }, 10);
-  
+
   // Fade out and remove after duration
   setTimeout(() => {
     notification.style.opacity = "0";
