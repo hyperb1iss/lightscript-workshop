@@ -13,37 +13,50 @@ const debug = createDebugLogger("ControlRegistry");
  */
 const defaultStyles = {
   container: {
-    marginBottom: "12px",
-    padding: "8px",
-    borderRadius: "4px",
-    backgroundColor: "rgba(20, 20, 20, 0.6)",
+    marginBottom: "8px",
+    padding: "6px",
+    borderRadius: "3px",
+    backgroundColor: "rgba(20, 20, 35, 0.6)",
+    border: "1px solid rgba(255, 113, 206, 0.15)",
+    transition: "box-shadow 0.2s ease",
+    position: "relative",
   },
   label: {
     display: "block",
-    marginBottom: "4px",
-    color: "#ddd",
+    marginBottom: "2px",
+    color: "#b967ff",
     fontWeight: "bold",
-    fontSize: "14px",
+    fontSize: "12px",
+    letterSpacing: "0.5px",
   },
   value: {
-    color: "#0f0",
+    color: "#05ffa1",
     fontFamily: "monospace",
-    marginLeft: "8px",
+    marginLeft: "6px",
+    fontSize: "11px",
+    textShadow: "0 0 3px rgba(5, 255, 161, 0.5)",
   },
   slider: {
     width: "100%",
-    marginTop: "4px",
+    height: "16px",
+    marginTop: "2px",
+    accentColor: "#01cdfe",
+    cursor: "pointer",
   },
   checkbox: {
     marginLeft: "0",
+    accentColor: "#ff71ce",
   },
   select: {
     width: "100%",
-    padding: "4px",
-    backgroundColor: "#222",
-    color: "#fff",
-    border: "1px solid #444",
-    borderRadius: "4px",
+    padding: "3px",
+    backgroundColor: "rgba(12, 12, 30, 0.7)",
+    color: "#05ffa1",
+    border: "1px solid #01cdfe",
+    borderRadius: "3px",
+    fontSize: "12px",
+    boxShadow: "0 0 3px rgba(1, 205, 254, 0.3)",
+    outline: "none",
   },
 };
 
@@ -65,6 +78,16 @@ export function generateControlUI(
         initialValues[def.id] ?? def.default,
         onChange,
       );
+      
+      // Add hover effect for controls
+      controlElement.addEventListener("mouseover", () => {
+        controlElement.style.boxShadow = "0 0 8px rgba(1, 205, 254, 0.4)";
+      });
+      
+      controlElement.addEventListener("mouseout", () => {
+        controlElement.style.boxShadow = "none";
+      });
+      
       container.appendChild(controlElement);
     } catch (error) {
       debug(`Error creating control element for ${def.id}:`, error);
@@ -72,7 +95,7 @@ export function generateControlUI(
       // Add an error placeholder
       const errorEl = document.createElement("div");
       errorEl.textContent = `Error in ${def.id}: ${error}`;
-      errorEl.style.color = "red";
+      errorEl.style.color = "#ff71ce";
       container.appendChild(errorEl);
     }
   }
@@ -151,6 +174,7 @@ function createNumberControl(
   slider.max = String(max);
   slider.step = String(step);
   slider.value = String(initialValue);
+  slider.dataset.controlId = def.id;
   Object.assign(slider.style, defaultStyles.slider);
   container.appendChild(slider);
 
@@ -178,6 +202,7 @@ function createBooleanControl(
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
   checkbox.checked = boolValue;
+  checkbox.dataset.controlId = def.id;
   Object.assign(checkbox.style, defaultStyles.checkbox);
   container.appendChild(checkbox);
 
@@ -200,6 +225,7 @@ function createComboboxControl(
 
   // Create select element
   const select = document.createElement("select");
+  select.dataset.controlId = def.id;
   Object.assign(select.style, defaultStyles.select);
 
   // Add options

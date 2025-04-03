@@ -5,73 +5,111 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="SignalRGB Lightscripts - Development Environment">
   <meta name="keywords" content="WebGL, Three.js, shader, SignalRGB, lightscripts, RGB">
-  <title>SignalRGB Lightscripts - Enhanced Dev Environment</title>
+  <title>SignalRGB Dev Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-      body {
+      :root {
+        --neon-pink: #ff71ce;
+        --neon-blue: #01cdfe;
+        --neon-green: #05ffa1;
+        --neon-yellow: #fffb96;
+        --neon-purple: #b967ff;
+        --dark-bg: #0a0a12;
+        --panel-bg: rgba(12, 12, 22, 0.85);
+        --darker-panel-bg: rgba(8, 8, 18, 0.9);
+        --panel-border: 1px solid #ff71ce33;
+        --panel-shadow: 0 0 15px rgba(1, 205, 254, 0.3), 0 0 5px rgba(255, 113, 206, 0.3);
+        --border-radius: 4px;
+        --text-color: #f2f2f2;
+      }
+      
+      * {
         margin: 0;
         padding: 0;
-        background: #000;
+        box-sizing: border-box;
+      }
+      
+      body {
+        background-color: var(--dark-bg);
         color: #fff;
-        font-family: sans-serif;
+        font-family: 'Rajdhani', sans-serif;
         overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
       }
     
       #exCanvas {
-        display: block;
-        margin: 0 auto;
-        max-width: 100%;
-        max-height: 90vh;
-      }
-    
-      .controls {
-        position: absolute;
-        bottom: 10px;
-        left: 10px;
-        background: rgba(0, 0, 0, 0.7);
-        padding: 10px;
-        border-radius: 5px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        z-index: 10;
-      }
-    
-      .control {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-      }
-    
-      #fpsCounter {
-        margin-top: 10px;
-        text-align: center;
-        font-weight: bold;
-        color: #0f0;
-      }
-    
-      select, input {
-        background: #222;
-        color: #fff;
-        border: 1px solid #444;
-        padding: 4px;
-        border-radius: 4px;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 5;
       }
       
-      .effect-selector {
+      #canvasContainer {
         position: fixed;
-        top: 10px;
-        right: 10px;
-        background: rgba(0, 0, 0, 0.7);
-        padding: 10px;
-        border-radius: 5px;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1;
+      }
+      
+      .grid-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: linear-gradient(rgba(15, 15, 25, 0.5) 1px, transparent 1px),
+                          linear-gradient(90deg, rgba(15, 15, 25, 0.5) 1px, transparent 1px);
+        background-size: 20px 20px;
+        opacity: 0.2;
+        pointer-events: none;
+        z-index: 0;
+      }
+      
+      .loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(10, 10, 18, 0.9);
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        z-index: 10;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+      
+      .loader-text {
+        color: var(--neon-blue);
+        font-size: 1.5rem;
+        letter-spacing: 2px;
+        margin-bottom: 20px;
+        text-shadow: 0 0 10px rgba(1, 205, 254, 0.7);
+        font-weight: 600;
+      }
+      
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 3px solid transparent;
+        border-top: 3px solid var(--neon-pink);
+        border-right: 3px solid var(--neon-blue);
+        border-bottom: 3px solid var(--neon-green);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        box-shadow: 0 0 15px rgba(1, 205, 254, 0.3);
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
       
       .welcome {
@@ -79,60 +117,104 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: rgba(0, 0, 0, 0.85);
-        padding: 20px;
-        border-radius: 10px;
-        max-width: 80%;
+        background: var(--panel-bg);
+        border: 1px solid var(--neon-blue);
+        box-shadow: 0 0 20px rgba(1, 205, 254, 0.4), 0 0 30px rgba(255, 113, 206, 0.2);
+        border-radius: 5px;
+        padding: 30px;
+        max-width: 600px;
         text-align: center;
-        z-index: 100;
+        backdrop-filter: blur(10px);
+        z-index: 1000;
+        display: none; /* Hidden by default */
       }
       
       .welcome h1 {
-        color: #ff71ce;
-        margin-top: 0;
+        color: var(--neon-pink);
+        margin-bottom: 15px;
+        font-size: 2.2rem;
+        letter-spacing: 2px;
+        text-shadow: 0 0 10px rgba(255, 113, 206, 0.7);
       }
       
       .welcome p {
+        color: #fff;
         margin-bottom: 20px;
-        color: #eee;
+        font-size: 1.1rem;
+        line-height: 1.5;
       }
       
       .welcome button {
-        background: #ff71ce;
-        color: #000;
-        border: none;
+        background: transparent;
+        color: var(--neon-green);
+        border: 2px solid var(--neon-green);
         padding: 10px 20px;
-        border-radius: 5px;
+        font-size: 1rem;
+        border-radius: 4px;
         cursor: pointer;
-        font-weight: bold;
+        font-family: 'Rajdhani', sans-serif;
+        letter-spacing: 1px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 10px rgba(5, 255, 161, 0.3);
       }
       
       .welcome button:hover {
-        background: #01cdfe;
+        background: rgba(5, 255, 161, 0.2);
+        box-shadow: 0 0 15px rgba(5, 255, 161, 0.5);
+        transform: translateY(-2px);
+      }
+      
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      
+      ::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+      }
+      
+      ::-webkit-scrollbar-thumb {
+        background: var(--neon-blue);
+        border-radius: 3px;
+      }
+      
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--neon-pink);
       }
     </style>
 </head>
 <body>
-  <canvas id="exCanvas" width="800" height="600"></canvas>
-  
-  <div class="welcome" id="welcomeModal">
-    <h1>✨ SignalRGB Lightscripts Workshop ✨</h1>
-    <p>Welcome to the enhanced development environment for creating custom RGB effects!</p>
-    <p>This environment now features an improved control system that automatically generates UI from your effect templates.</p>
-    <p>Select an effect from the dropdown in the top-right corner to get started.</p>
-    <button id="closeWelcome">Let's Go!</button>
+  <div class="grid-overlay"></div>
+  <div id="canvasContainer">
+    <canvas id="exCanvas" width="800" height="600"></canvas>
   </div>
-
-  <!-- Load our development script -->
-  <script type="module" src="/src/dev.ts"></script>
   
+  <div class="loader">
+    <div class="loader-text">LOADING LIGHTSCRIPT</div>
+    <div class="spinner"></div>
+  </div>
+  
+  <div class="welcome">
+    <h1>✨ SignalRGB Dev Console ✨</h1>
+    <p>Welcome to the new and improved development environment for SignalRGB Lightscripts. Design and test your effects with this sleek, cyberpunk-inspired interface.</p>
+    <button id="startBtn">START CREATING</button>
+  </div>
+  
+  <script type="module" src="./src/dev.ts"></script>
   <script>
-    // Show welcome modal on first visit
-    window.addEventListener('DOMContentLoaded', () => {
-      const welcomeModal = document.getElementById('welcomeModal');
+    // Show welcome screen after loading
+    window.addEventListener('load', function() {
+      setTimeout(() => {
+        document.querySelector('.loader').style.display = 'none';
+        document.querySelector('.welcome').style.display = 'block';
+      }, 1500);
       
-      document.getElementById('closeWelcome').addEventListener('click', () => {
-        welcomeModal.style.display = 'none';
+      // Handle start button
+      document.getElementById('startBtn').addEventListener('click', function() {
+        document.querySelector('.welcome').style.display = 'none';
       });
     });
   </script>
