@@ -8,8 +8,8 @@ import glsl from 'vite-plugin-glsl';
 // Check if NO_MINIFY environment variable is set
 const noMinify = process.env.NO_MINIFY === 'true';
 
-// Get effect to build from environment variable
-const effectToBuild = process.env.EFFECT;
+// Get effect to build from environment variable or default to first effect
+const effectToBuild = process.env.EFFECT || effects[0]?.id;
 
 // Custom plugin to create SignalRGB-compatible HTML files
 function signalRGBPlugin(): Plugin {
@@ -20,7 +20,7 @@ function signalRGBPlugin(): Plugin {
     // After build is complete
     closeBundle() {
       if (!effectToBuild) {
-        console.error('No effect specified! Use EFFECT environment variable');
+        console.error('No effects found in the effects array!');
         return;
       }
       
@@ -74,7 +74,7 @@ function processEffect(effect: typeof effects[0]) {
 
 export default defineConfig(({ mode }) => {
   if (!effectToBuild) {
-    console.error('No effect specified! Use EFFECT environment variable');
+    console.error('No effects found in the effects array!');
     return {};
   }
   

@@ -1,10 +1,11 @@
 {
-  "name": "bliss-lightscripts",
-  "version": "1.0.0",
-  "description": "WebGL ports of various shadertoys to SignalRGB",
+  "name": "lightscript-workshop",
+  "version": "0.9.0",
+  "description": "Modern framework for creating RGB lighting effects for SignalRGB",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:with-effect": "EFFECT=your-effect-id vite",
     "build": "node scripts/build.js",
     "build:debug": "NO_MINIFY=true node scripts/build.js",
     "build:single": "tsc && vite build",
@@ -22,13 +23,24 @@
   "keywords": [
     "webgl",
     "shader",
-    "tunnel",
     "signalrgb",
     "lightscript",
-    "threejs"
+    "threejs",
+    "rgb",
+    "lighting",
+    "effects",
+    "typescript"
   ],
-  "author": "",
+  "author": "Stefanie Jane <stef@hyperbliss.tech>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hyperb1iss/lightscript-workshop"
+  },
+  "homepage": "https://github.com/hyperb1iss/lightscript-workshop",
+  "bugs": {
+    "url": "https://github.com/hyperb1iss/lightscript-workshop/issues"
+  },
   "devDependencies": {
     "@types/node": "^22.13.14",
     "@types/three": "^0.175.0",

@@ -11,6 +11,14 @@ console.log("✨ SignalRGB Lightscripts - Enhanced Dev Environment ✨");
 const urlParams = new URLSearchParams(window.location.search);
 const effectId = urlParams.get("effect") || effects[0].id;
 
+// Log the selected effect
+if (urlParams.get("effect")) {
+  console.log(`🎮 Loading effect: ${effectId} (specified via URL parameter)`);
+} else {
+  console.log(`🎮 Loading default effect: ${effectId}`);
+  console.log(`💡 Tip: Use ?effect=<id> in URL to specify a different effect`);
+}
+
 // Dynamically import an effect module based on its entry path
 async function preloadEffect(id: string) {
   const effect = effects.find((e) => e.id === id);
