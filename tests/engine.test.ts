@@ -1,118 +1,118 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { DevEngine } from '../src/common/engine';
-import * as indexModule from '../src/index';
-import { parseControlsFromTemplate } from '../src/common/parser';
-import { generateControlUI } from '../src/common/registry';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import * as indexModule from "../src/index";
+import { parseControlsFromTemplate } from "../src/common/parser";
+import { generateControlUI } from "../src/common/registry";
 
 // Mock the effects array
-vi.mock('../src/index', () => {
+vi.mock("../src/index", () => {
   return {
     effects: [
       {
-        id: 'simple-wave',
-        name: 'Simple Wave',
-        description: 'A simple wave effect',
-        author: 'Test Author',
-        entry: './effects/simple-wave/main.ts',
-        template: './effects/simple-wave/template.html',
+        id: "simple-wave",
+        name: "Simple Wave",
+        description: "A simple wave effect",
+        author: "Test Author",
+        entry: "./effects/simple-wave/main.ts",
+        template: "./effects/simple-wave/template.html",
       },
       {
-        id: 'puff-stuff',
-        name: 'Puff Stuff',
-        description: 'Another test effect',
-        author: 'Test Author',
-        entry: './effects/puff-stuff/main.ts',
-        template: './effects/puff-stuff/template.html',
-      }
-    ]
+        id: "puff-stuff",
+        name: "Puff Stuff",
+        description: "Another test effect",
+        author: "Test Author",
+        entry: "./effects/puff-stuff/main.ts",
+        template: "./effects/puff-stuff/template.html",
+      },
+    ],
   };
 });
 
 // Mock the parser module with inline controls definition (no variable reference)
-vi.mock('../src/common/parser', () => ({
+vi.mock("../src/common/parser", () => ({
   parseControlsFromTemplate: vi.fn().mockReturnValue([
     {
-      id: 'speed',
-      type: 'number',
-      label: 'Speed',
+      id: "speed",
+      type: "number",
+      label: "Speed",
       min: 1,
       max: 10,
-      default: 5
+      default: 5,
     },
     {
-      id: 'colorMode',
-      type: 'combobox',
-      label: 'Color Mode',
-      values: ['Rainbow', 'Mono'],
-      default: 'Rainbow'
-    }
-  ])
+      id: "colorMode",
+      type: "combobox",
+      label: "Color Mode",
+      values: ["Rainbow", "Mono"],
+      default: "Rainbow",
+    },
+  ]),
 }));
 
 // Mock the registry module
-vi.mock('../src/common/registry', () => ({
-  generateControlUI: vi.fn().mockReturnValue(document.createElement('div'))
+vi.mock("../src/common/registry", () => ({
+  generateControlUI: vi.fn().mockReturnValue(document.createElement("div")),
 }));
 
 // Create a proper Response object for fetch
-const createMockResponse = (text) => {
+const createMockResponse = (text: string) => {
   return {
     ok: true,
     text: () => Promise.resolve(text),
     json: () => Promise.resolve({}),
     status: 200,
-    statusText: 'OK',
-    headers: new Headers()
+    statusText: "OK",
+    headers: new Headers(),
   };
 };
 
 // Define mockControls here for use in the tests, after vi.mock calls
 const mockControls = [
   {
-    id: 'speed',
-    type: 'number',
-    label: 'Speed',
+    id: "speed",
+    type: "number",
+    label: "Speed",
     min: 1,
     max: 10,
-    default: 5
+    default: 5,
   },
   {
-    id: 'colorMode',
-    type: 'combobox',
-    label: 'Color Mode',
-    values: ['Rainbow', 'Mono'],
-    default: 'Rainbow'
-  }
+    id: "colorMode",
+    type: "combobox",
+    label: "Color Mode",
+    values: ["Rainbow", "Mono"],
+    default: "Rainbow",
+  },
 ];
 
 // Create mock instance with all required methods
-describe('DevEngine', () => {
+describe("DevEngine", () => {
   let engine: any; // Use 'any' type to bypass TypeScript constraints
   let container: HTMLElement;
-  
+
   beforeEach(() => {
     // Reset mocks
     vi.clearAllMocks();
-    
+
     // Set up DOM
-    document.body.innerHTML = '<div id="container"><canvas id="exCanvas"></canvas></div>';
-    container = document.getElementById('container') as HTMLElement;
-    
+    document.body.innerHTML =
+      '<div id="container"><canvas id="exCanvas"></canvas></div>';
+    container = document.getElementById("container") as HTMLElement;
+
     // Create a mock engine with the methods we need
     engine = {
       initialize: vi.fn().mockImplementation(async (container) => {
         // Create control container
-        const controlsContainer = document.createElement('div');
-        controlsContainer.className = 'controls-container';
+        const controlsContainer = document.createElement("div");
+        controlsContainer.className = "controls-container";
         container.appendChild(controlsContainer);
-        
+
         // Call parseControlsFromTemplate directly for the test
-        parseControlsFromTemplate('<dummy>');
-        
+        parseControlsFromTemplate("<dummy>");
+
         // If multiple effects, we need to load the effect from URL param
         if (indexModule.effects.length > 1) {
           // Call loadEffect for the URL param effect
-          await engine.loadEffect('simple-wave');
+          await engine.loadEffect("simple-wave");
           return true;
         } else if (indexModule.effects.length === 1) {
           // Load the single effect
@@ -122,104 +122,107 @@ describe('DevEngine', () => {
         return false;
       }),
       loadEffect: vi.fn().mockImplementation(async (effectId) => {
-        const effect = indexModule.effects.find(e => e.id === effectId);
+        const effect = indexModule.effects.find((e) => e.id === effectId);
         if (!effect) {
           throw new Error(`Effect not found: ${effectId}`);
         }
-        
+
         // Call parseControlsFromTemplate to update the mock call count
-        parseControlsFromTemplate('<dummy>');
-        
+        parseControlsFromTemplate("<dummy>");
+
         // Set global variables based on control definitions
         for (const ctrl of mockControls) {
           (window as any)[ctrl.id] = ctrl.default;
         }
-        
+
         // Call UI generation for test coverage
         generateControlUI(mockControls, {}, () => {});
-        
+
         return mockControls;
       }),
       startFPSMonitor: vi.fn().mockImplementation(() => {
         global.requestAnimationFrame(vi.fn());
-      })
+      }),
     };
-    
+
     // Mock URL params
     delete (window as any).location;
-    window.location = { search: '?effect=simple-wave' } as Location;
-    
+    window.location = { search: "?effect=simple-wave" } as Location;
+
     // Mock fetch with a more complete response
-    global.fetch = vi.fn().mockResolvedValue(
-      createMockResponse('<html><head><meta property="speed" type="number" default="5" /></head></html>')
-    );
+    global.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        createMockResponse(
+          '<html><head><meta property="speed" type="number" default="5" /></head></html>',
+        ),
+      );
   });
-  
+
   afterEach(() => {
     vi.resetAllMocks();
-    document.body.innerHTML = '';
+    document.body.innerHTML = "";
   });
-  
-  describe('initialization', () => {
-    it('should create control container when initialized', async () => {
+
+  describe("initialization", () => {
+    it("should create control container when initialized", async () => {
       await engine.initialize(container);
-      const controlsContainer = document.querySelector('.controls-container');
+      const controlsContainer = document.querySelector(".controls-container");
       expect(controlsContainer).not.toBeNull();
     });
-    
-    it('should create effect selector when multiple effects exist', async () => {
+
+    it("should create effect selector when multiple effects exist", async () => {
       // We already have multiple effects in the mocked effects array
       await engine.initialize(container);
-      
+
       // Check if effect was loaded properly
       expect(parseControlsFromTemplate).toHaveBeenCalled();
     });
-    
-    it('should load the first effect when only one effect exists', async () => {
+
+    it("should load the first effect when only one effect exists", async () => {
       // Temporarily replace effects with a single effect array
-      const originalEffects = [...indexModule.effects];
       vi.mocked(indexModule.effects).splice(0);
       vi.mocked(indexModule.effects).push({
-        id: 'simple-wave',
-        name: 'Simple Wave',
-        description: 'A simple wave effect',
-        author: 'Test Author',
-        entry: './effects/simple-wave/main.ts',
-        template: './effects/simple-wave/template.html',
+        id: "simple-wave",
+        name: "Simple Wave",
+        description: "A simple wave effect",
+        author: "Test Author",
+        entry: "./effects/simple-wave/main.ts",
+        template: "./effects/simple-wave/template.html",
       });
-      
+
       await engine.initialize(container);
-      
+
       // Verify the effect is loaded
       expect(generateControlUI).toHaveBeenCalled();
     });
   });
-  
-  describe('effect loading', () => {
-    it('should parse controls when loading an effect', async () => {
-      await engine.loadEffect('simple-wave');
-      
+
+  describe("effect loading", () => {
+    it("should parse controls when loading an effect", async () => {
+      await engine.loadEffect("simple-wave");
+
       expect(parseControlsFromTemplate).toHaveBeenCalled();
       expect(generateControlUI).toHaveBeenCalled();
     });
-    
-    it('should set global variables from control defaults', async () => {
-      await engine.loadEffect('simple-wave');
-      
+
+    it("should set global variables from control defaults", async () => {
+      await engine.loadEffect("simple-wave");
+
       // Check if global variables were set from control defaults
       expect((window as any).speed).toBe(5);
-      expect((window as any).colorMode).toBe('Rainbow');
+      expect((window as any).colorMode).toBe("Rainbow");
     });
   });
-  
-  describe('FPS monitoring', () => {
-    it('should create FPS counter when started', () => {
+
+  describe("FPS monitoring", () => {
+    it("should create FPS counter when started", () => {
       // Mock requestAnimationFrame
       global.requestAnimationFrame = vi.fn();
-      
+
       engine.startFPSMonitor();
-      
+
       expect(global.requestAnimationFrame).toHaveBeenCalled();
     });
   });
-}); 
+});

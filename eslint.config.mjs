@@ -25,7 +25,7 @@ const eslintConfig = [
     },
   },
 
-  // Configuration for TypeScript files
+  // Configuration for TypeScript files in source and tests
   {
     files: ["**/*.ts", "**/*.tsx"],
     plugins: {
@@ -52,6 +52,22 @@ const eslintConfig = [
   // Add TypeScript recommended rules for TypeScript files
   ...compat.extends("plugin:@typescript-eslint/recommended"),
 
+  // Special rules for test files - must come after the recommended rules to properly override them
+  {
+    files: ["tests/**/*.ts", "tests/**/*.tsx"],
+    rules: {
+      // Relax certain rules for test files
+      "@typescript-eslint/no-explicit-any": "off",
+      // Allow non-null assertions in tests
+      "@typescript-eslint/no-non-null-assertion": "off",
+      // Allow empty functions for mocks
+      "@typescript-eslint/no-empty-function": "off",
+      // Allow unused variables in tests
+      "@typescript-eslint/no-unused-vars": "warn",
+      // Allow @ts-ignore in tests
+      "@typescript-eslint/ban-ts-comment": "warn"
+    },
+  },
 ];
 
 export default eslintConfig;
