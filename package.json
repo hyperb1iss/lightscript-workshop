@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "build:debug": "tsc && NO_MINIFY=true vite build",
+    "build": "node scripts/build.js",
+    "build:debug": "NO_MINIFY=true node scripts/build.js",
+    "build:single": "tsc && vite build",
     "preview": "vite preview",
     "format": "prettier --write \"src/**/*.{ts,js,html,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js,html,css}\"",
