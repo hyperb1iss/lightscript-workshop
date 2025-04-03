@@ -97,13 +97,11 @@ export function createShaderQuad(
   const geometry = new THREE.PlaneGeometry(2, 2);
 
   // Use default vertex shader if none provided
-  // Note: In the GLSL shader, 'position' is available as a built-in attribute in Three.js
+  // Three.js provides 'position' as a built-in attribute
   const defaultVertexShader = `
-    attribute vec3 position;
-    void main() {
-      gl_Position = vec4(position, 1.0);
-    }
-  `;
+void main() {
+  gl_Position = vec4(position, 1.0);
+}`;
 
   // Create shader material
   const material = new THREE.ShaderMaterial({

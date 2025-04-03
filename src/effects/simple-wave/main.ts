@@ -13,7 +13,6 @@ import * as THREE from "three";
 
 // Import shaders
 import fragmentShader from "./fragment.glsl";
-import vertexShader from "./vertex.glsl";
 
 // Define control interface
 export interface SimpleWaveControls {
@@ -39,7 +38,6 @@ export class SimpleWaveEffect extends BaseEffect<SimpleWaveControls> {
       name: "SimpleWave",
       debug: true,
       fragmentShader,
-      vertexShader,
     });
   }
 

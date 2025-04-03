@@ -13,7 +13,6 @@ import * as THREE from "three";
 
 // Import shaders
 import fragmentShader from "./fragment.glsl";
-import vertexShader from "./vertex.glsl";
 
 // Define control interface
 export interface PuffStuffControls {
@@ -67,7 +66,6 @@ export class PuffStuffEffect extends BaseEffect<PuffStuffControls> {
       name: "PuffStuff",
       debug: true,
       fragmentShader,
-      vertexShader,
     });
   }
 
