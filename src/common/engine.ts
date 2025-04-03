@@ -975,9 +975,27 @@ export class DevEngine {
       const link = document.createElement("a");
       link.download = `signalrgb_${safeEffectName}_${timestamp}.png`;
 
-      // Convert canvas to data URL
-      const dataUrl = this.canvas.toDataURL("image/png");
-      link.href = dataUrl;
+      // Convert canvas to data URL - with preserveDrawingBuffer to ensure screenshot works
+      // Need to get canvas content correctly
+      try {
+        // Force a render frame to ensure content is current
+        if (typeof window.update === "function") {
+          window.update();
+        }
+
+        // Need to preserve drawing buffer for screenshots
+        const dataUrl = this.canvas.toDataURL("image/png");
+        link.href = dataUrl;
+
+        // Log data length as a sanity check
+        debug(`Screenshot data length: ${dataUrl.length}`);
+        if (dataUrl.length < 1000) {
+          debug("Warning: Screenshot may be empty");
+        }
+      } catch (e) {
+        debug("Error getting canvas data:", e);
+        throw new Error("Could not capture canvas content");
+      }
 
       // Trigger download
       document.body.appendChild(link);

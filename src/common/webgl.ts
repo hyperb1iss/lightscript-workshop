@@ -65,8 +65,12 @@ export function initializeWebGL(options: WebGLSetupOptions = {}): WebGLContext {
     (window as any).WebGLRenderingContext = undefined;
   }
 
-  // Create the renderer
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias });
+  // Create the renderer with preserved drawing buffer for screenshots
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias,
+    preserveDrawingBuffer: true, // Essential for screenshots to work
+  });
   renderer.setSize(canvas.width, canvas.height);
 
   // Create scene and camera (orthographic for fullscreen quad)
