@@ -265,7 +265,7 @@ export class PreactDevEngine {
   /**
    * Extract metadata from an effect class
    */
-  private extractMetadata(effect: AppEffect, effectClass: any): void {
+  private extractMetadata(effect: AppEffect, effectClass: unknown): void {
     try {
       // First try to use the decorator system
       import("./control-decorators").then((decorators) => {
@@ -295,7 +295,7 @@ export class PreactDevEngine {
   /**
    * Extract controls from an effect class
    */
-  private extractControls(effectClassOrInstance: any): void {
+  private extractControls(effectClassOrInstance: unknown): void {
     debug("info", "Extracting controls from effect");
 
     try {
@@ -341,8 +341,9 @@ export class PreactDevEngine {
                 // Make sure we're using the correct default values
                 if (control.type === "number" || control.type === "hue") {
                   // Make sure number value is within defined range
-                  const min = (control as any).min ?? 0;
-                  const max = (control as any).max ?? 100;
+                  const typedControl = control as Record<string, unknown>;
+                  const min = typedControl.min ? Number(typedControl.min) : 0;
+                  const max = typedControl.max ? Number(typedControl.max) : 100;
                   const defaultValue = Number(control.default);
                   // Ensure the value is within the allowed range
                   const safeValue = Math.max(min, Math.min(max, defaultValue));

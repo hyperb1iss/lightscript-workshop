@@ -208,9 +208,10 @@ function createNumberControl(
   initialValue: unknown,
   onChange: (id: string, value: unknown) => void,
 ): void {
-  const min = (def as any).min ?? 0;
-  const max = (def as any).max ?? 100;
-  const step = (def as any).step ?? 1;
+  const typedDef = def as Record<string, unknown>;
+  const min = typedDef.min !== undefined ? Number(typedDef.min) : 0;
+  const max = typedDef.max !== undefined ? Number(typedDef.max) : 100;
+  const step = typedDef.step !== undefined ? Number(typedDef.step) : 1;
 
   // Create value display
   const valueDisplay = document.createElement("span");
@@ -273,7 +274,8 @@ function createComboboxControl(
   initialValue: unknown,
   onChange: (id: string, value: unknown) => void,
 ): void {
-  const values = ((def as any).values as string[]) || [];
+  const typedDef = def as Record<string, unknown>;
+  const values = (typedDef.values as string[]) || [];
 
   // Create select element
   const select = document.createElement("select");
@@ -309,8 +311,9 @@ function createHueControl(
   onChange: (id: string, value: unknown) => void,
 ): void {
   // Safe access to properties using type assertion
-  const min = ((def as any).min as number) ?? 0;
-  const max = ((def as any).max as number) ?? 360;
+  const typedDef = def as Record<string, unknown>;
+  const min = typedDef.min !== undefined ? Number(typedDef.min) : 0;
+  const max = typedDef.max !== undefined ? Number(typedDef.max) : 360;
 
   // Normalize initial value
   const hueValue = Number(initialValue) || 0;

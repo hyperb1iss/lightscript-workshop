@@ -83,7 +83,7 @@ function createControlDecorator<T extends ControlDecoratorOptions>(
   createDefinition: (propertyKey: string, options: T) => ControlDefinitionType,
 ) {
   return function (options: T): PropertyDecorator {
-    return function (target: Object, propertyKey: string | symbol) {
+    return function (target: object, propertyKey: string | symbol) {
       if (typeof propertyKey !== "string") {
         throw new Error(
           "Control decorators can only be used on string properties",
@@ -287,7 +287,7 @@ export interface EffectOptions {
  * ```
  */
 export function Effect(options: EffectOptions): ClassDecorator {
-  return function (target: Function) {
+  return function (target: { prototype: Record<string, unknown> }) {
     // Store effect metadata using reflection
     Reflect.defineMetadata(METADATA_KEYS.effect, options, target.prototype);
 
@@ -302,10 +302,12 @@ export function Effect(options: EffectOptions): ClassDecorator {
  * @returns Array of control definitions
  */
 export function extractControlsFromClass(
-  targetClass: any,
+  targetClass: unknown,
 ): ControlDefinitionType[] {
   const constructor =
-    typeof targetClass === "function" ? targetClass : targetClass.constructor;
+    typeof targetClass === "function"
+      ? targetClass
+      : (targetClass as object).constructor;
 
   // Use Reflect to get the metadata array
   if (Reflect.hasMetadata(METADATA_KEYS.controls, constructor)) {
@@ -321,7 +323,7 @@ export function extractControlsFromClass(
  * @param targetClass The class to extract metadata from
  * @returns The effect metadata or default values
  */
-export function extractEffectMetadata(targetClass: any): EffectOptions {
+export function extractEffectMetadata(targetClass: unknown): EffectOptions {
   // Default values if no metadata is found
   const defaultMetadata = {
     name: "Unnamed Effect",
@@ -333,7 +335,7 @@ export function extractEffectMetadata(targetClass: any): EffectOptions {
   const prototype =
     typeof targetClass === "function"
       ? targetClass.prototype
-      : Object.getPrototypeOf(targetClass);
+      : Object.getPrototypeOf(targetClass as object);
 
   // Try to get metadata from prototype
   if (Reflect.hasMetadata(METADATA_KEYS.effect, prototype)) {
@@ -341,8 +343,8 @@ export function extractEffectMetadata(targetClass: any): EffectOptions {
   }
 
   // Check for effectMetadata property directly
-  if (prototype.effectMetadata) {
-    return prototype.effectMetadata;
+  if (prototype && "effectMetadata" in prototype) {
+    return prototype.effectMetadata as EffectOptions;
   }
 
   // Return default values
@@ -355,8 +357,11 @@ export function extractEffectMetadata(targetClass: any): EffectOptions {
  * @param propertyName The property name to get control for
  */
 export function getControlForProperty(
-  targetClass: any,
+  targetClass: unknown,
   propertyName: string,
 ): ControlDefinitionType | undefined {
-  return Reflect.getMetadata(propertyMetadataKey(propertyName), targetClass);
+  return Reflect.getMetadata(
+    propertyMetadataKey(propertyName),
+    targetClass as object,
+  );
 }
