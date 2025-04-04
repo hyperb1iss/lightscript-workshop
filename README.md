@@ -19,6 +19,7 @@ LightScript Workshop is a modern TypeScript framework for creating beautiful RGB
 
 - **🔷 Modern TypeScript** - Full type safety prevents runtime errors
 - **🔮 Three.js Integration** - Powerful WebGL rendering capabilities
+- **🎨 Canvas 2D Support** - Traditional drawing API for simpler effects
 - **⚡ Hot Reloading** - Instant visual feedback while coding
 - **🕹️ Declarative Controls** - Define UI elements with simple HTML
 - **⚙️ Optimized Build Pipeline** - Production-ready effects
@@ -72,6 +73,17 @@ A wave-based RGB effect showcasing smooth animation and minimal resource usage.
 - Sine wave generation
 - Multiple color modes
 - Optimized for performance
+
+### ✨ Glow Particles
+
+A vibrant particle system with glowing effects using Canvas 2D rendering.
+
+**Key features:**
+
+- Particle physics simulation
+- Glowing effects with shadows
+- Trail rendering with transparency
+- Multiple color schemes
 
 ## 💻 Development Workflow
 

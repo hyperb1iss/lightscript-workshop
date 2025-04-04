@@ -104,22 +104,43 @@ Before creating your first effect, let's understand the core concepts of the fra
 
 ### The Effect Lifecycle
 
-1. **Initialization**: The effect loads and sets up WebGL context
+1. **Initialization**: The effect loads and sets up rendering context
 2. **Control Setup**: Default control values are established
 3. **Animation Loop**: Continuous rendering based on time and inputs
 4. **Control Updates**: React to user changes to controls
 5. **Shutdown**: Clean up resources when the effect is closed
 
+### Framework Architecture
+
+LightScript Workshop uses a hierarchical structure for effects:
+
+- **BaseEffect**: Abstract base class providing core functionality
+  - **WebGLEffect**: Implementation using Three.js/WebGL for shader-based effects
+  - **CanvasEffect**: Implementation using Canvas 2D for traditional drawing
+
+This architecture lets you choose the right rendering approach for your effect's needs.
+
 ### BaseEffect Class
 
 The `BaseEffect` class is the foundation for all effects. It handles:
 
-- WebGL initialization
+- Rendering context initialization
 - Animation loop management
 - Control synchronization
-- Shader uniform updates
+- Effect parameter updates
 
-When you create a new effect, you'll extend this class and implement four key methods:
+When you create a new effect, you'll extend either `WebGLEffect` or `CanvasEffect` (both of which extend `BaseEffect`) and implement their required methods.
+
+### WebGLEffect Class
+
+For shader-based effects using WebGL, the `WebGLEffect` class provides:
+
+- Three.js initialization
+- Shader compilation
+- Uniform management
+- WebGL rendering setup
+
+When extending `WebGLEffect`, you'll implement:
 
 ```typescript
 // Initialize controls with default values
@@ -133,6 +154,31 @@ protected createUniforms(): Record<string, THREE.IUniform>
 
 // Update uniforms with control values
 protected updateUniforms(controls: T): void
+```
+
+### CanvasEffect Class
+
+For effects using the Canvas 2D API, the `CanvasEffect` class provides:
+
+- 2D context initialization
+- Delta time calculation
+- Canvas clearing and state management
+- Resource loading helpers
+
+When extending `CanvasEffect`, you'll implement:
+
+```typescript
+// Initialize controls with default values
+protected initializeControls(): void
+
+// Get current control values
+protected getControlValues(): T
+
+// Draw the effect with canvas operations
+protected draw(time: number, deltaTime: number): void
+
+// Apply control values to the effect parameters
+protected applyControls(controls: T): void
 ```
 
 ### Control System
@@ -157,29 +203,24 @@ The framework supports these control types:
 - **boolean** - Checkbox toggles
 - **combobox** - Dropdown selections
 
-### WebGL & Shaders
-
-The framework uses Three.js for WebGL rendering, which abstracts away much of the complexity. Your effect's visual appearance is defined in a GLSL fragment shader that runs on the GPU.
-
-Standard uniforms provided to all shaders:
-
-- `iTime` - Time in seconds
-- `iResolution` - Canvas dimensions
-- `iMouse` - Mouse position (when available)
-
-You'll define additional custom uniforms for your effect's specific needs.
-
 ## 🎨 Creating Your First Effect
 
-Let's create a simple wave effect to demonstrate the framework. We'll build it step by step.
+Let's create your first effect. You can choose between two rendering approaches based on your needs:
 
-### 1. Create the Directory Structure
+1. **WebGL Effect**: For shader-based effects with high performance and visual complexity
+2. **Canvas 2D Effect**: For traditional drawing-based effects or when you need simpler rendering
+
+### Creating a WebGL Effect
+
+Let's create a simple wave effect using WebGL and shaders:
+
+#### 1. Create the Directory Structure
 
 ```bash
 mkdir -p src/effects/awesome-wave
 ```
 
-### 2. Create the HTML Template
+#### 2. Create the HTML Template
 
 Create `template.html` with effect metadata and controls:
 
@@ -243,7 +284,7 @@ Create `template.html` with effect metadata and controls:
 </html>
 ```
 
-### 3. Create the Fragment Shader
+#### 3. Create the Fragment Shader
 
 Create `fragment.glsl` with your WebGL shader code:
 
@@ -327,7 +368,7 @@ void main() {
 }
 ```
 
-### 4. Create the TypeScript Implementation
+#### 4. Create the TypeScript Implementation
 
 Create `main.ts` to connect your shader to the framework:
 
@@ -417,7 +458,7 @@ initializeEffect(() => effect.initialize());
 export default effect;
 ```
 
-### 5. Register Your Effect
+#### 5. Register Your Effect
 
 Add your effect to the registry in `src/index.ts`:
 
@@ -435,13 +476,360 @@ export const effects = [
 ];
 ```
 
-### 6. Test Your Effect
+#### 6. Test Your Effect
 
 Run the development server and navigate to your effect:
 
 ```bash
 npm run dev
 # Then open: http://localhost:3000?effect=awesome-wave
+```
+
+### Creating a Canvas 2D Effect
+
+Now let's create a particle effect using the Canvas 2D API:
+
+#### 1. Create the Directory Structure
+
+```bash
+mkdir -p src/effects/glow-particles
+```
+
+#### 2. Create the HTML Template
+
+Create `template.html` with effect metadata and controls:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Glow Particles</title>
+    <meta
+      name="description"
+      content="A colorful particle system with glowing effects"
+    />
+    <meta publisher="YourName" />
+
+    <!-- Controls -->
+    <meta
+      property="particleCount"
+      label="Particle Count"
+      type="number"
+      min="10"
+      max="500"
+      default="100"
+      tooltip="Number of particles in the system"
+    />
+    <meta
+      property="speed"
+      label="Movement Speed"
+      type="number"
+      min="1"
+      max="10"
+      default="5"
+      tooltip="Controls particle movement speed"
+    />
+    <meta
+      property="particleSize"
+      label="Particle Size"
+      type="number"
+      min="1"
+      max="20"
+      default="5"
+      tooltip="Size of particles"
+    />
+    <meta
+      property="colorMode"
+      label="Color Mode"
+      type="combobox"
+      values="Rainbow,Blues,Neon,Fire"
+      default="Rainbow"
+      tooltip="Color scheme for particles"
+    />
+    <meta
+      property="glowIntensity"
+      label="Glow Intensity"
+      type="number"
+      min="10"
+      max="100"
+      default="50"
+      tooltip="Controls the glow effect intensity"
+    />
+
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #000;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="exCanvas" width="320" height="200"></canvas>
+    <script>
+      <!-- BUNDLE_SCRIPT_INJECT -->
+    </script>
+  </body>
+</html>
+```
+
+#### 3. Create the TypeScript Types
+
+Create `types.ts` to define particle-related types:
+
+```typescript
+// src/effects/glow-particles/types.ts
+
+export interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  color: string;
+  alpha: number;
+}
+
+export interface GlowParticlesControls {
+  particleCount: number;
+  speed: number;
+  particleSize: number;
+  colorMode: string | number;
+  glowIntensity: number;
+}
+```
+
+#### 4. Create the Effect Implementation
+
+Create `glow-particles-effect.ts` with the Canvas effect implementation:
+
+```typescript
+// src/effects/glow-particles/glow-particles-effect.ts
+
+import { CanvasEffect } from "../../common/canvas-effect";
+import { normalizeSpeed, getControlValue } from "../../common/controls";
+import { Particle, GlowParticlesControls } from "./types";
+
+export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
+  private particles: Particle[] = [];
+  private colorModes = ["Rainbow", "Blues", "Neon", "Fire"];
+
+  constructor() {
+    super({
+      id: "glow-particles",
+      name: "Glow Particles",
+      debug: true,
+      backgroundColor: "rgba(0, 0, 0, 0.2)", // Semi-transparent for trails
+    });
+  }
+
+  /**
+   * Initialize control default values
+   */
+  protected initializeControls(): void {
+    window.particleCount = 100;
+    window.speed = 5;
+    window.particleSize = 5;
+    window.colorMode = "Rainbow";
+    window.glowIntensity = 50;
+  }
+
+  /**
+   * Get current control values
+   */
+  protected getControlValues(): GlowParticlesControls {
+    return {
+      particleCount: getControlValue<number>("particleCount", 100),
+      speed: normalizeSpeed(getControlValue<number>("speed", 5)),
+      particleSize: getControlValue<number>("particleSize", 5),
+      colorMode: getControlValue<string>("colorMode", "Rainbow"),
+      glowIntensity: getControlValue<number>("glowIntensity", 50) / 50,
+    };
+  }
+
+  /**
+   * Set up initial particles after renderer is initialized
+   */
+  protected async initializeRenderer(): Promise<void> {
+    await super.initializeRenderer();
+
+    // Initialize particles
+    this.createParticles(100);
+  }
+
+  /**
+   * Apply control changes
+   */
+  protected applyControls(controls: GlowParticlesControls): void {
+    // Adjust particle count if needed
+    if (this.particles.length !== controls.particleCount) {
+      this.createParticles(controls.particleCount);
+    }
+
+    // Other controls are applied during drawing
+  }
+
+  /**
+   * Create particles
+   */
+  private createParticles(count: number): void {
+    this.particles = [];
+
+    if (!this.canvas) return;
+
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+
+    for (let i = 0; i < count; i++) {
+      this.particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        size: Math.random() * 4 + 1,
+        color: this.getRandomColor("Rainbow"),
+        alpha: Math.random() * 0.5 + 0.5,
+      });
+    }
+  }
+
+  /**
+   * Get random color based on color mode
+   */
+  private getRandomColor(colorMode: string): string {
+    switch (colorMode) {
+      case "Rainbow":
+        return `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`;
+      case "Blues":
+        return `hsl(${200 + Math.floor(Math.random() * 40)}, 100%, ${50 + Math.floor(Math.random() * 30)}%)`;
+      case "Neon":
+        const neonHues = [320, 260, 180, 120]; // Pink, Purple, Cyan, Green
+        return `hsl(${neonHues[Math.floor(Math.random() * neonHues.length)]}, 100%, 60%)`;
+      case "Fire":
+        return `hsl(${Math.floor(Math.random() * 30) + 10}, 100%, ${50 + Math.floor(Math.random() * 20)}%)`;
+      default:
+        return `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`;
+    }
+  }
+
+  /**
+   * Draw the particles on the canvas
+   */
+  protected draw(time: number, deltaTime: number): void {
+    if (!this.ctx || !this.canvas) return;
+
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+    const controls = this.getControlValues();
+
+    // Draw background with fade effect
+    this.ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+    this.ctx.fillRect(0, 0, width, height);
+
+    // Configure glow effect
+    this.ctx.shadowBlur = 15 * controls.glowIntensity;
+    this.ctx.globalCompositeOperation = "lighter";
+
+    // Draw each particle
+    for (const particle of this.particles) {
+      this.ctx.shadowColor = particle.color;
+      this.ctx.fillStyle = particle.color;
+      this.ctx.globalAlpha = particle.alpha;
+
+      this.ctx.beginPath();
+      this.ctx.arc(
+        particle.x,
+        particle.y,
+        (particle.size * controls.particleSize) / 5,
+        0,
+        Math.PI * 2,
+      );
+      this.ctx.fill();
+
+      // Update position
+      particle.x += particle.vx * controls.speed * deltaTime * 60;
+      particle.y += particle.vy * controls.speed * deltaTime * 60;
+
+      // Bounce off edges
+      if (particle.x < 0 || particle.x > width) {
+        particle.vx *= -1;
+      }
+      if (particle.y < 0 || particle.y > height) {
+        particle.vy *= -1;
+      }
+
+      // Random color changes
+      if (Math.random() < 0.01) {
+        particle.color = this.getRandomColor(controls.colorMode as string);
+      }
+    }
+
+    // Reset composite operation
+    this.ctx.globalCompositeOperation = "source-over";
+    this.ctx.globalAlpha = 1;
+  }
+}
+```
+
+#### 5. Create the Entry Point
+
+Create `main.ts` as the entry point for the effect:
+
+```typescript
+// src/effects/glow-particles/main.ts
+
+import { initializeEffect } from "../../common";
+import { GlowParticlesEffect } from "./glow-particles-effect";
+
+// Create effect instance
+const effect = new GlowParticlesEffect();
+
+// Initialize the effect
+initializeEffect(() => {
+  console.log("[GlowParticles] Initializing");
+  effect.initialize();
+});
+
+// Export the effect instance
+export default effect;
+
+// Re-export types and components
+export { GlowParticlesEffect } from "./glow-particles-effect";
+export type { GlowParticlesControls } from "./types";
+```
+
+#### 6. Register Your Effect
+
+Add your effect to the registry in `src/index.ts`:
+
+```typescript
+export const effects = [
+  // Existing effects...
+  {
+    id: "glow-particles",
+    name: "Glow Particles",
+    description: "A colorful particle system with glowing effects",
+    author: "YourName",
+    entry: "./effects/glow-particles/main.ts",
+    template: "./effects/glow-particles/template.html",
+  },
+];
+```
+
+#### 7. Test Your Effect
+
+Run the development server and navigate to your effect:
+
+```bash
+npm run dev
+# Then open: http://localhost:3000?effect=glow-particles
 ```
 
 ## 🔧 Development Workflow

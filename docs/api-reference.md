@@ -20,20 +20,19 @@ This document provides detailed information about all the APIs and utilities ava
 
 ## 🧠 BaseEffect Class
 
-The `BaseEffect` class is the foundation of all lighting effects in the framework. It provides a structured approach to initializing WebGL, managing controls, and handling animation.
+The `BaseEffect` class is the foundation of all lighting effects in the framework. It provides a structured approach to initializing rendering contexts, managing controls, and handling animation. This is an abstract base class that should be extended by renderer-specific classes like `WebGLEffect` or `CanvasEffect`.
 
 ### Core Properties
 
-| Property         | Type                             | Description                      |
-| ---------------- | -------------------------------- | -------------------------------- |
-| `id`             | `string`                         | Unique identifier for the effect |
-| `name`           | `string`                         | Display name                     |
-| `debug`          | `Function`                       | Debug logger instance            |
-| `webGLContext`   | `WebGLContext`                   | Three.js renderer context        |
-| `material`       | `THREE.ShaderMaterial`           | Shader material instance         |
-| `customUniforms` | `Record<string, THREE.IUniform>` | Custom shader uniforms           |
-| `fragmentShader` | `string`                         | Fragment shader code             |
-| `vertexShader`   | `string`                         | Optional vertex shader code      |
+| Property       | Type                | Description                      |
+| -------------- | ------------------- | -------------------------------- |
+| `id`           | `string`            | Unique identifier for the effect |
+| `name`         | `string`            | Display name                     |
+| `debug`        | `Function`          | Debug logger instance            |
+| `animationId`  | `number \| null`    | Current animation frame ID       |
+| `canvas`       | `HTMLCanvasElement` | Canvas element for rendering     |
+| `canvasWidth`  | `number`            | Canvas width                     |
+| `canvasHeight` | `number`            | Canvas height                    |
 
 ### Constructor
 
@@ -51,8 +50,6 @@ Creates a new effect instance with the specified configuration.
   - `debug`: (Optional) Enable debug logging
   - `canvasWidth`: (Optional) Canvas width, defaults to 320
   - `canvasHeight`: (Optional) Canvas height, defaults to 200
-  - `fragmentShader`: GLSL fragment shader code
-  - `vertexShader`: (Optional) GLSL vertex shader code
 
 ### Public Methods
 
@@ -62,7 +59,7 @@ Creates a new effect instance with the specified configuration.
 public async initialize(): Promise<void>
 ```
 
-Initializes the effect, setting up WebGL, shader materials, and starting the animation loop.
+Initializes the effect, setting up rendering context, and starting the animation loop.
 
 #### `update()`
 
@@ -88,6 +85,26 @@ Stops the animation loop and cleans up resources.
 
 When extending `BaseEffect`, you must implement these methods:
 
+#### `initializeRenderer()`
+
+```typescript
+protected abstract initializeRenderer(): Promise<void>
+```
+
+Initialize the renderer-specific context and resources.
+
+#### `render()`
+
+```typescript
+protected abstract render(time: number): void
+```
+
+Render a frame using the specific rendering technique.
+
+**Parameters:**
+
+- `time`: Current time in seconds
+
 #### `initializeControls()`
 
 ```typescript
@@ -104,21 +121,13 @@ protected abstract getControlValues(): T
 
 Retrieve current control values from global scope and process them as needed.
 
-#### `createUniforms()`
+#### `updateParameters()`
 
 ```typescript
-protected abstract createUniforms(): Record<string, THREE.IUniform>
+protected abstract updateParameters(controls: T): void
 ```
 
-Create custom shader uniforms for your effect.
-
-#### `updateUniforms()`
-
-```typescript
-protected abstract updateUniforms(controls: T): void
-```
-
-Update shader uniforms with current control values.
+Update effect parameters with current control values.
 
 **Parameters:**
 
@@ -157,6 +166,131 @@ Handle initialization errors. Override to customize error handling.
 **Parameters:**
 
 - `error`: The error that occurred
+
+## 🖥️ WebGLEffect Class
+
+The `WebGLEffect` class extends `BaseEffect` to provide WebGL-specific rendering capabilities using Three.js.
+
+### Core Properties
+
+| Property         | Type                             | Description                 |
+| ---------------- | -------------------------------- | --------------------------- |
+| `webGLContext`   | `WebGLContext`                   | Three.js renderer context   |
+| `material`       | `THREE.ShaderMaterial`           | Shader material instance    |
+| `customUniforms` | `Record<string, THREE.IUniform>` | Custom shader uniforms      |
+| `fragmentShader` | `string`                         | Fragment shader code        |
+| `vertexShader`   | `string`                         | Optional vertex shader code |
+
+### Constructor
+
+```typescript
+constructor(config: WebGLEffectConfig)
+```
+
+Creates a new WebGL effect instance with the specified configuration.
+
+**Parameters:**
+
+- `config`: Configuration object extending EffectConfig with:
+  - `fragmentShader`: GLSL fragment shader code
+  - `vertexShader`: (Optional) GLSL vertex shader code
+
+### Methods to Implement
+
+When extending `WebGLEffect`, you must implement these methods:
+
+#### `createUniforms()`
+
+```typescript
+protected abstract createUniforms(): Record<string, THREE.IUniform>
+```
+
+Create custom shader uniforms for your effect.
+
+#### `updateUniforms()`
+
+```typescript
+protected abstract updateUniforms(controls: T): void
+```
+
+Update shader uniforms with current control values.
+
+**Parameters:**
+
+- `controls`: Current control values object of type T
+
+## 🎨 CanvasEffect Class
+
+The `CanvasEffect` class extends `BaseEffect` to provide 2D Canvas-specific rendering capabilities, perfect for effects that don't require WebGL.
+
+### Core Properties
+
+| Property          | Type                       | Description                      |
+| ----------------- | -------------------------- | -------------------------------- |
+| `ctx`             | `CanvasRenderingContext2D` | 2D canvas rendering context      |
+| `backgroundColor` | `string`                   | Default background color         |
+| `lastFrameTime`   | `number`                   | Time of last frame for delta     |
+| `deltaTime`       | `number`                   | Time since last frame in seconds |
+
+### Constructor
+
+```typescript
+constructor(config: CanvasEffectConfig)
+```
+
+Creates a new Canvas 2D effect instance with the specified configuration.
+
+**Parameters:**
+
+- `config`: Configuration object extending EffectConfig with:
+  - `backgroundColor`: (Optional) Default background color, defaults to "black"
+
+### Methods to Implement
+
+When extending `CanvasEffect`, you must implement these methods:
+
+#### `draw()`
+
+```typescript
+protected abstract draw(time: number, deltaTime: number): void
+```
+
+Draw the effect on the canvas for the current frame.
+
+**Parameters:**
+
+- `time`: Current time in seconds
+- `deltaTime`: Time since last frame in seconds
+
+#### `applyControls()`
+
+```typescript
+protected abstract applyControls(controls: T): void
+```
+
+Apply control values to the effect parameters.
+
+**Parameters:**
+
+- `controls`: Current control values object of type T
+
+### Helper Methods
+
+#### `clearCanvas()`
+
+```typescript
+protected clearCanvas(): void
+```
+
+Clears the canvas with the background color.
+
+#### `loadResources()`
+
+```typescript
+protected async loadResources(): Promise<void>
+```
+
+Load effect resources (images, fonts, etc.). Override this method in subclasses if needed.
 
 ## 🎮 Controls System
 

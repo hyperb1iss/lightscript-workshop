@@ -6,7 +6,7 @@
 
 </div>
 
-> *Conjure digital rainbows with these magical examples* ✨
+> _Conjure digital rainbows with these magical examples_ ✨
 
 This document provides complete examples of LightScript effects with step-by-step explanations. Use these as templates or inspiration for your own creative RGB adventures!
 
@@ -78,22 +78,22 @@ vec3 getColor(float t, int mode) {
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   // Normalized pixel coordinates
   vec2 uv = fragCoord / iResolution.xy;
-  
+
   // Time-based animation
   float time = iTime * iSpeed;
-  
+
   // Create wave effect
   float wave = sin(uv.x * iWaveWidth + time) * 0.5 + 0.5;
-  
+
   // Apply wave height
   wave = wave * iWaveHeight;
-  
+
   // If pixel is within wave, color it
   if (uv.y < wave) {
     // Get color based on x position and time
     float colorPos = fract(uv.x - time * 0.1);
     vec3 color = getColor(colorPos, iColorMode);
-    
+
     // Output colored pixel
     fragColor = vec4(color, 1.0);
   } else {
@@ -165,7 +165,7 @@ export class ColorWaveEffect extends BaseEffect<ColorWaveControls> {
     // Convert colorMode from string to index if needed
     const rawColorMode = getControlValue<string | number>(
       "colorMode",
-      "Rainbow"
+      "Rainbow",
     );
     let colorMode: string | number = rawColorMode;
 
@@ -180,7 +180,7 @@ export class ColorWaveEffect extends BaseEffect<ColorWaveControls> {
       waveHeight: normalizePercentage(
         getControlValue<number>("waveHeight", 50),
         100,
-        0.05
+        0.05,
       ),
       colorMode,
     };
@@ -230,10 +230,7 @@ export default effect;
   <head>
     <meta charset="UTF-8" />
     <title>Color Wave</title>
-    <meta
-      name="description"
-      content="A flowing wave of color"
-    />
+    <meta name="description" content="A flowing wave of color" />
     <meta name="keywords" content="SignalRGB, wave, color, effect" />
     <meta publisher="LightScript Workshop" />
 
@@ -318,7 +315,7 @@ A pulsing effect that reacts to audio input from SignalRGB.
    ⚪       ⚪
 ```
 
-> *Note: This example shows how to integrate with SignalRGB's audio input capabilities.*
+> _Note: This example shows how to integrate with SignalRGB's audio input capabilities._
 
 ### Fragment Shader
 
@@ -344,20 +341,20 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   vec2 uv = fragCoord / iResolution.xy;
   vec2 center = uv - 0.5;
   float dist = length(center);
-  
+
   // Audio-reactive pulse
   float pulse = iBasePulse + iAudioLevel;
-  
+
   // Create pulse effect with smooth falloff
   float brightness = smoothstep(pulse, 0.0, dist) * iIntensity;
-  
+
   // Color based on angle and time
   float angle = atan(center.y, center.x);
   float hue = fract((angle / 6.28) + iTime * iColorShift);
-  
+
   // Final color
   vec3 color = hsv2rgb(vec3(hue, 0.8, brightness));
-  
+
   // Output
   fragColor = vec4(color, 1.0);
 }
@@ -403,7 +400,7 @@ export class AudioPulseEffect extends BaseEffect<AudioPulseControls> {
       fragmentShader,
     });
   }
-  
+
   /**
    * Initialize controls
    */
@@ -412,7 +409,7 @@ export class AudioPulseEffect extends BaseEffect<AudioPulseControls> {
     window.colorShift = 5;
     window.intensity = 100;
   }
-  
+
   /**
    * Get control values
    */
@@ -423,7 +420,7 @@ export class AudioPulseEffect extends BaseEffect<AudioPulseControls> {
       intensity: normalizePercentage(getControlValue<number>("intensity", 100)),
     };
   }
-  
+
   /**
    * Create uniforms
    */
@@ -435,33 +432,33 @@ export class AudioPulseEffect extends BaseEffect<AudioPulseControls> {
       iIntensity: { value: 1.0 },
     };
   }
-  
+
   /**
    * Update uniforms
    */
   protected updateUniforms(controls: AudioPulseControls): void {
     if (!this.material) return;
-    
+
     this.material.uniforms.iBasePulse.value = controls.basePulse;
     this.material.uniforms.iColorShift.value = controls.colorShift;
     this.material.uniforms.iIntensity.value = controls.intensity;
   }
-  
+
   /**
    * Override onFrame to get audio input from SignalRGB
    */
   protected onFrame(time: number): void {
     super.onFrame(time);
-    
+
     // Read audio level from SignalRGB if available
     let audioLevel = 0;
-    
+
     if (window.engine && window.engine.audio) {
       // Convert from dB (-100 to 0) to linear (0 to 1)
       const dbLevel = window.engine.audio.level || -100;
       audioLevel = Math.min(1, Math.max(0, (dbLevel + 50) / 50)) * 0.5;
     }
-    
+
     if (this.material) {
       this.material.uniforms.iAudioLevel.value = audioLevel;
     }
@@ -489,7 +486,7 @@ A classic star field effect with color and motion controls.
 
 ```
   *       *     *
-       *     *  
+       *     *
 *    *      *     *
      *  *       *
   *      *    *
@@ -524,7 +521,7 @@ float hash(vec2 p) {
 float star(vec2 uv, float flare) {
   float d = length(uv);
   float m = iStarSize / d;
-  
+
   float rays = max(0.0, 1.0 - abs(uv.x * uv.y * 1000.0));
   m += rays * flare;
   m = smoothstep(0.0, 1.0, m);
@@ -540,46 +537,46 @@ vec3 hsv2rgb(vec3 c) {
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   vec2 uv = (fragCoord - 0.5 * iResolution.xy) / min(iResolution.x, iResolution.y);
-  
+
   // Star field setup
   vec3 color = vec3(0.0);
-  
+
   // Several layers of stars with different sizes and movement speeds
   for (int i = 0; i < 3; i++) {
     // Offset per layer
     float offset = float(i) / 3.0;
-    
+
     // Moving coordinate system for parallax
     float speed = iSpeed * (1.0 + float(i)) * 0.5;
     float movementScale = 1.0 + float(i) * 0.2;
     vec2 scaledUV = uv * (0.5 + float(i) * 0.5);
-    
+
     // Create grid for stars
     vec2 gv = fract(scaledUV + offset) - 0.5;
     vec2 id = floor(scaledUV + offset);
-    
+
     // For each potential star position
     for (int y = -1; y <= 1; y++) {
       for (int x = -1; x <= 1; x++) {
         // Neighbor cell
         vec2 offs = vec2(float(x), float(y));
-        
+
         // Random position within cell
         vec2 cellId = id + offs;
         vec2 cellUV = gv - offs;
-        
+
         // Random star brightness and size based on cell
         float cellHash = hash(cellId);
-        
+
         // Only draw some stars based on density
         if (cellHash > (1.0 - iStarDensity * 0.5)) {
           // Star center position with random offset
           vec2 starPos = cellUV - (vec2(cellHash, fract(cellHash * 34.12)) - 0.5) * 0.5;
-          
+
           // Draw star
           float brightnessFactor = smoothstep(0.4, 1.0, cellHash) * 0.8 + 0.2;
           float starBrightness = star(starPos, brightnessFactor);
-          
+
           // Star color based on mode
           vec3 starColor;
           if (iColorMode == 0) {
@@ -595,14 +592,14 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             // Gold-orange stars
             starColor = mix(vec3(1.0, 0.6, 0.0), vec3(1.0, 0.8, 0.4), cellHash);
           }
-          
+
           // Add star to scene
           color += starColor * starBrightness;
         }
       }
     }
   }
-  
+
   // Output
   fragColor = vec4(color, 1.0);
 }
@@ -678,37 +675,37 @@ float fbm(vec2 x) {
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   // Normalized coordinates with aspect ratio correction
   vec2 uv = fragCoord / iResolution.xy;
-  
+
   // Time variable
   float time = iTime * iSpeed;
-  
+
   // Fire base at bottom
   float y = 1.0 - uv.y;
-  
+
   // Generate noise
   vec2 q = vec2(uv.x, y * iFlameHeight);
-  
+
   float strength = iFlameHeight;
   float f = 0.0;
-  
+
   // Fire shape
   f = 1.0 - pow(abs(uv.y - 1.0), 2.0) * 2.5;
-  
+
   // Fractal noise for flame
   f *= fbm(q * vec2(1.0, 2.0) + time * 0.5) * iFlameDetail;
-  
+
   // Adjust by position (more fire at bottom)
   f *= 1.0 - pow(uv.y, 4.0);
-  
+
   // Intensity control
   f *= iIntensity;
-  
+
   // Color palette for fire
   vec3 color = vec3(1.5 * f, 1.5 * f * f * f, f * f * f * f * f * f);
-  
+
   // Gamma correction
   color = pow(color, vec3(1.0 / 2.2));
-  
+
   // Output
   fragColor = vec4(color, 1.0);
 }
@@ -729,32 +726,35 @@ void main() {
 ### Performance Optimization
 
 1. **Limit Complex Math**: Expensive functions like sin, cos, pow can slow down your effect
+
    ```glsl
    // Instead of this (expensive)
    float result = pow(sin(x * 10.0), 5.0);
-   
+
    // Try this (more efficient)
    float sinx = sin(x * 10.0);
    float result = sinx * sinx * sinx * sinx * sinx;
    ```
 
 2. **Use Texture Lookups**: For complex patterns, precalculate and use texture lookups
+
    ```glsl
    // Define lookup texture in createUniforms()
    iNoiseTexture: { value: createNoiseTexture() }
-   
+
    // Then in shader, use texture lookup instead of calculation
    vec4 noise = texture2D(iNoiseTexture, uv);
    ```
 
 3. **Avoid Loops**: Unroll loops when possible or keep iterations minimal
+
    ```glsl
    // Instead of this
    float sum = 0.0;
    for (int i = 0; i < 10; i++) {
      sum += calculateValue(i);
    }
-   
+
    // Unroll for better performance
    float sum = calculateValue(0) + calculateValue(1) + calculateValue(2) +
                calculateValue(3) + calculateValue(4) + calculateValue(5) +
@@ -765,16 +765,18 @@ void main() {
 ### Visual Quality
 
 1. **Color Spaces**: HSV is often more intuitive than RGB for creating color gradients
+
    ```glsl
    // HSV for better color control
    vec3 color = hsv2rgb(vec3(hue, saturation, brightness));
    ```
 
 2. **Smooth Transitions**: Use smoothstep instead of step for smoother edges
+
    ```glsl
    // Hard edge (harsh)
    float edge = step(0.5, value);
-   
+
    // Smooth edge (better looking)
    float edge = smoothstep(0.45, 0.55, value);
    ```
@@ -788,6 +790,7 @@ void main() {
 ### Code Organization
 
 1. **Utility Functions**: Create reusable functions for common operations
+
    ```glsl
    // Reusable functions for cleaner code
    float circle(vec2 uv, vec2 center, float radius) {
@@ -796,10 +799,11 @@ void main() {
    ```
 
 2. **Normalized Coordinates**: Always work with normalized (0-1) coordinates for resolution independence
+
    ```glsl
    // Normalize coordinates
    vec2 uv = fragCoord / iResolution.xy;
-   
+
    // Center if needed
    vec2 centered = uv - 0.5;
    ```
@@ -817,3 +821,267 @@ void main() {
 1. **Start Simple**: Begin with a basic effect and add complexity incrementally
 2. **Test on Hardware**: Effects can look different on actual RGB devices than in the preview
 3. **Vary Device Layout**: Test with different device arrangements to ensure your effect scales well
+
+## ✨ Glowing Particles (Canvas 2D)
+
+A vibrant particle system with glowing effects using Canvas 2D rendering.
+
+### Preview
+
+```
+  ✨    ✨
+     ✨     ✨  ✨
+ ✨        ✨
+✨  ✨   ✨      ✨
+   ✨     ✨  ✨
+  ✨    ✨     ✨
+```
+
+### Effect Structure
+
+```
+effects/glow-particles/
+├── glow-particles-effect.ts  # Main implementation
+├── main.ts                   # Entry point
+├── template.html             # HTML template with controls
+└── types.ts                  # Type definitions
+```
+
+### TypeScript Types
+
+```typescript
+// effects/glow-particles/types.ts
+
+export interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  color: string;
+  alpha: number;
+}
+
+export interface GlowParticlesControls {
+  particleCount: number;
+  speed: number;
+  particleSize: number;
+  colorMode: string | number;
+  glowIntensity: number;
+}
+```
+
+### Canvas Effect Implementation
+
+```typescript
+// effects/glow-particles/glow-particles-effect.ts
+
+import { CanvasEffect } from "../../common/canvas-effect";
+import { normalizeSpeed, getControlValue } from "../../common/controls";
+import { Particle, GlowParticlesControls } from "./types";
+
+export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
+  private particles: Particle[] = [];
+
+  constructor() {
+    super({
+      id: "glow-particles",
+      name: "Glow Particles",
+      debug: true,
+      backgroundColor: "rgba(0, 0, 0, 0.2)", // Semi-transparent for trails
+    });
+  }
+
+  /**
+   * Initialize control default values
+   */
+  protected initializeControls(): void {
+    window.particleCount = 100;
+    window.speed = 5;
+    window.particleSize = 5;
+    window.colorMode = "Rainbow";
+    window.glowIntensity = 50;
+  }
+
+  /**
+   * Get current control values
+   */
+  protected getControlValues(): GlowParticlesControls {
+    return {
+      particleCount: getControlValue<number>("particleCount", 100),
+      speed: normalizeSpeed(getControlValue<number>("speed", 5)),
+      particleSize: getControlValue<number>("particleSize", 5),
+      colorMode: getControlValue<string>("colorMode", "Rainbow"),
+      glowIntensity: getControlValue<number>("glowIntensity", 50) / 50,
+    };
+  }
+
+  /**
+   * Apply control changes
+   */
+  protected applyControls(controls: GlowParticlesControls): void {
+    // Adjust particle count if needed
+    if (this.particles.length !== controls.particleCount) {
+      this.createParticles(controls.particleCount);
+    }
+  }
+
+  /**
+   * Set up initial particles after renderer is initialized
+   */
+  protected async initializeRenderer(): Promise<void> {
+    await super.initializeRenderer();
+    this.createParticles(100);
+  }
+
+  /**
+   * Create particles
+   */
+  private createParticles(count: number): void {
+    this.particles = [];
+
+    if (!this.canvas) return;
+
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+
+    for (let i = 0; i < count; i++) {
+      this.particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        size: Math.random() * 4 + 1,
+        color: this.getRandomColor(
+          getControlValue<string>("colorMode", "Rainbow"),
+        ),
+        alpha: Math.random() * 0.5 + 0.5,
+      });
+    }
+  }
+
+  /**
+   * Get color based on selected color mode
+   */
+  private getRandomColor(colorMode: string): string {
+    switch (colorMode) {
+      case "Rainbow":
+        return `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`;
+      case "Blues":
+        return `hsl(${200 + Math.floor(Math.random() * 40)}, 100%, 60%)`;
+      case "Neon":
+        const neonHues = [320, 260, 180, 120]; // Pink, Purple, Cyan, Green
+        return `hsl(${neonHues[Math.floor(Math.random() * neonHues.length)]}, 100%, 60%)`;
+      case "Fire":
+        return `hsl(${Math.floor(Math.random() * 30) + 10}, 100%, 55%)`;
+      default:
+        return `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`;
+    }
+  }
+
+  /**
+   * Draw the particles on the canvas
+   */
+  protected draw(time: number, deltaTime: number): void {
+    if (!this.ctx || !this.canvas) return;
+
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+    const controls = this.getControlValues();
+
+    // Draw background with fade effect (trail effect)
+    this.ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+    this.ctx.fillRect(0, 0, width, height);
+
+    // Configure glow effect
+    this.ctx.shadowBlur = 15 * controls.glowIntensity;
+    this.ctx.globalCompositeOperation = "lighter";
+
+    // Draw each particle
+    for (const particle of this.particles) {
+      // Set shadow and fill colors for glow
+      this.ctx.shadowColor = particle.color;
+      this.ctx.fillStyle = particle.color;
+      this.ctx.globalAlpha = particle.alpha;
+
+      // Draw particle
+      this.ctx.beginPath();
+      this.ctx.arc(
+        particle.x,
+        particle.y,
+        (particle.size * controls.particleSize) / 5,
+        0,
+        Math.PI * 2,
+      );
+      this.ctx.fill();
+
+      // Update position
+      particle.x += particle.vx * controls.speed * deltaTime * 60;
+      particle.y += particle.vy * controls.speed * deltaTime * 60;
+
+      // Bounce off edges
+      if (particle.x < 0 || particle.x > width) {
+        particle.vx *= -1;
+      }
+      if (particle.y < 0 || particle.y > height) {
+        particle.vy *= -1;
+      }
+
+      // Random color changes
+      if (Math.random() < 0.01) {
+        particle.color = this.getRandomColor(controls.colorMode as string);
+      }
+    }
+
+    // Reset composite operation
+    this.ctx.globalCompositeOperation = "source-over";
+    this.ctx.globalAlpha = 1;
+  }
+}
+```
+
+### Entry Point
+
+```typescript
+// effects/glow-particles/main.ts
+
+import { initializeEffect } from "../../common";
+import { GlowParticlesEffect } from "./glow-particles-effect";
+
+// Create effect instance
+const effect = new GlowParticlesEffect();
+
+// Initialize the effect using the common initializer
+initializeEffect(() => {
+  console.log("[GlowParticles] Initializing");
+  effect.initialize();
+});
+
+export default effect;
+```
+
+### Key Techniques
+
+- **Canvas 2D Rendering**: Using standard Canvas API instead of WebGL
+- **Particle System**: Managing a collection of particles with physics
+- **Trail Effects**: Using semi-transparent background fills for motion trails
+- **Glow Effects**: Using Canvas shadow properties for light bloom
+- **Delta Time**: Using time between frames to ensure consistent animation speeds
+
+### Canvas vs WebGL
+
+When deciding between Canvas 2D and WebGL for your effect:
+
+**Choose Canvas 2D when:**
+
+- Creating effects with fewer than ~1000 elements
+- Needing simpler drawing operations like shapes, text, and images
+- Working with transparency and blend modes is important
+- You want easier debugging and more accessible code
+
+**Choose WebGL when:**
+
+- Creating effects with thousands of elements or pixels
+- Using complex fragment shaders for per-pixel operations
+- Needing maximum performance for complex animations
+- Working with 3D elements or advanced visual effects
