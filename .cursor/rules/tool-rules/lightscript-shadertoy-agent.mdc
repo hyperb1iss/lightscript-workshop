@@ -9,7 +9,7 @@ alwaysApply: false
 ## Critical Rules
 
 - Shadertoy shaders must be converted to WebGL effects using the `WebGLEffect<T>` base class
-- Create a proper directory structure in `src/effects/{effect-id}/`
+- Create a proper directory structure in `effects/{effect-id}/`
 - Move the shader code to a separate `fragment.glsl` file with needed modifications
 - Map Shadertoy uniforms to LightScript equivalents:
   - `uniform float iTime;` - Maintained (used for animation time)
@@ -19,8 +19,9 @@ alwaysApply: false
   - Custom uniforms must be added for all control parameters
 - Always keep the `mainImage()` function signature compatible: `void mainImage(out vec4 fragColor, in vec2 fragCoord)`
 - Add a `main()` function that calls `mainImage()` with `gl_FragColor` and `gl_FragCoord.xy`
-- Create appropriate controls in template.html that map to shader parameters
+- Create appropriate controls using decorators (`@NumberControl`, `@ComboboxControl`, etc.) that map to shader parameters
 - Convert implicit parameters to explicit uniforms (e.g., hardcoded values become controllable parameters)
+- Use the `@Effect` decorator to provide metadata about the effect
 - Optimize shader code for running on peripheral devices (reduce complexity when possible)
 - Implement proper uniform management in the effect class
 - Test shader at multiple resolutions and optimize performance
@@ -64,7 +65,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 
 // CONVERTED TO:
 
-// src/effects/cosmic-waves/fragment.glsl
+// effects/cosmic-waves/fragment.glsl
 uniform float iTime;
 uniform vec2 iResolution;
 // New control uniforms
@@ -105,23 +106,68 @@ void main() {
     mainImage(gl_FragColor, gl_FragCoord.xy);
 }
 
-// src/effects/cosmic-waves/main.ts
-import { WebGLEffect } from "../../common/webgl-effect";
-import { initializeEffect } from "../../common";
+// effects/cosmic-waves/main.ts
+import { WebGLEffect } from "../../core/effects/webgl-effect";
+import { 
+  Effect, 
+  NumberControl, 
+  ComboboxControl 
+} from "../../core/controls/decorators";
+import { normalizeSpeed } from "../../core/controls/helpers";
+import { initializeEffect } from "../../core";
 import * as THREE from "three";
 import fragmentShader from "./fragment.glsl";
-import { getControlValue, normalizeSpeed } from "../../common/controls";
 
+// Define control interface
 interface CosmicWavesControls {
     speed: number;
     colorIntensity: number;
     colorShift: number;
     colorMode: string | number;
-    colorSaturation: number;
 }
 
-class CosmicWavesEffect extends WebGLEffect<CosmicWavesControls> {
+@Effect({
+    name: "Cosmic Waves",
+    description: "Converted from Shadertoy - Colorful cosmic waves effect",
+    author: "YourName (original by ShadertoyAuthor)"
+})
+export class CosmicWavesEffect extends WebGLEffect<CosmicWavesControls> {
     private readonly colorModes = ["Standard", "Inverted", "Grayscale"];
+    
+    @NumberControl({
+        label: "Animation Speed",
+        min: 1,
+        max: 10,
+        default: 5,
+        tooltip: "Controls the speed of the animation (1=Slow, 10=Fast)"
+    })
+    speed!: number;
+    
+    @NumberControl({
+        label: "Color Intensity",
+        min: 1,
+        max: 200,
+        default: 100,
+        tooltip: "Adjust the intensity of colors (100=Normal)"
+    })
+    colorIntensity!: number;
+    
+    @NumberControl({
+        label: "Color Shift",
+        min: 1,
+        max: 200,
+        default: 100,
+        tooltip: "Adjust the color pattern scaling (100=Normal)"
+    })
+    colorShift!: number;
+    
+    @ComboboxControl({
+        label: "Color Mode",
+        values: ["Standard", "Inverted", "Grayscale"],
+        default: "Standard",
+        tooltip: "Choose the color rendering mode"
+    })
+    colorMode!: string;
     
     constructor() {
         super({
@@ -136,12 +182,11 @@ class CosmicWavesEffect extends WebGLEffect<CosmicWavesControls> {
         window.colorIntensity = 100;
         window.colorShift = 100;
         window.colorMode = "Standard";
-        window.colorSaturation = 100;
     }
     
     protected getControlValues(): CosmicWavesControls {
         // Handle colorMode conversion
-        const rawColorMode = getControlValue("colorMode", "Standard");
+        const rawColorMode = window.colorMode ?? "Standard";
         let colorMode: number | string = rawColorMode;
         
         if (typeof colorMode === "string") {
@@ -150,11 +195,10 @@ class CosmicWavesEffect extends WebGLEffect<CosmicWavesControls> {
         }
         
         return {
-            speed: normalizeSpeed(getControlValue("speed", 5)),
-            colorIntensity: getControlValue("colorIntensity", 100) / 100,
-            colorShift: getControlValue("colorShift", 100) / 100,
-            colorMode,
-            colorSaturation: getControlValue("colorSaturation", 100)
+            speed: normalizeSpeed(window.speed ?? 5),
+            colorIntensity: (window.colorIntensity ?? 100) / 100,
+            colorShift: (window.colorShift ?? 100) / 100,
+            colorMode
         };
     }
     
@@ -181,44 +225,6 @@ class CosmicWavesEffect extends WebGLEffect<CosmicWavesControls> {
 const effect = new CosmicWavesEffect();
 initializeEffect(() => effect.initialize());
 export default effect;
-
-// src/effects/cosmic-waves/template.html
-// Template snippet with controls
-<meta
-  property="speed"
-  label="Animation Speed"
-  type="number"
-  min="1"
-  max="10"
-  default="5"
-  tooltip="Controls the speed of the animation (1=Slow, 10=Fast)"
-/>
-<meta
-  property="colorIntensity"
-  label="Color Intensity"
-  type="number"
-  min="1" 
-  max="200"
-  default="100"
-  tooltip="Adjust the intensity of colors (100=Normal)"
-/>
-<meta
-  property="colorShift"
-  label="Color Shift"
-  type="number"
-  min="1"
-  max="200"
-  default="100"
-  tooltip="Adjust the color pattern scaling (100=Normal)"
-/>
-<meta
-  property="colorMode"
-  label="Color Mode"
-  type="combobox"
-  values="Standard,Inverted,Grayscale"
-  default="Standard"
-  tooltip="Choose the color rendering mode"
-/>
 </example>
 
 <example type="invalid">
@@ -245,9 +251,11 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 // Missing main() function
 // Missing standard Three.js shader structure
 
-// Incorrect implementation in main.ts
+// Incorrect implementation in main.ts - missing decorators
 class BadShaderEffect extends WebGLEffect {
     // Not using generic type parameter
+    // Missing @Effect decorator
+    // Missing control decorators
     
     constructor() {
         super({
@@ -265,5 +273,6 @@ class BadShaderEffect extends WebGLEffect {
     }
 }
 
-// Not properly handling controls or template
+// Using HTML template instead of decorators
+// Not properly handling controls
 </example> 

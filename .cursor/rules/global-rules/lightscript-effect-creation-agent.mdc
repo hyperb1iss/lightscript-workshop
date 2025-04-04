@@ -9,21 +9,21 @@ alwaysApply: false
 ## Critical Rules
 
 - New effects must follow one of two base patterns: `CanvasEffect<T>` (Canvas 2D) or `WebGLEffect<T>` (WebGL/Three.js)
-- Each effect requires at minimum three files:
-  - `main.ts` - Entry point with effect registration
-  - `template.html` - HTML template with control definitions using `<meta>` tags
-  - Effect implementation file (e.g., `effect-name-effect.ts`)
-- All controls must be defined in the template.html file with proper metadata
+- Each effect requires at minimum two files:
+  - `main.ts` - Implementation with decorated effect class and control properties
+  - For WebGL effects: shader files like `fragment.glsl`
+- All controls must be defined using decorator syntax: `@NumberControl`, `@ComboboxControl`, etc.
+- Use the `@Effect` decorator to define effect metadata (name, description, author)
 - WebGL effects must include shader code as separate `.glsl` files and import them
 - Shadertoy conversions must adapt uniforms to match the LightScript naming convention
-- Control interfaces must extend `BaseControls` and define all parameters with proper types
+- Control interfaces must define all parameters with proper types
 - Implement all required abstract methods from the base class
 - Canvas effects must implement the `draw(time, deltaTime)` method
 - WebGL effects must implement `createUniforms()` and `updateUniforms()` methods
-- New effects must be registered in `src/index.ts` to be discoverable
+- New effects must be registered in the effects registry to be discoverable
 - Follow the pattern: initialize → loadResources → render → update → cleanup
 - Always use strong typing with proper generics: `CanvasEffect<MyControlsInterface>`
-- Control values must be normalized using helper functions from `controls.ts`
+- Control values must be normalized using helper functions
 - Effect implementation must handle window resizing and device pixel ratio
 - Use provided debug utilities with consistent log levels and namespaces
 - Clean up all resources in the `stop()` method to prevent memory leaks
@@ -31,48 +31,85 @@ alwaysApply: false
 
 ## Canvas Effect Creation Workflow
 
-1. Create directory structure: `src/effects/{effect-id}/`
-2. Define control interface extending `BaseControls`
-3. Create template.html with control metadata
-4. Implement effect class extending `CanvasEffect<T>`
-5. Implement `draw()` method with Canvas 2D rendering logic
-6. Register the effect in src/index.ts
+1. Create directory structure: `effects/{effect-id}/`
+2. Define control interface
+3. Implement effect class extending `CanvasEffect<T>` with appropriate decorators
+4. Implement `draw()` method with Canvas 2D rendering logic
+5. Register the effect in the effects registry
 
 ## WebGL Effect Creation Workflow
 
-1. Create directory structure: `src/effects/{effect-id}/`
+1. Create directory structure: `effects/{effect-id}/`
 2. Define fragment shader (and optionally vertex shader) in .glsl files
-3. Define control interface extending `BaseControls`
-4. Create template.html with control metadata
-5. Implement effect class extending `WebGLEffect<T>`
-6. Implement shader uniform creation and updating
-7. Register the effect in src/index.ts
+3. Define control interface
+4. Implement effect class extending `WebGLEffect<T>` with appropriate decorators
+5. Implement shader uniform creation and updating
+6. Register the effect in the effects registry
 
 ## Examples
 
 <example>
 // Canvas Effect Example (basic structure)
 
-// src/effects/my-canvas-effect/main.ts
-import { initializeEffect } from "../../common";
-import { MyCanvasEffect } from "./my-canvas-effect";
+// effects/my-canvas-effect/main.ts
+import { CanvasEffect } from "../../core/effects/canvas-effect";
+import { 
+  Effect, 
+  NumberControl, 
+  BooleanControl 
+} from "../../core/controls/decorators";
+import { normalizeSpeed } from "../../core/controls/helpers";
+import { initializeEffect } from "../../core";
 
-// Create and export the effect instance
-const effect = new MyCanvasEffect();
+// Define control interface
+interface MyEffectControls {
+  speed: number;
+  particleCount: number;
+  useGlow: boolean;
+  colorIntensity: number;
+}
 
-// Initialize the effect
-initializeEffect(() => {
-  effect.initialize();
-});
-
-export default effect;
-
-// src/effects/my-canvas-effect/my-canvas-effect.ts
-import { CanvasEffect } from "../../common/canvas-effect";
-import { MyEffectControls } from "./types";
-import { getControlValue, normalizeSpeed } from "../../common/controls";
-
+@Effect({
+  name: "My Canvas Effect",
+  description: "A beautiful canvas-based effect",
+  author: "YourName"
+})
 export class MyCanvasEffect extends CanvasEffect<MyEffectControls> {
+  // Define controls with decorators
+  @NumberControl({
+    label: "Animation Speed",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Controls how fast the animation runs"
+  })
+  speed!: number;
+  
+  @NumberControl({
+    label: "Particle Count",
+    min: 10,
+    max: 500,
+    default: 100,
+    tooltip: "Number of particles in the effect"
+  })
+  particleCount!: number;
+  
+  @BooleanControl({
+    label: "Enable Glow",
+    default: true,
+    tooltip: "Enables glowing effect on particles"
+  })
+  useGlow!: boolean;
+  
+  @NumberControl({
+    label: "Color Intensity",
+    min: 10,
+    max: 200,
+    default: 100,
+    tooltip: "Controls color brightness"
+  })
+  colorIntensity!: number;
+  
   // Effect properties
   private particles = [];
   private lastTime = 0;
@@ -86,19 +123,19 @@ export class MyCanvasEffect extends CanvasEffect<MyEffectControls> {
   }
   
   protected initializeControls(): void {
-    // Set default values
+    // Set default values (now matches decorator defaults)
     window.speed = 5;
     window.particleCount = 100;
-    window.useGlow = 1;
+    window.useGlow = true;
+    window.colorIntensity = 100;
   }
   
   protected getControlValues(): MyEffectControls {
     return {
-      speed: normalizeSpeed(getControlValue("speed", 5)),
-      particleCount: getControlValue("particleCount", 100),
-      useGlow: Boolean(getControlValue("useGlow", 1)),
-      colorIntensity: getControlValue("colorIntensity", 100),
-      colorSaturation: getControlValue("colorSaturation", 100)
+      speed: normalizeSpeed(window.speed ?? 5),
+      particleCount: window.particleCount ?? 100,
+      useGlow: Boolean(window.useGlow ?? true),
+      colorIntensity: window.colorIntensity ?? 100
     };
   }
   
@@ -119,19 +156,17 @@ export class MyCanvasEffect extends CanvasEffect<MyEffectControls> {
   }
 }
 
-// src/effects/my-canvas-effect/types.ts
-import { BaseControls } from "../../common/controls";
+// Create and initialize the effect
+const effect = new MyCanvasEffect();
+initializeEffect(() => effect.initialize());
 
-export interface MyEffectControls extends BaseControls {
-  particleCount: number;
-  useGlow: boolean;
-}
+export default effect;
 </example>
 
 <example>
 // WebGL/Shadertoy Conversion Example
 
-// src/effects/shadertoy-effect/fragment.glsl
+// effects/shadertoy-effect/fragment.glsl
 // Modified Shadertoy shader with LightScript uniforms
 uniform float iTime;
 uniform vec2 iResolution;
@@ -166,13 +201,19 @@ void main() {
   mainImage(gl_FragColor, gl_FragCoord.xy);
 }
 
-// src/effects/shadertoy-effect/main.ts
-import { WebGLEffect } from "../../common/webgl-effect";
-import { initializeEffect } from "../../common";
+// effects/shadertoy-effect/main.ts
+import { WebGLEffect } from "../../core/effects/webgl-effect";
+import {
+  Effect,
+  NumberControl,
+  ComboboxControl
+} from "../../core/controls/decorators";
+import { normalizeSpeed } from "../../core/controls/helpers";
+import { initializeEffect } from "../../core";
 import * as THREE from "three";
 import fragmentShader from "./fragment.glsl";
-import { getControlValue, normalizeSpeed } from "../../common/controls";
 
+// Define control interface
 interface ShadertoyEffectControls {
   speed: number;
   colorIntensity: number;
@@ -181,8 +222,57 @@ interface ShadertoyEffectControls {
   colorSaturation: number;
 }
 
-class ShadertoyEffect extends WebGLEffect<ShadertoyEffectControls> {
+@Effect({
+  name: "Shadertoy Effect",
+  description: "Converted from Shadertoy",
+  author: "YourName"
+})
+export class ShadertoyEffect extends WebGLEffect<ShadertoyEffectControls> {
   private readonly colorModes = ["Standard", "Neon", "Monochrome"];
+  
+  @NumberControl({
+    label: "Animation Speed",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Controls animation speed"
+  })
+  speed!: number;
+  
+  @NumberControl({
+    label: "Color Intensity",
+    min: 10,
+    max: 200,
+    default: 100,
+    tooltip: "Brightness of colors"
+  })
+  colorIntensity!: number;
+  
+  @ComboboxControl({
+    label: "Color Mode",
+    values: ["Standard", "Neon", "Monochrome"],
+    default: "Standard",
+    tooltip: "Changes the color scheme"
+  })
+  colorMode!: string;
+  
+  @NumberControl({
+    label: "Pattern Density",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Controls pattern density"
+  })
+  pattern!: number;
+  
+  @NumberControl({
+    label: "Color Saturation",
+    min: 0,
+    max: 200,
+    default: 100,
+    tooltip: "Controls color saturation"
+  })
+  colorSaturation!: number;
   
   constructor() {
     super({
@@ -202,7 +292,7 @@ class ShadertoyEffect extends WebGLEffect<ShadertoyEffectControls> {
   
   protected getControlValues(): ShadertoyEffectControls {
     // Handle colorMode conversion
-    const rawColorMode = getControlValue("colorMode", "Standard");
+    const rawColorMode = window.colorMode ?? "Standard";
     let colorMode: number | string = rawColorMode;
     
     if (typeof colorMode === "string") {
@@ -211,11 +301,11 @@ class ShadertoyEffect extends WebGLEffect<ShadertoyEffectControls> {
     }
     
     return {
-      speed: normalizeSpeed(getControlValue("speed", 5)),
-      colorIntensity: getControlValue("colorIntensity", 100) / 100,
+      speed: normalizeSpeed(window.speed ?? 5),
+      colorIntensity: (window.colorIntensity ?? 100) / 100,
       colorMode,
-      pattern: getControlValue("pattern", 5),
-      colorSaturation: getControlValue("colorSaturation", 100)
+      pattern: window.pattern ?? 5,
+      colorSaturation: window.colorSaturation ?? 100
     };
   }
   
@@ -245,44 +335,43 @@ export default effect;
 </example>
 
 <example type="invalid">
-// Invalid WebGL effect implementation
+// Invalid effect implementation
 
-// Missing separate shader file, incorrect directory structure
-// main.js in src/ root instead of proper structure
-
-// Direct DOM manipulation instead of using framework
-const canvas = document.getElementById("canvas");
-const gl = canvas.getContext("webgl");
-
-// Inline shaders instead of separate files
-const vertexShader = `
-  attribute vec4 aPosition;
-  void main() {
-    gl_Position = aPosition;
-  }
-`;
-
-// Not using base classes
-class MyEffect {
+// Missing decorators for controls
+class MyEffect extends WebGLEffect<MyControls> {
+  // Controls defined without decorators
+  private speed = 5;
+  private colorMode = "Standard";
+  
+  // Missing @Effect decorator
   constructor() {
-    this.speed = 1.0;
-    this.init();
+    super({
+      id: "my-effect",
+      name: "My Effect",
+      fragmentShader
+    });
   }
   
-  init() {
+  // Trying to directly manipulate DOM instead of using framework
+  protected initializeRenderer(): Promise<void> {
+    const canvas = document.getElementById("canvas");
+    const gl = canvas.getContext("webgl");
     // Direct WebGL calls instead of using Three.js
-    const program = gl.createProgram();
-    // ...more WebGL code
   }
   
-  update() {
-    // Not using the lifecycle methods
+  // Missing required methods
+  // No createUniforms() or updateUniforms() implementation
+  
+  // Missing proper control updates
+  protected updateParameters(controls: MyControls): void {
+    // Directly setting uniform values without checking if material exists
+    this.material.uniforms.iSpeed.value = controls.speed;
   }
   
   // Missing proper cleanup
 }
 
-// Not registering in index.ts
-const myEffect = new MyEffect();
+// Not providing proper initialization
+new MyEffect().initialize();
 </example>
 </rewritten_file>

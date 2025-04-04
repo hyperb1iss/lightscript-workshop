@@ -8,12 +8,14 @@ alwaysApply: false
 
 ## Critical Rules
 
-- Use strongly-typed interfaces for all effect controls that extend `BaseControls`
+- Use strongly-typed interfaces for all effect controls
+- Use the `@Effect` decorator to provide metadata for effect classes
+- Define controls using appropriate decorators: `@NumberControl`, `@BooleanControl`, `@ComboboxControl`, etc.
 - Provide specific typing for generic parameters in base classes: `CanvasEffect<T>` or `WebGLEffect<T>`
 - Use protected access modifier for effect properties that should not be accessed externally
 - Implement all abstract methods from base classes with proper typing
 - Follow the lifecycle pattern: initialize → loadResources → render → update → cleanup
-- Use helper functions from `src/common/controls.ts` for normalizing and transforming control values
+- Use helper functions from `core/controls/helpers.ts` for normalizing and transforming control values
 - Leverage the debug utility with appropriate log levels: `this.debug("info", "message")`
 - Document public methods and interfaces with JSDoc comments
 - TypeScript interfaces should use PascalCase naming convention
@@ -22,25 +24,86 @@ alwaysApply: false
 - Implement proper cleanup in `stop()` method to prevent memory leaks
 - For WebGL effects, properly define and manage shader uniforms
 - Canvas effects must implement `draw()` method for rendering each frame
-- Add type declarations for window extensions in global module augmentation 
-- Use proper TypeScript module imports rather than global script includes
+- Add decorated properties with the exclamation mark to indicate they're initialized through decorators
+- Access control values consistently through the window object with fallbacks
 
 ## Examples
 
 <example>
-// Correctly typed control interface extending BaseControls
-interface WaveEffectControls extends BaseControls {
+// Properly typed control interface
+interface WaveEffectControls {
+  speed: number;
+  colorIntensity: number;
+  colorSaturation: number;
   amplitude: number;
   frequency: number;
   colorMode: string;
 }
 
-// Properly implementing a Canvas effect
+// Properly implementing a Canvas effect with decorators
+@Effect({
+  name: "Wave Effect",
+  description: "A beautiful wave effect with color controls",
+  author: "YourName"
+})
 export class WaveEffect extends CanvasEffect<WaveEffectControls> {
+  // Define controls with decorators
+  @NumberControl({
+    label: "Animation Speed",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Controls the animation speed"
+  })
+  speed!: number;
+  
+  @NumberControl({
+    label: "Color Intensity",
+    min: 10,
+    max: 200,
+    default: 100,
+    tooltip: "Controls the color brightness"
+  })
+  colorIntensity!: number;
+  
+  @NumberControl({
+    label: "Color Saturation",
+    min: 0,
+    max: 200,
+    default: 100,
+    tooltip: "Controls the color saturation"
+  })
+  colorSaturation!: number;
+  
+  @NumberControl({
+    label: "Wave Amplitude",
+    min: 10,
+    max: 100,
+    default: 50,
+    tooltip: "Controls the wave height"
+  })
+  amplitude!: number;
+  
+  @NumberControl({
+    label: "Wave Frequency",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Controls the number of waves"
+  })
+  frequency!: number;
+  
+  @ComboboxControl({
+    label: "Color Mode",
+    values: ["Rainbow", "Ocean", "Fire", "Neon"],
+    default: "Rainbow",
+    tooltip: "Select the color scheme"
+  })
+  colorMode!: string;
+  
   // Protected properties with proper typing
-  protected amplitude: number = 1.0;
-  protected frequency: number = 0.5;
-  protected colorMode: string = "rainbow";
+  protected normalizedAmplitude: number = 1.0;
+  protected normalizedFrequency: number = 0.5;
   
   constructor() {
     super({
@@ -52,25 +115,29 @@ export class WaveEffect extends CanvasEffect<WaveEffectControls> {
   
   // Implementing required abstract methods
   protected initializeControls(): void {
-    // Implementation
+    window.speed = 5;
+    window.colorIntensity = 100;
+    window.colorSaturation = 100;
+    window.amplitude = 50;
+    window.frequency = 5;
+    window.colorMode = "Rainbow";
   }
   
   protected getControlValues(): WaveEffectControls {
     return {
-      speed: getControlValue("speed", 5),
-      colorIntensity: getControlValue("colorIntensity", 100),
-      colorSaturation: getControlValue("colorSaturation", 100),
-      amplitude: getControlValue("amplitude", 50),
-      frequency: getControlValue("frequency", 5),
-      colorMode: getControlValue("colorMode", "rainbow")
+      speed: normalizeSpeed(window.speed ?? 5),
+      colorIntensity: window.colorIntensity ?? 100,
+      colorSaturation: window.colorSaturation ?? 100,
+      amplitude: window.amplitude ?? 50,
+      frequency: window.frequency ?? 5,
+      colorMode: window.colorMode ?? "Rainbow"
     };
   }
   
   protected applyControls(controls: WaveEffectControls): void {
     // Normalize values using helper functions
-    this.amplitude = normalizePercentage(controls.amplitude, 50, 0.1);
-    this.frequency = normalizeSpeed(controls.frequency);
-    this.colorMode = controls.colorMode;
+    this.normalizedAmplitude = normalizePercentage(controls.amplitude, 50, 0.1);
+    this.normalizedFrequency = normalizeSpeed(controls.frequency);
   }
   
   protected draw(time: number, deltaTime: number): void {
@@ -81,12 +148,12 @@ export class WaveEffect extends CanvasEffect<WaveEffectControls> {
 </example>
 
 <example type="invalid">
-// Using any type and lacking proper interface extension
+// Missing decorators and proper typing
 class BadEffect extends CanvasEffect<any> {
-  // Public property that should be protected
+  // Missing decorators for controls
   public speed = 1.0;
   
-  // Missing proper constructor
+  // Missing @Effect decorator
   constructor() {
     super({});
   }
@@ -98,6 +165,12 @@ class BadEffect extends CanvasEffect<any> {
     const canvas = document.getElementById("exCanvas");
     const ctx = canvas.getContext("2d");
     ctx.fillRect(0, 0, 100, 100);
+  }
+  
+  // Incorrect control value access
+  getSpeed() {
+    // Directly accessing DOM elements instead of using the framework
+    return document.getElementById("speedControl").value;
   }
   
   // No cleanup in stop method
