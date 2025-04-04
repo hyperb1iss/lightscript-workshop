@@ -22,6 +22,18 @@ interface DecoratorInfo {
 }
 
 /**
+ * Logging utility for clean, organized output
+ */
+const logger = {
+  effect: (effectId: string, message: string) => {
+    console.log(`[✓] ${message} (${effectId})`);
+  },
+  error: (message: string) => {
+    console.error(`[✗] ${message}`);
+  },
+};
+
+/**
  * Extracts decorator information from a file's content
  */
 function extractAllDecorators(
@@ -92,7 +104,7 @@ function extractAllDecorators(
         options: options,
       });
     } catch (err) {
-      console.warn(`Error parsing ${decoratorName} decorator:`, err);
+      logger.error(`Error parsing ${decoratorName} decorator`);
     }
   }
 
@@ -110,9 +122,8 @@ function processEffect(effect: (typeof effects)[0]) {
 
     if (fs.existsSync(jsOutputPath)) {
       jsContent = fs.readFileSync(jsOutputPath, "utf-8");
-      console.log(`Found JS output for ${effect.id}`);
     } else {
-      console.error(`No JS output found for effect: ${effect.id}`);
+      logger.error(`No JS output found for effect: ${effect.id}`);
       jsContent = "// No JS content found";
     }
 
@@ -128,7 +139,6 @@ function processEffect(effect: (typeof effects)[0]) {
       const fullSourcePath = resolve(process.cwd(), "src", sourcePath);
 
       if (fs.existsSync(fullSourcePath)) {
-        console.log(`Processing effect source file: ${fullSourcePath}`);
         const sourceContent = fs.readFileSync(fullSourcePath, "utf-8");
 
         // Array to store files we need to check for decorators
@@ -188,9 +198,6 @@ function processEffect(effect: (typeof effects)[0]) {
                 importContent.includes("@ColorControl") ||
                 importContent.includes("@TextFieldControl")
               ) {
-                console.log(
-                  `Found potential implementation file: ${importPathResolved}`,
-                );
                 filesToCheck.push({
                   path: importPathResolved,
                   content: importContent,
@@ -202,20 +209,13 @@ function processEffect(effect: (typeof effects)[0]) {
 
         // Process all potential implementation files
         for (const file of filesToCheck) {
-          console.log(`Checking file for decorators: ${file.path}`);
-
           // Extract Effect decorator information
           const effectDecorators = extractAllDecorators(file.content, "Effect");
           if (effectDecorators.length > 0) {
-            console.log(
-              `Found ${effectDecorators.length} Effect decorators in ${file.path}`,
-            );
-
             // Use the first Effect decorator found
             const effectData = effectDecorators[0].options;
             if (effectData.name && typeof effectData.name === "string") {
               effectName = effectData.name;
-              console.log(`Found effect name: ${effectName}`);
             }
 
             if (
@@ -223,12 +223,10 @@ function processEffect(effect: (typeof effects)[0]) {
               typeof effectData.description === "string"
             ) {
               effectDescription = effectData.description;
-              console.log(`Found effect description: ${effectDescription}`);
             }
 
             if (effectData.author && typeof effectData.author === "string") {
               effectAuthor = effectData.author;
-              console.log(`Found effect author: ${effectAuthor}`);
             }
           }
 
@@ -298,19 +296,13 @@ function processEffect(effect: (typeof effects)[0]) {
           }
 
           if (controlCount > 0) {
-            console.log(
-              `Generated ${controlCount} control tags from ${file.path}`,
-            );
             // If we found controls, we can stop checking other files
             break;
           }
         }
       }
     } catch (err) {
-      console.error(
-        `Error extracting decorator metadata for ${effect.id}:`,
-        err,
-      );
+      logger.error(`Error extracting metadata for ${effect.id}`);
     }
 
     // Generate a template with the extracted metadata
@@ -341,9 +333,9 @@ function processEffect(effect: (typeof effects)[0]) {
       finalHtml,
     );
 
-    console.log(`SignalRGB HTML file created successfully for: ${effect.id}`);
+    logger.effect(effect.id, "HTML file created successfully");
   } catch (err) {
-    console.error(`Error processing effect ${effect.id}:`, err);
+    logger.error(`Error processing effect ${effect.id}`);
   }
 }
 
@@ -358,13 +350,13 @@ export function signalRGBPlugin(): Plugin {
     // After build is complete
     closeBundle() {
       if (!effectToBuild) {
-        console.error("No effects found in the effects array!");
+        logger.error("No effects found in the effects array!");
         return;
       }
 
       const effect = effects.find((e) => e.id === effectToBuild);
       if (!effect) {
-        console.error(`Effect ${effectToBuild} not found!`);
+        logger.error(`Effect ${effectToBuild} not found!`);
         return;
       }
 

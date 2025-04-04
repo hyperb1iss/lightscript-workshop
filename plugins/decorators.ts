@@ -38,7 +38,6 @@ const DECORATOR_METADATA_SYMBOL = Symbol.for('lightscript:controls');
 const EFFECT_METADATA_SYMBOL = Symbol.for('lightscript:effect');
 `;
 
-        console.log(`[LightScript] Applied decorator support to: ${id}`);
         return {
           code: keepSymbols + modifiedCode,
           map: null,
@@ -58,13 +57,11 @@ const EFFECT_METADATA_SYMBOL = Symbol.for('lightscript:effect');
               content.includes("@BooleanControl") ||
               content.includes("@ComboboxControl")
             ) {
-              console.log(
-                `[LightScript] Detected change in decorator file: ${path}`,
-              );
+              // Quietly reload without noisy output
               server.ws.send({ type: "full-reload" });
             }
           } catch (err) {
-            console.error(`[LightScript] Error checking file ${path}:`, err);
+            console.error(`[✗] Error processing file ${path}`);
           }
         }
       });
