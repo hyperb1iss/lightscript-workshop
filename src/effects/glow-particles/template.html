@@ -17,7 +17,7 @@
       type="number"
       min="1"
       max="10"
-      default="5"
+      default="3"
       tooltip="Controls the speed of the particles (1=Slow, 10=Fast)"
     />
     <meta
@@ -34,8 +34,8 @@
       label="Particle Size"
       type="number"
       min="1"
-      max="20"
-      default="4"
+      max="40"
+      default="20"
       tooltip="Size of particles"
     />
     <meta
@@ -51,7 +51,7 @@
       property="colorMode"
       label="Color Mode"
       type="combobox"
-      values="Rainbow,Heat Map,Neon,Cyberpunk,Pastel,Ocean,Fire and Ice"
+      values="Aurora,Cyberpunk,Fire and Ice,Galaxy,Heat Map,Neon,Ocean,Pastel,Prism,Rainbow,Sunset,Synthwave"
       default="Rainbow"
       tooltip="Color palette for particles"
     />
@@ -69,6 +69,15 @@
       type="boolean"
       default="1"
       tooltip="Draw lines between nearby particles"
+    />
+    <meta
+      property="connectorGlow"
+      label="Connector Intensity"
+      type="number"
+      min="1"
+      max="200"
+      default="100"
+      tooltip="Controls the intensity and thickness of particle connections"
     />
     <meta
       property="particleBounce"
@@ -120,9 +129,33 @@
         }
       }
 
+      // Add explicit debug for animation
+      console.log("⚡ GlowParticles template loaded");
+
+      // Override requestAnimationFrame temporarily to check if it's being called
+      const originalRAF = window.requestAnimationFrame;
+      let frameCount = 0;
+
+      window.requestAnimationFrame = function (callback) {
+        frameCount++;
+        if (frameCount % 60 === 0) {
+          console.log("🔄 Animation frame: " + frameCount);
+        }
+        return originalRAF(callback);
+      };
+
+      // Override window.update to check if it's being called
+      const originalUpdate = window.update;
+      window.update = function (force) {
+        console.log("📊 Update called", { force });
+        if (typeof originalUpdate === "function") {
+          return originalUpdate(force);
+        }
+      };
+
       // Log initial values from SignalRGB
       log("Initial values received", {
-        speed: typeof speed !== "undefined" ? speed : 5,
+        speed: typeof speed !== "undefined" ? speed : 3,
         particleCount:
           typeof particleCount !== "undefined" ? particleCount : 100,
         glowIntensity:
@@ -132,6 +165,16 @@
 
       // Initialize the effect (included in the bundle)
       <!-- BUNDLE_SCRIPT_INJECT -->
+
+      // Check if initialization happened
+      setTimeout(function () {
+        console.log("🔍 Checking initialization status:", {
+          effectInstance: typeof window.effectInstance !== "undefined",
+          currentAnimationFrame: window.currentAnimationFrame,
+          update: typeof window.update === "function",
+          controls: window.controlsCount || 0,
+        });
+      }, 1000);
     </script>
   </body>
 </html>

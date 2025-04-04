@@ -24,17 +24,23 @@ export interface GlowParticlesControls {
   particleBounce: boolean;
   colorSaturation: number;
   colorIntensity: number;
+  connectorGlow: number;
 }
 
-// Color modes
+// Color modes in alphabetical order
 const COLOR_MODES = [
-  "Rainbow",
+  "Aurora",
+  "Cyberpunk",
+  "Fire and Ice",
+  "Galaxy",
   "Heat Map",
   "Neon",
-  "Cyberpunk",
-  "Pastel",
   "Ocean",
-  "Fire and Ice",
+  "Pastel",
+  "Prism",
+  "Rainbow",
+  "Sunset",
+  "Synthwave",
 ];
 
 // Flow directions
@@ -55,12 +61,15 @@ class Particle {
   x: number;
   y: number;
   size: number;
+  baseSize: number; // Base size to maintain proportions
   speedX: number = 0;
   speedY: number = 0;
   color: string;
   alpha: number;
   angle: number;
   angleSpeed: number;
+  colorOffset: number; // Random offset for color variations
+  blendMode: GlobalCompositeOperation = "lighter"; // Default blend mode
 
   constructor(
     canvasWidth: number,
@@ -71,7 +80,8 @@ class Particle {
   ) {
     this.x = Math.random() * canvasWidth;
     this.y = Math.random() * canvasHeight;
-    this.size = Math.random() * size + 1;
+    this.baseSize = Math.random() * 0.8 + 0.2; // 0.2 to 1.0 range for size variation
+    this.size = this.baseSize * size; // Apply size multiplier
 
     // Set speed based on flow direction
     this.setSpeedByDirection(
@@ -85,6 +95,14 @@ class Particle {
     this.alpha = Math.random() * 0.5 + 0.5; // Random alpha for depth
     this.angle = Math.random() * Math.PI * 2;
     this.angleSpeed = Math.random() * 0.1 - 0.05;
+    this.colorOffset = Math.random() * 360; // Random color offset
+  }
+
+  /**
+   * Update particle size without changing position
+   */
+  updateSize(newSize: number): void {
+    this.size = this.baseSize * newSize;
   }
 
   /**
@@ -96,7 +114,9 @@ class Particle {
     speedFactor: number,
     flowDirection: number,
   ): void {
-    const baseSpeed = (1 + Math.random()) * speedFactor;
+    // Create a very small base speed that scales consistently with the speed factor
+    // Keep this value small to ensure smooth motion
+    const baseSpeed = speedFactor * 0.5;
 
     switch (flowDirection) {
       case 0: // Outward
@@ -113,33 +133,35 @@ class Particle {
         this.angle = Math.random() * Math.PI * 2;
         this.speedX = Math.cos(this.angle) * baseSpeed;
         this.speedY = Math.sin(this.angle) * baseSpeed;
-        this.angleSpeed = (Math.random() * 0.2 - 0.1) * speedFactor;
+        // Very small angle change for smooth rotation
+        this.angleSpeed = (Math.random() * 0.04 - 0.02) * speedFactor;
         break;
 
       case 2: // Left to Right
         this.speedX = baseSpeed;
-        this.speedY = (Math.random() * 2 - 1) * 0.5;
+        this.speedY = (Math.random() * 0.4 - 0.2) * baseSpeed;
         break;
 
       case 3: // Right to Left
         this.speedX = -baseSpeed;
-        this.speedY = (Math.random() * 2 - 1) * 0.5;
+        this.speedY = (Math.random() * 0.4 - 0.2) * baseSpeed;
         break;
 
       case 4: // Top to Bottom
-        this.speedX = (Math.random() * 2 - 1) * 0.5;
+        this.speedX = (Math.random() * 0.4 - 0.2) * baseSpeed;
         this.speedY = baseSpeed;
         break;
 
       case 5: // Bottom to Top
-        this.speedX = (Math.random() * 2 - 1) * 0.5;
+        this.speedX = (Math.random() * 0.4 - 0.2) * baseSpeed;
         this.speedY = -baseSpeed;
         break;
 
       case 6: // Random
       default:
-        this.speedX = (Math.random() * 2 - 1) * baseSpeed;
-        this.speedY = (Math.random() * 2 - 1) * baseSpeed;
+        const randomAngle = Math.random() * Math.PI * 2;
+        this.speedX = Math.cos(randomAngle) * baseSpeed;
+        this.speedY = Math.sin(randomAngle) * baseSpeed;
     }
   }
 
@@ -149,20 +171,26 @@ class Particle {
   update(
     canvasWidth: number,
     canvasHeight: number,
-    deltaTime: number,
+    speed: number,
     bounce: boolean,
   ): void {
-    // Update position
-    this.x += this.speedX * deltaTime * 60;
-    this.y += this.speedY * deltaTime * 60;
+    // Apply speed factor to movement
+    const speedMultiplier = speed;
 
-    // Handle circular movement
+    // Position update with speed multiplier
+    this.x += this.speedX * speedMultiplier;
+    this.y += this.speedY * speedMultiplier;
+
+    // Handle circular movement with smooth rotation
     if (this.angleSpeed !== 0) {
-      this.angle += this.angleSpeed * deltaTime * 60;
-      this.speedX =
-        (Math.cos(this.angle) * Math.abs(this.speedX + this.speedY)) / 2;
-      this.speedY =
-        (Math.sin(this.angle) * Math.abs(this.speedX + this.speedY)) / 2;
+      this.angle += this.angleSpeed * speedMultiplier;
+
+      // Use smooth sine/cosine for circular motion
+      const baseSpeed = Math.sqrt(
+        this.speedX * this.speedX + this.speedY * this.speedY,
+      );
+      this.speedX = Math.cos(this.angle) * baseSpeed;
+      this.speedY = Math.sin(this.angle) * baseSpeed;
     }
 
     // Handle edge collision
@@ -198,69 +226,184 @@ class Particle {
     let hue: number;
     let sat: number;
     let light: number;
+    let blendModeOverride: GlobalCompositeOperation | null = null;
+
+    // Use the colorOffset for variation between particles
+    const offset = this.colorOffset;
+    const normalizedTime = time * 0.2; // Slow down color changes for smoother transitions
 
     switch (colorMode) {
-      case 0: // Rainbow
-        hue = (time * 30 + this.x + this.y) % 360;
-        sat = saturation;
-        light = 50 + (intensity - 100) / 4;
+      case 0: // Aurora
+        // Create flowing aurora-like colors
+        hue =
+          (140 +
+            Math.sin(normalizedTime * 0.5 + this.y / 80) * 40 +
+            Math.cos(normalizedTime * 0.3 + this.x / 120) * 40 +
+            offset * 0.2) %
+          360;
+        sat = saturation * 0.9;
+        light =
+          50 +
+          Math.sin(normalizedTime + (this.x + this.y) / 200) * 15 +
+          (intensity - 100) / 5;
+        blendModeOverride = "screen";
         break;
 
-      case 1: // Heat Map
-        hue = ((this.x + this.y) / 5 + time * 20) % 100;
-        hue = hue < 50 ? hue * 3 : (100 - hue) * 6; // 0-150 red-yellow, 150-300 yellow-orange
-        sat = saturation;
-        light = 45 + (intensity - 100) / 4;
-        break;
-
-      case 2: // Neon
-        const neonColors = [320, 260, 180, 120, 200]; // Pink, Purple, Cyan, Green, Blue
-        const index =
-          Math.floor(time + this.x / 100 + this.y / 100) % neonColors.length;
-        hue = neonColors[index];
-        sat = saturation;
-        light = 60 + (intensity - 100) / 4;
-        break;
-
-      case 3: // Cyberpunk
+      case 1: // Cyberpunk
         const cyberColors = [320, 195, 270, 170]; // Pink, Teal, Purple, Green
         hue =
           cyberColors[
-            Math.floor((this.x + this.y + time * 100) / 100) %
+            Math.floor((this.x + this.y + normalizedTime * 100) / 100) %
               cyberColors.length
           ];
         sat = saturation;
         light = 55 + (intensity - 100) / 4;
         break;
 
-      case 4: // Pastel
-        hue = (time * 20 + this.x + this.y) % 360;
+      case 2: // Fire and Ice
+        if (this.y < this.x) {
+          // Fire in top-right, ice in bottom-left
+          hue = 10 + Math.sin(normalizedTime + this.y / 50) * 20; // Fire: red-orange
+          sat = saturation;
+          light =
+            50 + Math.sin(normalizedTime * 3) * 10 + (intensity - 100) / 5;
+        } else {
+          hue = 200 + Math.sin(normalizedTime - this.x / 100) * 20; // Ice: blue
+          sat = saturation * 0.8;
+          light =
+            60 + Math.sin(normalizedTime * 2) * 10 + (intensity - 100) / 5;
+        }
+        break;
+
+      case 3: // Galaxy
+        // Cosmic-like swirling galaxy patterns
+        const distFromCenter = Math.sqrt(
+          Math.pow(this.x - window.innerWidth / 2, 2) +
+            Math.pow(this.y - window.innerHeight / 2, 2),
+        );
+
+        // Spiral pattern based on distance and angle
+        const spiral =
+          Math.atan2(
+            this.y - window.innerHeight / 2,
+            this.x - window.innerWidth / 2,
+          ) * 10;
+        hue =
+          (270 +
+            spiral +
+            distFromCenter / 5 +
+            normalizedTime * 5 +
+            offset * 0.3) %
+          360;
+
+        // Vary saturation based on distance from center
+        sat = Math.min(saturation, 70 + distFromCenter / 8);
+        light =
+          25 +
+          Math.sin(normalizedTime + distFromCenter / 30) * 15 +
+          (intensity - 100) / 5;
+
+        // Make outer particles more transparent for depth
+        this.alpha = 0.3 + Math.min(0.7, 300 / (distFromCenter + 100));
+        blendModeOverride = "lighten";
+        break;
+
+      case 4: // Heat Map
+        hue = ((this.x + this.y) / 5 + normalizedTime * 20) % 100;
+        hue = hue < 50 ? hue * 3 : (100 - hue) * 6; // 0-150 red-yellow, 150-300 yellow-orange
+        sat = saturation;
+        light = 45 + (intensity - 100) / 4;
+        break;
+
+      case 5: // Neon
+        const neonColors = [320, 260, 180, 120, 200]; // Pink, Purple, Cyan, Green, Blue
+        const index =
+          Math.floor(normalizedTime + this.x / 100 + this.y / 100) %
+          neonColors.length;
+        hue = neonColors[index];
+        sat = saturation;
+        light = 60 + (intensity - 100) / 4;
+        blendModeOverride = "screen";
+        break;
+
+      case 6: // Ocean
+        hue = 180 + Math.sin(normalizedTime + this.x / 100) * 30; // Range around cyan/blue
+        sat = saturation;
+        light =
+          40 +
+          Math.sin(normalizedTime * 2 + this.y / 50) * 20 +
+          (intensity - 100) / 5;
+        break;
+
+      case 7: // Pastel
+        hue = (normalizedTime * 20 + this.x + this.y + offset) % 360;
         sat = saturation * 0.6; // Reduce saturation for pastel
         light = 75 + (intensity - 100) / 8; // Higher lightness for pastel
         break;
 
-      case 5: // Ocean
-        hue = 180 + Math.sin(time + this.x / 100) * 30; // Range around cyan/blue
-        sat = saturation;
-        light =
-          40 + Math.sin(time * 2 + this.y / 50) * 20 + (intensity - 100) / 5;
+      case 8: // Prism
+        // Prismatic light spectrum effect
+        const wave1 = Math.sin(normalizedTime * 0.7 + this.x / 50);
+        const wave2 = Math.cos(normalizedTime * 0.5 + this.y / 60);
+        const wave3 = Math.sin((this.x + this.y) / 100 + normalizedTime);
+
+        // Create interference patterns
+        hue =
+          (offset + (wave1 + wave2 + wave3) * 60 + normalizedTime * 20) % 360;
+        sat = Math.min(saturation, 90 + wave1 * 10);
+        light = 60 + wave2 * 15 + (intensity - 100) / 5;
+
+        // Randomize alpha for sparkle effect
+        this.alpha = 0.6 + Math.random() * 0.4;
+        blendModeOverride = "lighten";
         break;
 
-      case 6: // Fire and Ice
-        if (this.y < this.x) {
-          // Fire in top-right, ice in bottom-left
-          hue = 10 + Math.sin(time + this.y / 50) * 20; // Fire: red-orange
-          sat = saturation;
-          light = 50 + Math.sin(time * 3) * 10 + (intensity - 100) / 5;
+      case 9: // Rainbow
+        hue = (normalizedTime * 30 + this.x + this.y + offset) % 360;
+        sat = saturation;
+        light = 50 + (intensity - 100) / 4;
+        break;
+
+      case 10: // Sunset
+        // Warm sunset colors with gradation
+        const verticalPos = this.y / window.innerHeight;
+
+        if (verticalPos < 0.4) {
+          // Sky colors - blue to purple
+          hue = 220 + Math.sin(normalizedTime * 0.3) * 20 - verticalPos * 140;
+          sat = 70 + verticalPos * 30;
+          light = 65 - verticalPos * 30 + (intensity - 100) / 5;
         } else {
-          hue = 200 + Math.sin(time - this.x / 100) * 20; // Ice: blue
-          sat = saturation * 0.8;
-          light = 60 + Math.sin(time * 2) * 10 + (intensity - 100) / 5;
+          // Sunset colors - orange to red
+          hue =
+            30 - (verticalPos - 0.4) * 60 + Math.sin(normalizedTime * 0.5) * 10;
+          sat = Math.min(saturation, 90 + (verticalPos - 0.4) * 10);
+          light = 50 - (verticalPos - 0.4) * 20 + (intensity - 100) / 5;
         }
         break;
 
+      case 11: // Synthwave
+        // Create 80s synthwave palette with grid-like variations
+        const gridX = Math.floor(this.x / 40);
+        const gridY = Math.floor(this.y / 40);
+
+        // Purple to pink to blue palette
+        if ((gridX + gridY) % 3 === 0) {
+          hue = 280 + Math.sin(normalizedTime * 0.5) * 20; // Purple
+        } else if ((gridX + gridY) % 3 === 1) {
+          hue = 320 + Math.sin(normalizedTime * 0.3) * 15; // Pink
+        } else {
+          hue = 210 + Math.sin(normalizedTime * 0.4) * 25; // Blue
+        }
+
+        sat = Math.min(saturation * 1.2, 100);
+        light =
+          55 + Math.sin(normalizedTime * 0.8) * 10 + (intensity - 100) / 5;
+        blendModeOverride = "screen";
+        break;
+
       default:
-        hue = (time * 50) % 360;
+        hue = (normalizedTime * 50 + offset) % 360;
         sat = saturation;
         light = 50 + (intensity - 100) / 4;
     }
@@ -270,6 +413,13 @@ class Particle {
 
     // Apply lightness/intensity scaling
     light = Math.max(20, Math.min(80, light));
+
+    // Set the blend mode if overridden
+    if (blendModeOverride) {
+      this.blendMode = blendModeOverride;
+    } else {
+      this.blendMode = "lighter";
+    }
 
     this.color = `hsl(${hue}, ${sat}%, ${light}%)`;
   }
@@ -282,24 +432,31 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
   // Effect state
   private particles: Particle[] = [];
   private currentControls: GlowParticlesControls | null = null;
+  private debugFrameCount = 0;
+  private lastParticleSize: number = 0;
 
   constructor() {
     super({
       id: "glow-particles",
       name: "GlowParticles",
-      debug: true,
+      debug: true, // Enable debug mode
       backgroundColor: "rgba(0, 0, 0, 0.98)", // Slight transparency for motion blur
     });
+
+    // Add direct console log to verify constructor is called
+    console.log("👋 GlowParticlesEffect constructor called");
   }
 
   /**
    * Initialize the controls and their default values
    */
   protected initializeControls(): void {
+    console.log("🎛️ Initializing controls");
+
     // Set default values to make them available globally for SignalRGB
-    window.speed = 5;
+    window.speed = 3;
     window.particleCount = 100;
-    window.particleSize = 4;
+    window.particleSize = 20;
     window.glowIntensity = 100;
     window.colorMode = "Rainbow";
     window.flowDirection = "Outward";
@@ -307,23 +464,30 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
     window.particleBounce = 1;
     window.colorSaturation = 100;
     window.colorIntensity = 100;
+    window.connectorGlow = 100;
   }
 
   /**
    * Get current control values from global scope
    */
   protected getControlValues(): GlowParticlesControls {
-    return {
-      speed: normalizeSpeed(getControlValue<number>("speed", 5)),
+    // Create a speed scale that varies from 0.5 to 3.0 based on control value (1-10)
+    // This gives a better range for visible speed differences
+    const rawSpeed = getControlValue<number>("speed", 3);
+    const smoothSpeed = 0.5 + (rawSpeed - 1) * 0.28;
+
+    // Get all controls
+    const controls = {
+      speed: smoothSpeed,
       particleCount: getControlValue<number>("particleCount", 100),
-      particleSize: getControlValue<number>("particleSize", 4),
+      particleSize: getControlValue<number>("particleSize", 20),
       glowIntensity: normalizePercentage(
         getControlValue<number>("glowIntensity", 100),
       ),
       colorMode: comboboxValueToIndex(
         getControlValue<string | number>("colorMode", "Rainbow"),
         COLOR_MODES,
-        0,
+        9, // Default to Rainbow (index 9)
       ),
       flowDirection: comboboxValueToIndex(
         getControlValue<string | number>("flowDirection", "Outward"),
@@ -348,21 +512,47 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
           100,
           0,
         ) * 100,
+      connectorGlow:
+        normalizePercentage(
+          getControlValue<number>("connectorGlow", 100),
+          100,
+          0,
+        ) * 100,
     };
+
+    return controls;
   }
 
   /**
    * Apply control values to the effect parameters
    */
   protected applyControls(controls: GlowParticlesControls): void {
+    // Check if essential properties changed that require recreating particles
+    const needsRecreate =
+      !this.currentControls ||
+      !this.particles.length ||
+      this.particles.length !== controls.particleCount ||
+      this.currentControls.flowDirection !== controls.flowDirection;
+
+    // Store new controls
     this.currentControls = controls;
 
-    // Recreate particles if particle count changed
-    if (
-      !this.particles.length ||
-      this.particles.length !== controls.particleCount
-    ) {
+    // Only recreate particles when necessary - this prevents jumpiness
+    if (needsRecreate) {
       this.createParticles();
+    } else if (this.lastParticleSize !== controls.particleSize) {
+      // Update particle sizes without recreating them
+      this.updateParticleSizes(controls.particleSize);
+      this.lastParticleSize = controls.particleSize;
+    }
+  }
+
+  /**
+   * Update particle sizes without recreating them
+   */
+  private updateParticleSizes(newSize: number): void {
+    for (const particle of this.particles) {
+      particle.updateSize(newSize);
     }
   }
 
@@ -376,18 +566,54 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
       count: this.currentControls.particleCount,
     });
 
-    this.particles = [];
+    // Keep existing particles when possible to prevent all particles from "jumping"
+    const oldParticleCount = this.particles.length;
+    const newParticleCount = this.currentControls.particleCount;
 
-    for (let i = 0; i < this.currentControls.particleCount; i++) {
-      this.particles.push(
-        new Particle(
+    // Store the current particle size to track changes
+    this.lastParticleSize = this.currentControls.particleSize;
+
+    // Keep existing particles if just adding more or adjusting flow direction
+    if (newParticleCount > oldParticleCount) {
+      // Add more particles while keeping existing ones
+      for (let i = oldParticleCount; i < newParticleCount; i++) {
+        this.particles.push(
+          new Particle(
+            this.canvas.width,
+            this.canvas.height,
+            this.currentControls.particleSize,
+            this.currentControls.speed,
+            this.currentControls.flowDirection,
+          ),
+        );
+      }
+    } else if (newParticleCount < oldParticleCount) {
+      // Remove excess particles
+      this.particles = this.particles.slice(0, newParticleCount);
+    } else if (oldParticleCount === 0) {
+      // Create all new particles if none exist
+      this.particles = [];
+      for (let i = 0; i < newParticleCount; i++) {
+        this.particles.push(
+          new Particle(
+            this.canvas.width,
+            this.canvas.height,
+            this.currentControls.particleSize,
+            this.currentControls.speed,
+            this.currentControls.flowDirection,
+          ),
+        );
+      }
+    } else {
+      // Only update flow direction for existing particles
+      for (const particle of this.particles) {
+        particle.setSpeedByDirection(
           this.canvas.width,
           this.canvas.height,
-          this.currentControls.particleSize,
           this.currentControls.speed,
           this.currentControls.flowDirection,
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -395,7 +621,14 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
    * Draw the particles on the canvas
    */
   protected draw(time: number, deltaTime: number): void {
-    if (!this.ctx || !this.canvas || !this.currentControls) return;
+    if (!this.ctx || !this.canvas || !this.currentControls) {
+      console.log("❌ Draw called but context, canvas or controls missing", {
+        hasCtx: !!this.ctx,
+        hasCanvas: !!this.canvas,
+        hasControls: !!this.currentControls,
+      });
+      return;
+    }
 
     const ctx = this.ctx;
     const { width, height } = this.canvas;
@@ -403,6 +636,7 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
 
     // If particles not created yet, create them
     if (this.particles.length === 0) {
+      console.log("🏗️ No particles found, creating them now");
       this.createParticles();
     }
 
@@ -421,10 +655,14 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
 
     // First pass - draw connections if enabled
     if (controls.connectParticles) {
-      ctx.strokeStyle = `rgba(255, 255, 255, ${Math.min(1, controls.glowIntensity * 0.2)})`;
-      ctx.lineWidth = Math.max(0.5, controls.particleSize / 6);
+      // Set connector line thickness based on connector glow intensity, not particle size
+      const connectorOpacity = Math.min(1, controls.connectorGlow * 0.004); // Doubled for stronger effect
+      const connectorWidth = Math.max(0.5, controls.connectorGlow / 50); // Doubled for stronger effect
 
-      const connectionDistance = Math.min(100, width / 3);
+      ctx.strokeStyle = `rgba(255, 255, 255, ${connectorOpacity})`;
+      ctx.lineWidth = connectorWidth;
+
+      const connectionDistance = Math.min(120, width / 2.5); // Increased distance for more connections
 
       for (let i = 0; i < this.particles.length; i++) {
         const p1 = this.particles[i];
@@ -436,10 +674,13 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
           const distance = Math.sqrt(dx * dx + dy * dy);
 
           if (distance < connectionDistance) {
-            // Draw line with opacity based on distance
-            const opacity = 1 - distance / connectionDistance;
+            // Draw line with opacity based on distance and connector glow
+            const opacity =
+              (1 - distance / connectionDistance) *
+              0.3 *
+              (controls.connectorGlow / 100); // Doubled opacity factor
             ctx.beginPath();
-            ctx.strokeStyle = `rgba(255, 255, 255, ${opacity * 0.15 * controls.glowIntensity})`;
+            ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
             ctx.stroke();
@@ -450,13 +691,8 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
 
     // Second pass - draw particles
     for (const particle of this.particles) {
-      // Update particle
-      particle.update(
-        width,
-        height,
-        deltaTime * controls.speed,
-        controls.particleBounce,
-      );
+      // Update particle position with current speed
+      particle.update(width, height, controls.speed, controls.particleBounce);
 
       // Update color based on time and position
       particle.setColor(
@@ -465,6 +701,9 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
         controls.colorSaturation,
         controls.colorIntensity,
       );
+
+      // Set blend mode for this particle
+      ctx.globalCompositeOperation = particle.blendMode;
 
       // Draw glow effect
       const glowSize = particle.size * (1 + controls.glowIntensity);
@@ -487,7 +726,7 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
 
       // Draw particle core
       ctx.beginPath();
-      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.fillStyle = `rgba(255, 255, 255, ${particle.alpha})`;
       ctx.arc(particle.x, particle.y, particle.size / 2, 0, Math.PI * 2);
       ctx.fill();
     }
@@ -501,10 +740,27 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
 const effect = new GlowParticlesEffect();
 
 // Initialize the effect using the common initializer for SignalRGB
+console.log("📣 Setting up effect initialization");
+
 initializeEffect(() => {
-  console.log("[GlowParticles] Initializing through common initializer");
-  effect.initialize();
+  console.log("🚀 GlowParticles initialization callback triggered");
+
+  try {
+    console.log("🔍 Starting initialize() method");
+    effect
+      .initialize()
+      .then(() => {
+        console.log("✨ GlowParticles initialized successfully");
+      })
+      .catch((error) => {
+        console.error("💥 GlowParticles initialization failed:", error);
+      });
+  } catch (error) {
+    console.error("💔 Fatal error during GlowParticles initialization:", error);
+  }
 });
+
+console.log("📋 Module initialization complete, waiting for callback");
 
 // Export the effect instance
 export default effect;
