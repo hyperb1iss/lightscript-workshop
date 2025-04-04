@@ -3,11 +3,11 @@
  * Initializes the development environment and loads the selected effect
  */
 
-import "./ui/styles.css";
-import "./ui/sparklingName.css";
-import { PreactDevEngine } from "./common/preact-engine";
-import { effects } from "./index";
-import { printStartupBanner } from "./common/debug";
+// Import UI styles (now handled via ui/index.ts)
+import "./ui"; // This imports the styles via the UI index
+import { PreactDevEngine } from "./engine/preact-engine";
+import { effects } from "../index";
+import { printStartupBanner } from "../core/utils/debug";
 
 // Display startup banner
 printStartupBanner();

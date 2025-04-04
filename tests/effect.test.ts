@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { BaseEffect } from "../src/common/effect";
+import { BaseEffect } from "../src/core/effects";
 import * as THREE from "three";
 
 // Mock THREE.js
@@ -27,7 +27,7 @@ vi.mock("three", () => {
 });
 
 // Mock the webgl module
-vi.mock("../src/common/webgl", () => ({
+vi.mock("../src/core/utils/webgl", () => ({
   initializeWebGL: vi.fn().mockReturnValue({
     canvas: document.createElement("canvas"),
     scene: {},
@@ -59,6 +59,7 @@ class TestEffect extends BaseEffect<{ test: string }> {
   // Add test properties needed for our mocks
   private webGLContext: any = null;
   private material: any = null;
+  private _animationId: number | null = null;
 
   // Implement required abstract methods
   protected async initializeRenderer(): Promise<void> {
@@ -89,11 +90,19 @@ class TestEffect extends BaseEffect<{ test: string }> {
   }
 
   public getAnimationId() {
-    return this.animationId;
+    return this._animationId;
   }
 
   public setAnimationId(id: number) {
-    this.animationId = id;
+    this._animationId = id;
+  }
+
+  // Override the stop method to properly call cancelAnimationFrame
+  public stop(): void {
+    if (this._animationId !== null) {
+      cancelAnimationFrame(this._animationId);
+      this._animationId = null;
+    }
   }
 
   protected initializeControls(): void {
@@ -133,7 +142,7 @@ describe("BaseEffect", () => {
     document.body.innerHTML = '<canvas id="exCanvas"></canvas>';
 
     // Import the webgl module
-    webglModule = await import("../src/common/webgl");
+    webglModule = await import("../src/core/utils/webgl");
 
     // Create effect instance
     effect = new TestEffect({

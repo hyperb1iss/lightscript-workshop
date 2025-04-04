@@ -1,34 +1,16 @@
 /**
- * Common utilities index
- * Re-exports all shared utilities for easier imports
+ * Core framework index
+ * Re-exports all core components for the LightScript framework
  */
 
-// Debug utilities
-export * from "./debug";
+// Export effect classes
+export * from "./effects";
 
-// Control system interfaces and definitions
+// Export control system
 export * from "./controls";
-export * from "./definitions";
-export * from "./registry";
 
-// Decorator-based control system
-export * from "./control-decorators";
-
-// Base effect classes
-export * from "./effect";
-export * from "./webgl-effect";
-export * from "./canvas-effect";
-
-// Development engine - Preact UI
-// Export explicitly to avoid name conflicts with parser's EffectMetadata
-export { PreactDevEngine } from "./preact-engine";
-export type {
-  EffectMetadata as PreactEffectMetadata,
-  EffectWithMetadata,
-} from "./preact-engine";
-
-// WebGL and Three.js utilities
-export * from "./webgl";
+// Export utilities
+export * from "./utils";
 
 /**
  * Initialize SignalRGB effect on load

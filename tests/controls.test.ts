@@ -6,7 +6,7 @@ import {
   comboboxValueToIndex,
   getControlValue,
   getAllControls,
-} from "../src/common/controls";
+} from "../src/core/controls/helpers";
 
 describe("controls utilities", () => {
   describe("normalizeSpeed", () => {

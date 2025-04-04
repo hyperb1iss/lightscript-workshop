@@ -4,13 +4,13 @@
  */
 
 import * as THREE from "three";
-import { BaseEffect, EffectConfig } from "./effect";
+import { BaseEffect, EffectConfig } from "./base-effect";
 import {
   WebGLContext,
   initializeWebGL,
   createShaderQuad,
   createStandardUniforms,
-} from "./webgl";
+} from "../utils/webgl";
 
 /**
  * Configuration for WebGLEffect

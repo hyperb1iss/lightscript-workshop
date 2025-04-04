@@ -2,15 +2,15 @@
  * SimpleWave - Decorator-based implementation
  * Wave-based RGB effect with minimal resource usage
  */
-import { WebGLEffect } from "../../common/webgl-effect";
+import { WebGLEffect } from "../../core/effects/webgl-effect";
 import {
   Effect,
   NumberControl,
   BooleanControl,
   ComboboxControl,
-} from "../../common/control-decorators";
-import { normalizeSpeed, boolToInt } from "../../common/controls";
-import { initializeEffect } from "../../common";
+} from "../../core/controls/decorators";
+import { normalizeSpeed, boolToInt } from "../../core/controls/helpers";
+import { initializeEffect } from "../../core";
 import * as THREE from "three";
 
 // Import shaders

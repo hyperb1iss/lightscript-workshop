@@ -1,6 +1,6 @@
 import { h, FunctionComponent } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import './sparklingName.css';
+// CSS import is now handled in the ui/index.ts file
 
 interface SparkleType {
   id: number;

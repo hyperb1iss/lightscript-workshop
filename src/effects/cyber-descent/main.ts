@@ -5,7 +5,7 @@
  * https://www.shadertoy.com/view/wdfGW4
  */
 
-import { initializeEffect } from "../../common";
+import { initializeEffect } from "../../core";
 import { CyberDescentEffect } from "./cyber-descent-effect";
 
 // Create and export the effect instance

@@ -3,7 +3,7 @@
  * Provides standardized initialization, control handling, and rendering
  */
 
-import { createDebugLogger } from "./debug";
+import { createDebugLogger } from "../utils/debug";
 
 // Extend Window interface with effect properties
 declare global {

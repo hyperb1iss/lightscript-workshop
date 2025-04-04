@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { generateControlUI } from "../src/common/registry";
-import { ControlDefinition } from "../src/common/definitions";
+import { generateControlUI } from "../src/dev/controls-registry";
+import { ControlDefinition } from "../src/core/controls/definitions";
 
 describe("control registry", () => {
   beforeEach(() => {

@@ -4,10 +4,17 @@
  */
 
 import { h, render } from "preact";
-import { createDebugLogger, printStartupBanner } from "./debug";
-import { ControlDefinition, ControlValues } from "./definitions";
-import { effects } from "../index";
-import { App } from "../ui/App";
+import { createDebugLogger, printStartupBanner } from "../../core/utils/debug";
+import {
+  ControlDefinition,
+  ControlValues,
+} from "../../core/controls/definitions";
+import {
+  extractControlsFromClass,
+  extractEffectMetadata,
+} from "../../core/controls/decorators";
+import { effects } from "../../index";
+import { App } from "../ui/components/App";
 
 // Debug helper
 const debug = createDebugLogger("PreactEngine");
@@ -267,28 +274,19 @@ export class PreactDevEngine {
    */
   private extractMetadata(effect: AppEffect, effectClass: unknown): void {
     try {
-      // First try to use the decorator system
-      import("./control-decorators").then((decorators) => {
-        try {
-          const metadata = decorators.extractEffectMetadata(effectClass);
-          if (metadata) {
-            debug(
-              "success",
-              `Found metadata for ${effect.id}: ${metadata.name}`,
-            );
-            effect.name = metadata.name;
-            effect.description = metadata.description;
-            effect.author = metadata.author;
+      // Use the imported decorator functions directly
+      const metadata = extractEffectMetadata(effectClass);
+      if (metadata) {
+        debug("success", `Found metadata for ${effect.id}: ${metadata.name}`);
+        effect.name = metadata.name;
+        effect.description = metadata.description;
+        effect.author = metadata.author;
 
-            // Update the UI with the new metadata
-            this.renderUI();
-          }
-        } catch (err) {
-          debug("warn", `Error extracting metadata: ${err}`);
-        }
-      });
+        // Update the UI with the new metadata
+        this.renderUI();
+      }
     } catch (err) {
-      debug("warn", `Error importing control-decorators: ${err}`);
+      debug("warn", `Error extracting metadata: ${err}`);
     }
   }
 
@@ -299,96 +297,77 @@ export class PreactDevEngine {
     debug("info", "Extracting controls from effect");
 
     try {
-      // Only use the decorator system
-      import("./control-decorators")
-        .then((decorators) => {
-          try {
-            const controls = decorators.extractControlsFromClass(
-              effectClassOrInstance,
-            );
+      // Use the imported decorator functions directly
+      const controls = extractControlsFromClass(effectClassOrInstance);
 
-            if (controls && controls.length > 0) {
-              debug(
-                "success",
-                `Found ${controls.length} controls using decorators`,
-              );
+      if (controls && controls.length > 0) {
+        debug("success", `Found ${controls.length} controls using decorators`);
 
-              // Filter out any huge string values that might be shader code
-              const filteredControls = controls.filter((control) => {
-                // Skip controls with huge string values (like shader code)
-                if (control.type === "textfield") {
-                  const defaultValue = String(control.default || "");
-                  // If the string is very long, it's probably not a real control
-                  if (defaultValue.length > 500) {
-                    debug(
-                      "warn",
-                      `Skipping likely shader code control: ${control.id}`,
-                    );
-                    return false;
-                  }
-                }
-                return true;
-              });
-
-              // Log all controls for debugging
-              debug("info", "Control definitions:", filteredControls);
-
-              this.controlDefinitions = filteredControls;
-
-              // Initialize control values
-              this.controlValues = {};
-              for (const control of filteredControls) {
-                // Make sure we're using the correct default values
-                if (control.type === "number" || control.type === "hue") {
-                  // Make sure number value is within defined range
-                  const typedControl = control as Record<string, unknown>;
-                  const min = typedControl.min ? Number(typedControl.min) : 0;
-                  const max = typedControl.max ? Number(typedControl.max) : 100;
-                  const defaultValue = Number(control.default);
-                  // Ensure the value is within the allowed range
-                  const safeValue = Math.max(min, Math.min(max, defaultValue));
-                  this.controlValues[control.id] = safeValue;
-                  window[control.id] = safeValue;
-                } else if (control.type === "boolean") {
-                  // Convert possible 0/1 values to actual booleans
-                  const defaultValue =
-                    control.default === 1 ? true : Boolean(control.default);
-                  this.controlValues[control.id] = defaultValue;
-                  window[control.id] = defaultValue;
-                } else {
-                  this.controlValues[control.id] = control.default;
-                  window[control.id] = control.default;
-                }
-
+        // Filter out any huge string values that might be shader code
+        const filteredControls = controls.filter(
+          (control: ControlDefinition) => {
+            // Skip controls with huge string values (like shader code)
+            if (control.type === "textfield") {
+              const defaultValue = String(control.default || "");
+              // If the string is very long, it's probably not a real control
+              if (defaultValue.length > 500) {
                 debug(
-                  "info",
-                  `Initialized control: ${control.id} = ${window[control.id]}`,
+                  "warn",
+                  `Skipping likely shader code control: ${control.id}`,
                 );
+                return false;
               }
-
-              // Update the UI with the controls
-              this.renderUI();
-            } else {
-              debug("warn", "No controls found using decorators");
-              this.controlDefinitions = [];
-              this.controlValues = {};
-              this.renderUI();
             }
-          } catch (err) {
-            debug("error", "Error extracting controls:", err);
-            this.controlDefinitions = [];
-            this.controlValues = {};
-            this.renderUI();
+            return true;
+          },
+        );
+
+        // Log all controls for debugging
+        debug("info", "Control definitions:", filteredControls);
+
+        this.controlDefinitions = filteredControls;
+
+        // Initialize control values
+        this.controlValues = {};
+        for (const control of filteredControls) {
+          // Make sure we're using the correct default values
+          if (control.type === "number" || control.type === "hue") {
+            // Make sure number value is within defined range
+            const typedControl = control as Record<string, unknown>;
+            const min = typedControl.min ? Number(typedControl.min) : 0;
+            const max = typedControl.max ? Number(typedControl.max) : 100;
+            const defaultValue = Number(control.default);
+            // Ensure the value is within the allowed range
+            const safeValue = Math.max(min, Math.min(max, defaultValue));
+            this.controlValues[control.id] = safeValue;
+            window[control.id] = safeValue;
+          } else if (control.type === "boolean") {
+            // Convert possible 0/1 values to actual booleans
+            const defaultValue =
+              control.default === 1 ? true : Boolean(control.default);
+            this.controlValues[control.id] = defaultValue;
+            window[control.id] = defaultValue;
+          } else {
+            this.controlValues[control.id] = control.default;
+            window[control.id] = control.default;
           }
-        })
-        .catch((err) => {
-          debug("error", "Error importing control-decorators:", err);
-          this.controlDefinitions = [];
-          this.controlValues = {};
-          this.renderUI();
-        });
+
+          debug(
+            "info",
+            `Initialized control: ${control.id} = ${window[control.id]}`,
+          );
+        }
+
+        // Update the UI with the controls
+        this.renderUI();
+      } else {
+        debug("warn", "No controls found using decorators");
+        this.controlDefinitions = [];
+        this.controlValues = {};
+        this.renderUI();
+      }
     } catch (err) {
-      debug("error", "Error in extractControls:", err);
+      debug("error", "Error extracting controls:", err);
       this.controlDefinitions = [];
       this.controlValues = {};
       this.renderUI();

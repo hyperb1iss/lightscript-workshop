@@ -2,7 +2,7 @@
  * GlowParticles - Main Effect Class
  * Implements the GlowParticles effect
  */
-import { CanvasEffect } from "../../common/canvas-effect";
+import { CanvasEffect } from "../../core/effects/canvas-effect";
 import { Particle } from "./particle";
 import { GlowParticlesControls } from "./types";
 import {
@@ -10,8 +10,8 @@ import {
   NumberControl,
   BooleanControl,
   ComboboxControl,
-} from "../../common/control-decorators";
-import { normalizePercentage, boolToInt } from "../../common/controls";
+} from "../../core/controls/decorators";
+import { normalizePercentage, boolToInt } from "../../core/controls/helpers";
 import { COLOR_MODES, FLOW_DIRECTIONS } from "./types";
 
 // Interface with window properties for type-safety

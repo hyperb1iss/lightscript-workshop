@@ -86,3 +86,10 @@ export type ControlDefinitionType =
 export interface ControlValues {
   [key: string]: unknown;
 }
+
+/**
+ * Base interface that all effect control interfaces should extend
+ */
+export interface BaseControls {
+  [key: string]: unknown;
+}

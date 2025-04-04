@@ -6,7 +6,8 @@ import {
   NumberControl,
   BooleanControl,
   ComboboxControl,
-} from "../src/common/control-decorators";
+} from "../src/core/controls/decorators";
+import { ControlDefinition } from "../src/core/controls/definitions";
 
 // Note: We're testing the decorator API directly
 describe("control-decorators", () => {
@@ -51,9 +52,15 @@ describe("control-decorators", () => {
       expect(controls).toHaveLength(3);
 
       // Find specific controls
-      const speedControl = controls.find((c) => c.id === "speed");
-      const enabledControl = controls.find((c) => c.id === "enabled");
-      const colorModeControl = controls.find((c) => c.id === "colorMode");
+      const speedControl = controls.find(
+        (c: ControlDefinition) => c.id === "speed",
+      );
+      const enabledControl = controls.find(
+        (c: ControlDefinition) => c.id === "enabled",
+      );
+      const colorModeControl = controls.find(
+        (c: ControlDefinition) => c.id === "colorMode",
+      );
 
       // Verify individual controls
       expect(speedControl).toMatchObject({

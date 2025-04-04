@@ -43,7 +43,7 @@ export function getEffectBuildConfig(): BuildOptions | undefined {
             keep_classnames: true,
           },
           format: {
-            beautify: false,
+            beautify: true, // SignalRGB can't handle minified code
           },
         }
       : undefined,

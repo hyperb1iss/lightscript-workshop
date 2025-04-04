@@ -1,6 +1,6 @@
 import { h, FunctionComponent } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
-import { ControlDefinition, ControlValues } from '../common/definitions';
+import { ControlDefinition, ControlValues } from '../../../core/controls/definitions';
 import { ControlsPanel } from './ControlsPanel';
 import { EffectsPanel } from './EffectsPanel';
 import { Notification } from './Notification';

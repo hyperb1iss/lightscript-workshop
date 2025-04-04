@@ -1,7 +1,7 @@
 import { h, FunctionComponent } from 'preact';
-import { ControlDefinition, ControlValues } from '../common/definitions';
+import { ControlDefinition, ControlValues } from '../../../core/controls/definitions';
 import { useState, useRef, useEffect } from 'preact/hooks';
-import { debug } from '../common/debug';
+import { debug } from '../../../core/utils/debug';
 
 interface ControlsPanelProps {
   controlDefinitions: ControlDefinition[];

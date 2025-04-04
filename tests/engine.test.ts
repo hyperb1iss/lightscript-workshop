@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as indexModule from "../src/index";
-import { extractControlsFromClass } from "../src/common/control-decorators";
-import { generateControlUI } from "../src/common/registry";
+import { extractControlsFromClass } from "../src/core/controls/decorators";
+import { generateControlUI } from "../src/dev/controls-registry";
 
 // Mock the effects array
 vi.mock("../src/index", () => {
@@ -20,7 +20,7 @@ vi.mock("../src/index", () => {
 });
 
 // Mock the control-decorators module with inline controls definition
-vi.mock("../src/common/control-decorators", () => ({
+vi.mock("../src/core/controls/decorators", () => ({
   extractControlsFromClass: vi.fn().mockReturnValue([
     {
       id: "speed",
@@ -46,7 +46,7 @@ vi.mock("../src/common/control-decorators", () => ({
 }));
 
 // Mock the registry module
-vi.mock("../src/common/registry", () => ({
+vi.mock("../src/dev/controls-registry", () => ({
   generateControlUI: vi.fn().mockReturnValue(document.createElement("div")),
 }));
 

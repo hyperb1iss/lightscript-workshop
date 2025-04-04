@@ -1,15 +1,15 @@
 /**
  * PuffStuff - Raymarched tunnel effect with dynamic colors and styles
  */
-import { WebGLEffect } from "../../common/webgl-effect";
-import { normalizeSpeed, boolToInt } from "../../common/controls";
+import { WebGLEffect } from "../../core/effects/webgl-effect";
+import { normalizeSpeed, boolToInt } from "../../core/controls/helpers";
 import {
   Effect,
   NumberControl,
   BooleanControl,
   ComboboxControl,
-} from "../../common/control-decorators";
-import { initializeEffect } from "../../common";
+} from "../../core/controls/decorators";
+import { initializeEffect } from "../../core";
 import * as THREE from "three";
 
 // Import shaders

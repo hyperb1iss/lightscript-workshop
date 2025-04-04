@@ -1,7 +1,10 @@
 /**
- * Main entry point for the build process
- * This file exports all available effects for discovery
+ * Main entry point for the LightScript framework
+ * This file exports the core framework and effect registry
  */
+
+// Export all core framework components
+export * from "./core";
 
 // Available effects with paths for discovery and loading
 export const effects = [

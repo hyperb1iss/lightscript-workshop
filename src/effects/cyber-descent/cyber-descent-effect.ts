@@ -2,13 +2,13 @@
  * Cyber Descent - Main Effect Class
  * Implements the Cyber Descent effect using WebGL
  */
-import { WebGLEffect } from "../../common/webgl-effect";
+import { WebGLEffect } from "../../core/effects/webgl-effect";
 import { CyberDescentControls, CYBERPUNK_MODES } from "./types";
 import {
   Effect,
   NumberControl,
   ComboboxControl,
-} from "../../common/control-decorators";
+} from "../../core/controls/decorators";
 import * as THREE from "three";
 
 // Import shader code
