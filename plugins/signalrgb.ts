@@ -103,7 +103,7 @@ function extractAllDecorators(
         property: propertyName,
         options: options,
       });
-    } catch (err) {
+    } catch (_err) {
       logger.error(`Error parsing ${decoratorName} decorator`);
     }
   }
@@ -301,7 +301,7 @@ function processEffect(effect: (typeof effects)[0]) {
           }
         }
       }
-    } catch (err) {
+    } catch (_err) {
       logger.error(`Error extracting metadata for ${effect.id}`);
     }
 
@@ -334,7 +334,7 @@ function processEffect(effect: (typeof effects)[0]) {
     );
 
     logger.effect(effect.id, "HTML file created successfully");
-  } catch (err) {
+  } catch (_err) {
     logger.error(`Error processing effect ${effect.id}`);
   }
 }

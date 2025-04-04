@@ -60,7 +60,7 @@ const EFFECT_METADATA_SYMBOL = Symbol.for('lightscript:effect');
               // Quietly reload without noisy output
               server.ws.send({ type: "full-reload" });
             }
-          } catch (err) {
+          } catch (_err) {
             console.error(`[✗] Error processing file ${path}`);
           }
         }
