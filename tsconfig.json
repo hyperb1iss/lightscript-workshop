@@ -33,5 +33,5 @@
       "vite-plugin-glsl/ext"
     ]
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests", "plugins"]
 }
