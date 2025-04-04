@@ -44,7 +44,13 @@ export const App: FunctionComponent<AppProps> = ({
   onTakeScreenshot
 }) => {
   const [notification, setNotification] = useState<{message: string, isError: boolean} | null>(null);
-  const [showWelcomeModal, setShowWelcomeModal] = useState(true);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(() => {
+    // Check if user has previously chosen to hide the welcome screen
+    return localStorage.getItem('hideWelcomeScreen') !== 'true';
+  });
+  
+  // Local loading state that we can control with a timer
+  const [showLoader, setShowLoader] = useState(isLoading);
   
   // Set up the global notification function
   useEffect(() => {
@@ -66,6 +72,22 @@ export const App: FunctionComponent<AppProps> = ({
     };
   }, []);
   
+  // Handle loading state with maximum time limit
+  useEffect(() => {
+    if (isLoading) {
+      setShowLoader(true);
+      
+      // Force hide loader after 0.5 seconds max
+      const timer = setTimeout(() => {
+        setShowLoader(false);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setShowLoader(false);
+    }
+  }, [isLoading]);
+  
   // Set control count in a global variable for UI display purposes
   useEffect(() => {
     window.controlsCount = controlDefinitions.length;
@@ -77,7 +99,7 @@ export const App: FunctionComponent<AppProps> = ({
   
   return (
     <div className="dev-engine-container">
-      {isLoading && <Loader />}
+      {showLoader && <Loader />}
       
       {showWelcomeModal && <WelcomeModal onClose={handleWelcomeClose} />}
       
