@@ -13,7 +13,7 @@ export type UpdateFunction = (force?: boolean) => void;
 declare global {
   interface Window {
     // The main update function used by effects
-    update: UpdateFunction;
+    update?: UpdateFunction;
 
     // Control count for UI display
     controlsCount: number;

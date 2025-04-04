@@ -56,6 +56,25 @@ vi.mock("../src/common/webgl", () => ({
 
 // Create a test implementation of BaseEffect
 class TestEffect extends BaseEffect<{ test: string }> {
+  // Add test properties needed for our mocks
+  private webGLContext: any = null;
+  private material: any = null;
+
+  // Implement required abstract methods
+  protected async initializeRenderer(): Promise<void> {
+    // Mock implementation
+    return Promise.resolve();
+  }
+
+  protected render(_time: number): void {
+    // Mock implementation
+  }
+
+  protected updateParameters(controls: { test: string }): void {
+    // Mock implementation
+    this.updateUniforms(controls);
+  }
+
   // Add a public accessor to bypass initialization issues
   public getWebGLContext() {
     return this.webGLContext;
@@ -120,7 +139,6 @@ describe("BaseEffect", () => {
     effect = new TestEffect({
       id: "test-effect",
       name: "Test Effect",
-      fragmentShader: "void main() { gl_FragColor = vec4(1.0); }",
       debug: false,
     });
   });

@@ -4,7 +4,6 @@
  */
 import { CanvasEffect } from "../../common/canvas-effect";
 import {
-  normalizeSpeed,
   normalizePercentage,
   boolToInt,
   getControlValue,
@@ -432,7 +431,6 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
   // Effect state
   private particles: Particle[] = [];
   private currentControls: GlowParticlesControls | null = null;
-  private debugFrameCount = 0;
   private lastParticleSize: number = 0;
 
   constructor() {
@@ -626,6 +624,7 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
         hasCtx: !!this.ctx,
         hasCanvas: !!this.canvas,
         hasControls: !!this.currentControls,
+        deltaTime,
       });
       return;
     }
