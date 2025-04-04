@@ -29,7 +29,7 @@ LightScript Workshop solves these issues by providing:
 - **Component Architecture** - Build complex effects with reusable parts
 - **Modern Tooling** - Hot reload, debugging, and optimization
 - **Three.js Integration** - Access to advanced WebGL capabilities
-- **Declarative Controls** - Define UI elements with simple HTML
+- **Decorator-Based Controls** - Define UI elements with TypeScript decorators
 
 ## 🚀 Getting Started
 
@@ -70,33 +70,30 @@ Understanding the framework's structure will help you navigate and create effect
 
 ```
 src/
-├── common/          # Framework core
-│   ├── controls.ts  # Control handling
-│   ├── debug.ts     # Debug utilities
-│   ├── effect.ts    # BaseEffect class
-│   ├── engine.ts    # Development engine
-│   ├── parser.ts    # HTML parser
-│   └── webgl.ts     # WebGL utilities
+├── core/           # Framework core
+│   ├── controls/   # Control system with decorators
+│   ├── effects/    # Base effect classes
+│   ├── utils/      # Shared utilities
+│   └── index.ts    # Core exports
 │
-├── effects/         # Effect implementations
-│   ├── puff-stuff/  # Example effect
+├── effects/        # Effect implementations
+│   ├── puff-stuff/
 │   │   ├── fragment.glsl
-│   │   ├── main.ts
-│   │   └── template.html
+│   │   └── main.ts
 │   │
-│   └── simple-wave/ # Example effect
+│   └── simple-wave/
 │       ├── fragment.glsl
-│       ├── main.ts
-│       └── template.html
+│       └── main.ts
 │
-└── index.ts         # Effect registry
+├── plugins/        # Vite plugins for build system
+│
+└── index.ts        # Effect registry
 ```
 
-Each effect consists of three primary files:
+Each effect consists of primarily two files:
 
 - **fragment.glsl** - The WebGL shader that creates your visual effect
-- **main.ts** - TypeScript implementation using the BaseEffect class
-- **template.html** - HTML template with control definitions and metadata
+- **main.ts** - TypeScript implementation using decorators and framework classes
 
 ## 💫 Core Concepts
 
@@ -181,27 +178,42 @@ protected draw(time: number, deltaTime: number): void
 protected applyControls(controls: T): void
 ```
 
-### Control System
+### Decorator-Based Control System
 
-Controls allow users to customize your effect. They're defined in the HTML template as meta tags, automatically parsed by the framework, and synchronized with your effect code.
+The most significant improvement in the framework is the decorator-based control system. Instead of defining controls in HTML templates, you now use TypeScript decorators directly in your effect class:
 
-```html
-<meta
-  property="speed"
-  label="Animation Speed"
-  type="number"
-  min="1"
-  max="10"
-  default="5"
-  tooltip="Controls how fast the animation runs"
-/>
+```typescript
+@NumberControl({
+  label: "Animation Speed",
+  min: 1,
+  max: 10,
+  default: 5,
+  tooltip: "Controls how fast the animation runs"
+})
+speed!: number;
 ```
 
-The framework supports these control types:
+The framework supports these control decorators:
 
-- **number** - Sliders with numeric values
-- **boolean** - Checkbox toggles
-- **combobox** - Dropdown selections
+- **@NumberControl** - Sliders with numeric values
+- **@BooleanControl** - Checkbox toggles
+- **@ComboboxControl** - Dropdown selections
+- **@HueControl** - Hue picker control
+- **@ColorControl** - Color picker control
+- **@TextFieldControl** - Text input control
+
+Additionally, the `@Effect` decorator provides metadata for your effect class:
+
+```typescript
+@Effect({
+  name: "Awesome Wave",
+  description: "A colorful wave effect",
+  author: "YourName",
+})
+export class AwesomeWaveEffect extends WebGLEffect<AwesomeWaveControls> {
+  // ...
+}
+```
 
 ## 🎨 Creating Your First Effect
 
@@ -220,71 +232,7 @@ Let's create a simple wave effect using WebGL and shaders:
 mkdir -p src/effects/awesome-wave
 ```
 
-#### 2. Create the HTML Template
-
-Create `template.html` with effect metadata and controls:
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Awesome Wave</title>
-    <meta name="description" content="A colorful wave effect" />
-    <meta publisher="YourName" />
-
-    <!-- Controls -->
-    <meta
-      property="speed"
-      label="Animation Speed"
-      type="number"
-      min="1"
-      max="10"
-      default="5"
-      tooltip="Controls how fast the wave moves"
-    />
-    <meta
-      property="colorMode"
-      label="Color Scheme"
-      type="combobox"
-      values="Rainbow,Ocean,Fire,Neon"
-      default="Rainbow"
-      tooltip="Select the color palette"
-    />
-    <meta
-      property="waveHeight"
-      label="Wave Height"
-      type="number"
-      min="10"
-      max="100"
-      default="50"
-      tooltip="Controls the height of the wave"
-    />
-
-    <style>
-      body {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        background-color: #000;
-      }
-      canvas {
-        display: block;
-        width: 100%;
-        height: 100%;
-      }
-    </style>
-  </head>
-  <body>
-    <canvas id="exCanvas" width="320" height="200"></canvas>
-    <script>
-      <!-- BUNDLE_SCRIPT_INJECT -->
-    </script>
-  </body>
-</html>
-```
-
-#### 3. Create the Fragment Shader
+#### 2. Create the Fragment Shader
 
 Create `fragment.glsl` with your WebGL shader code:
 
@@ -368,14 +316,19 @@ void main() {
 }
 ```
 
-#### 4. Create the TypeScript Implementation
+#### 3. Create the TypeScript Implementation
 
-Create `main.ts` to connect your shader to the framework:
+Create `main.ts` to connect your shader to the framework using decorators:
 
 ```typescript
-import { BaseEffect } from "../../common/effect";
-import { normalizeSpeed, getControlValue } from "../../common/controls";
-import { initializeEffect } from "../../common";
+import { WebGLEffect } from "../../core/effects/webgl-effect";
+import {
+  Effect,
+  NumberControl,
+  ComboboxControl,
+} from "../../core/controls/decorators";
+import { normalizeSpeed, boolToInt } from "../../core/controls/helpers";
+import { initializeEffect } from "../../core";
 import * as THREE from "three";
 
 // Import shader
@@ -388,10 +341,42 @@ export interface AwesomeWaveControls {
   waveHeight: number;
 }
 
-// Effect implementation
-export class AwesomeWave extends BaseEffect<AwesomeWaveControls> {
+// Effect implementation with decorators
+@Effect({
+  name: "Awesome Wave",
+  description: "A colorful wave effect",
+  author: "YourName",
+})
+export class AwesomeWaveEffect extends WebGLEffect<AwesomeWaveControls> {
   // Color mode options for conversion
   private readonly colorModes = ["Rainbow", "Ocean", "Fire", "Neon"];
+
+  // Define controls with decorators
+  @NumberControl({
+    label: "Animation Speed",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Controls how fast the wave moves",
+  })
+  speed!: number;
+
+  @ComboboxControl({
+    label: "Color Scheme",
+    values: ["Rainbow", "Ocean", "Fire", "Neon"],
+    default: "Rainbow",
+    tooltip: "Select the color palette",
+  })
+  colorMode!: string;
+
+  @NumberControl({
+    label: "Wave Height",
+    min: 10,
+    max: 100,
+    default: 50,
+    tooltip: "Controls the height of the wave",
+  })
+  waveHeight!: number;
 
   constructor() {
     super({
@@ -412,11 +397,7 @@ export class AwesomeWave extends BaseEffect<AwesomeWaveControls> {
   // Get current control values
   protected getControlValues(): AwesomeWaveControls {
     // Handle colorMode string/number conversion
-    const rawColorMode = getControlValue<string | number>(
-      "colorMode",
-      "Rainbow",
-    );
-    let colorMode: number | string = rawColorMode;
+    let colorMode: number | string = window.colorMode;
 
     if (typeof colorMode === "string") {
       const modeIndex = this.colorModes.indexOf(colorMode);
@@ -426,9 +407,9 @@ export class AwesomeWave extends BaseEffect<AwesomeWaveControls> {
     }
 
     return {
-      speed: normalizeSpeed(getControlValue<number>("speed", 5)),
+      speed: normalizeSpeed(window.speed ?? 5),
       colorMode,
-      waveHeight: getControlValue<number>("waveHeight", 50),
+      waveHeight: window.waveHeight ?? 50,
     };
   }
 
@@ -452,13 +433,13 @@ export class AwesomeWave extends BaseEffect<AwesomeWaveControls> {
 }
 
 // Create and initialize the effect
-const effect = new AwesomeWave();
+const effect = new AwesomeWaveEffect();
 initializeEffect(() => effect.initialize());
 
 export default effect;
 ```
 
-#### 5. Register Your Effect
+#### 4. Register Your Effect
 
 Add your effect to the registry in `src/index.ts`:
 
@@ -471,12 +452,11 @@ export const effects = [
     description: "A colorful wave effect",
     author: "YourName",
     entry: "./effects/awesome-wave/main.ts",
-    template: "./effects/awesome-wave/template.html",
   },
 ];
 ```
 
-#### 6. Test Your Effect
+#### 5. Test Your Effect
 
 Run the development server and navigate to your effect:
 
@@ -495,92 +475,7 @@ Now let's create a particle effect using the Canvas 2D API:
 mkdir -p src/effects/glow-particles
 ```
 
-#### 2. Create the HTML Template
-
-Create `template.html` with effect metadata and controls:
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Glow Particles</title>
-    <meta
-      name="description"
-      content="A colorful particle system with glowing effects"
-    />
-    <meta publisher="YourName" />
-
-    <!-- Controls -->
-    <meta
-      property="particleCount"
-      label="Particle Count"
-      type="number"
-      min="10"
-      max="500"
-      default="100"
-      tooltip="Number of particles in the system"
-    />
-    <meta
-      property="speed"
-      label="Movement Speed"
-      type="number"
-      min="1"
-      max="10"
-      default="5"
-      tooltip="Controls particle movement speed"
-    />
-    <meta
-      property="particleSize"
-      label="Particle Size"
-      type="number"
-      min="1"
-      max="20"
-      default="5"
-      tooltip="Size of particles"
-    />
-    <meta
-      property="colorMode"
-      label="Color Mode"
-      type="combobox"
-      values="Rainbow,Blues,Neon,Fire"
-      default="Rainbow"
-      tooltip="Color scheme for particles"
-    />
-    <meta
-      property="glowIntensity"
-      label="Glow Intensity"
-      type="number"
-      min="10"
-      max="100"
-      default="50"
-      tooltip="Controls the glow effect intensity"
-    />
-
-    <style>
-      body {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        background-color: #000;
-      }
-      canvas {
-        display: block;
-        width: 100%;
-        height: 100%;
-      }
-    </style>
-  </head>
-  <body>
-    <canvas id="exCanvas" width="320" height="200"></canvas>
-    <script>
-      <!-- BUNDLE_SCRIPT_INJECT -->
-    </script>
-  </body>
-</html>
-```
-
-#### 3. Create the TypeScript Types
+#### 2. Create the TypeScript Types
 
 Create `types.ts` to define particle-related types:
 
@@ -606,20 +501,73 @@ export interface GlowParticlesControls {
 }
 ```
 
-#### 4. Create the Effect Implementation
+#### 3. Create the Effect Implementation
 
-Create `glow-particles-effect.ts` with the Canvas effect implementation:
+Create `glow-particles-effect.ts` with the Canvas effect implementation using decorators:
 
 ```typescript
 // src/effects/glow-particles/glow-particles-effect.ts
 
-import { CanvasEffect } from "../../common/canvas-effect";
-import { normalizeSpeed, getControlValue } from "../../common/controls";
+import { CanvasEffect } from "../../core/effects/canvas-effect";
+import {
+  Effect,
+  NumberControl,
+  ComboboxControl,
+} from "../../core/controls/decorators";
+import { normalizeSpeed } from "../../core/controls/helpers";
 import { Particle, GlowParticlesControls } from "./types";
 
+@Effect({
+  name: "Glow Particles",
+  description: "A colorful particle system with glowing effects",
+  author: "YourName",
+})
 export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
   private particles: Particle[] = [];
-  private colorModes = ["Rainbow", "Blues", "Neon", "Fire"];
+
+  @NumberControl({
+    label: "Particle Count",
+    min: 10,
+    max: 500,
+    default: 100,
+    tooltip: "Number of particles in the system",
+  })
+  particleCount!: number;
+
+  @NumberControl({
+    label: "Movement Speed",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Controls particle movement speed",
+  })
+  speed!: number;
+
+  @NumberControl({
+    label: "Particle Size",
+    min: 1,
+    max: 20,
+    default: 5,
+    tooltip: "Size of particles",
+  })
+  particleSize!: number;
+
+  @ComboboxControl({
+    label: "Color Mode",
+    values: ["Rainbow", "Blues", "Neon", "Fire"],
+    default: "Rainbow",
+    tooltip: "Color scheme for particles",
+  })
+  colorMode!: string;
+
+  @NumberControl({
+    label: "Glow Intensity",
+    min: 10,
+    max: 100,
+    default: 50,
+    tooltip: "Controls the glow effect intensity",
+  })
+  glowIntensity!: number;
 
   constructor() {
     super({
@@ -646,11 +594,11 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
    */
   protected getControlValues(): GlowParticlesControls {
     return {
-      particleCount: getControlValue<number>("particleCount", 100),
-      speed: normalizeSpeed(getControlValue<number>("speed", 5)),
-      particleSize: getControlValue<number>("particleSize", 5),
-      colorMode: getControlValue<string>("colorMode", "Rainbow"),
-      glowIntensity: getControlValue<number>("glowIntensity", 50) / 50,
+      particleCount: window.particleCount ?? 100,
+      speed: normalizeSpeed(window.speed ?? 5),
+      particleSize: window.particleSize ?? 5,
+      colorMode: window.colorMode ?? "Rainbow",
+      glowIntensity: (window.glowIntensity ?? 50) / 50,
     };
   }
 
@@ -694,7 +642,7 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
         vx: (Math.random() - 0.5) * 2,
         vy: (Math.random() - 0.5) * 2,
         size: Math.random() * 4 + 1,
-        color: this.getRandomColor("Rainbow"),
+        color: this.getRandomColor((window.colorMode as string) || "Rainbow"),
         alpha: Math.random() * 0.5 + 0.5,
       });
     }
@@ -778,14 +726,14 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
 }
 ```
 
-#### 5. Create the Entry Point
+#### 4. Create the Entry Point
 
 Create `main.ts` as the entry point for the effect:
 
 ```typescript
 // src/effects/glow-particles/main.ts
 
-import { initializeEffect } from "../../common";
+import { initializeEffect } from "../../core";
 import { GlowParticlesEffect } from "./glow-particles-effect";
 
 // Create effect instance
@@ -805,7 +753,7 @@ export { GlowParticlesEffect } from "./glow-particles-effect";
 export type { GlowParticlesControls } from "./types";
 ```
 
-#### 6. Register Your Effect
+#### 5. Register Your Effect
 
 Add your effect to the registry in `src/index.ts`:
 
@@ -818,12 +766,11 @@ export const effects = [
     description: "A colorful particle system with glowing effects",
     author: "YourName",
     entry: "./effects/glow-particles/main.ts",
-    template: "./effects/glow-particles/template.html",
   },
 ];
 ```
 
-#### 7. Test Your Effect
+#### 6. Test Your Effect
 
 Run the development server and navigate to your effect:
 
@@ -921,9 +868,9 @@ Here are some tips to help you create amazing effects:
 ### Control Design
 
 - **Sensible Defaults**: Ensure your effect looks good with the default values
-- **Logical Grouping**: Organize related controls together
-- **Clear Naming**: Use descriptive labels for controls
-- **Helpful Tooltips**: Provide guidance in tooltip attributes
+- **Logical Grouping**: Organize related controls together with descriptive names
+- **Clear Labels**: Use descriptive labels and tooltips for controls
+- **Reasonable Ranges**: Set appropriate min/max values for numeric controls
 
 ### Code Structure
 

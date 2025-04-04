@@ -12,11 +12,22 @@ This document provides detailed information about all the APIs and utilities ava
 
 ## 📑 Table of Contents
 
+- [Core Framework Structure](#-core-framework-structure)
 - [BaseEffect Class](#-baseeffect-class)
-- [Controls System](#-controls-system)
+- [Decorator-Based Controls](#-decorator-based-controls)
 - [WebGL Utilities](#-webgl-utilities)
 - [Debug Tools](#-debug-tools)
 - [Types & Definitions](#-types--definitions)
+
+## 🧪 Core Framework Structure
+
+The LightScript Workshop framework is organized into logical modules:
+
+- `core/` - Core framework components for effect development
+  - `effects/` - Base classes for different rendering approaches
+  - `controls/` - Decorator-based control system
+  - `utils/` - Shared utilities and helper functions
+- `dev/` - Development environment (not included in production builds)
 
 ## 🧠 BaseEffect Class
 
@@ -292,32 +303,93 @@ protected async loadResources(): Promise<void>
 
 Load effect resources (images, fonts, etc.). Override this method in subclasses if needed.
 
-## 🎮 Controls System
+## 🎮 Decorator-Based Controls System
 
-The controls system allows effects to define user-configurable parameters.
+The controls system now uses TypeScript decorators to define user-configurable parameters directly in your effect classes.
 
-### Control Types
+### Control Decorators
 
-| Type       | Description                | Meta Properties          |
-| ---------- | -------------------------- | ------------------------ |
-| `number`   | Slider with numeric values | min, max, step           |
-| `boolean`  | Checkbox toggle            | -                        |
-| `combobox` | Dropdown selection         | values (comma-separated) |
+| Decorator           | Description                           | Parameters                              |
+| ------------------- | ------------------------------------- | --------------------------------------- |
+| `@NumberControl`    | Creates a numeric slider control      | min, max, default, step, label, tooltip |
+| `@BooleanControl`   | Creates a checkbox/toggle control     | default, label, tooltip                 |
+| `@ComboboxControl`  | Creates a dropdown selection control  | values, default, label, tooltip         |
+| `@HueControl`       | Creates a hue picker control          | min, max, default, label, tooltip       |
+| `@ColorControl`     | Creates a color picker control        | default, label, tooltip                 |
+| `@TextFieldControl` | Creates a text input control          | default, label, tooltip                 |
+| `@Effect`           | Defines metadata for the effect class | name, description, author               |
 
-### HTML Definition
+### Usage Example
 
-Controls are defined in your effect's HTML template using meta tags:
+```typescript
+@Effect({
+  name: "Awesome Wave",
+  description: "A colorful wave effect",
+  author: "YourName",
+})
+export class AwesomeWaveEffect extends WebGLEffect<AwesomeWaveControls> {
+  @NumberControl({
+    label: "Animation Speed",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Controls how fast the wave moves",
+  })
+  speed!: number;
 
-```html
-<meta
-  property="speed"
-  label="Animation Speed"
-  type="number"
-  min="1"
-  max="10"
-  default="5"
-  tooltip="Controls the animation speed"
-/>
+  @ComboboxControl({
+    label: "Color Scheme",
+    values: ["Rainbow", "Ocean", "Fire", "Neon"],
+    default: "Rainbow",
+    tooltip: "Select the color palette",
+  })
+  colorMode!: string;
+
+  @BooleanControl({
+    label: "Reverse Direction",
+    default: false,
+    tooltip: "Reverse the direction of wave movement",
+  })
+  reverseDirection!: boolean;
+
+  // Implementation...
+}
+```
+
+### Decorator Options
+
+#### NumberControlOptions
+
+```typescript
+interface NumberControlOptions {
+  label: string; // Display label
+  min: number; // Minimum value
+  max: number; // Maximum value
+  default: number; // Default value
+  step?: number; // Step increment (optional)
+  tooltip?: string; // Help text (optional)
+}
+```
+
+#### BooleanControlOptions
+
+```typescript
+interface BooleanControlOptions {
+  label: string; // Display label
+  default: boolean; // Default value
+  tooltip?: string; // Help text (optional)
+}
+```
+
+#### ComboboxControlOptions
+
+```typescript
+interface ComboboxControlOptions {
+  label: string; // Display label
+  values: string[]; // Array of options
+  default: string; // Default value
+  tooltip?: string; // Help text (optional)
+}
 ```
 
 ### Control Value Utilities
@@ -405,6 +477,20 @@ Converts a string value from a combobox to its numeric index.
 
 **Returns:** Numeric index in the options array
 
+#### `getAllControls()`
+
+```typescript
+function getAllControls<T extends Record<string, unknown>>(controls: T): T;
+```
+
+Fetches all control values from the window object based on a default values object.
+
+**Parameters:**
+
+- `controls`: Dictionary of control names and default values
+
+**Returns:** Object with all control values
+
 ## 🖥️ WebGL Utilities
 
 Utilities for WebGL and Three.js integration.
@@ -461,26 +547,6 @@ Create a full-screen quad for shader effects.
 - `vertexShader`: (Optional) Custom vertex shader
 
 **Returns:** Created mesh and material
-
-### `startAnimationLoop()`
-
-```typescript
-function startAnimationLoop(
-  context: WebGLContext,
-  material: THREE.ShaderMaterial,
-  updateCallback?: (time: number) => void,
-): number;
-```
-
-Start the standard animation loop with time updates.
-
-**Parameters:**
-
-- `context`: WebGL context
-- `material`: Shader material to update
-- `updateCallback`: (Optional) Callback to run on each frame
-
-**Returns:** Animation frame ID
 
 ### `createStandardUniforms()`
 
@@ -599,25 +665,18 @@ interface EffectConfig {
   debug?: boolean;
   canvasWidth?: number;
   canvasHeight?: number;
-  fragmentShader: string;
-  vertexShader?: string;
 }
 ```
 
-### `DevEngine`
+### `EffectOptions`
 
-The development engine class that manages effect loading and UI.
+Options for the Effect decorator.
 
 ```typescript
-class DevEngine {
-  // Initialize the development environment
-  public async initialize(container: HTMLElement): Promise<void>;
-
-  // Load an effect by ID
-  public async loadEffect(effectId: string): Promise<void>;
-
-  // Start FPS monitoring
-  public startFPSMonitor(): void;
+interface EffectOptions {
+  name: string;
+  description: string;
+  author: string;
 }
 ```
 
@@ -649,23 +708,21 @@ Initializes a SignalRGB effect when the page loads.
 
 - `initFunction`: Function to call for initialization
 
-### `getAllControls()`
-
-```typescript
-function getAllControls<T extends Record<string, unknown>>(controls: T): T;
-```
-
-Fetches all control values from the window object based on a default values object.
-
-**Parameters:**
-
-- `controls`: Dictionary of control names and default values
-
-**Returns:** Object with all control values
-
 ## 🚀 Build System
 
-Command line options for building effects.
+LightScript Workshop uses a custom Vite-based build system with specialized plugins.
+
+### Vite Plugins
+
+#### `lightscriptDecoratorsPlugin`
+
+Adds runtime support for decorators in development mode.
+
+#### `signalRGBPlugin`
+
+Generates SignalRGB-compatible HTML files from your TypeScript effect code.
+
+### Build Commands
 
 | Command                                               | Description                  |
 | ----------------------------------------------------- | ---------------------------- |

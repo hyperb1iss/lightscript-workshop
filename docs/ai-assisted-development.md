@@ -47,16 +47,15 @@ Use AI to scaffold the basic structure of your effect:
 ```
 Create a new LightScript WebGL effect called "Cosmic Pulse" that uses
 raymarching to create an animated nebula with pulsing colors. Include
-controls for speed, color intensity, and nebula density.
+decorator-based controls for speed, color intensity, and nebula density.
 ```
 
 The AI will generate:
 
-- Directory structure
-- Base effect class
-- Control interface
-- Template HTML with appropriate controls
-- Shader code (for WebGL effects)
+- Directory structure in `effects/`
+- Base effect class with the `@Effect` decorator
+- Decorated control properties
+- GLSL shader code (for WebGL effects)
 
 ### 4. Refine and Customize
 
@@ -65,7 +64,8 @@ Iterate on the generated code with more specific prompts:
 ```
 Modify the fragment shader to use a more vibrant color palette
 with electric blues and purples, and make the nebula pulse with
-the beat using the speed control.
+the beat using the speed control. Also, add a new combo box control
+for different nebula patterns.
 ```
 
 ### 5. Convert Shadertoy Shaders
@@ -76,7 +76,7 @@ Found an amazing shader on Shadertoy? Ask AI to convert it:
 Convert this Shadertoy shader to a LightScript WebGL effect:
 [paste shader code or provide URL]
 
-Add controls for:
+Add decorator-based controls for:
 - Animation speed
 - Color saturation
 - Pattern density
@@ -91,7 +91,7 @@ Create a LightScript Canvas 2D effect called "Neon Particles" with the following
 - 100-500 glowing particles with trails
 - Particles should move in a circular flow pattern
 - Color palette should shift gradually between neon colors
-- Include controls for particle count, speed, and glow intensity
+- Include decorator-based controls for particle count, speed, and glow intensity
 ```
 
 ### WebGL Shader Effect
@@ -101,7 +101,8 @@ Create a LightScript WebGL effect called "Digital Wave" that:
 - Uses a fragment shader to generate an animated cyberpunk grid
 - Includes a procedural wave that moves across the grid
 - Has a glowing highlight at wave peaks
-- Includes controls for grid density, wave speed, and color scheme
+- Uses the @Effect decorator and control decorators for grid density,
+  wave speed, and color scheme
 ```
 
 ### Shadertoy Conversion
@@ -110,10 +111,10 @@ Create a LightScript WebGL effect called "Digital Wave" that:
 Convert this Shadertoy fractal flame effect to LightScript:
 [URL or code]
 
-Optimize it for performance and add these controls:
-- Fractal iteration depth (1-10)
-- Color cycling speed
-- Transform type (linear, polar, spherical)
+Optimize it for performance and add these decorator-based controls:
+- @NumberControl for fractal iteration depth (1-10)
+- @NumberControl for color cycling speed
+- @ComboboxControl for transform type (linear, polar, spherical)
 ```
 
 ## ⚡ Advanced AI Techniques
@@ -123,7 +124,8 @@ Optimize it for performance and add these controls:
 ```
 Combine aspects of the "Puff Stuff Tunnel" and "Glow Particles" effects
 to create a new effect where glowing particles flow through a tunnel,
-leaving trails that follow the tunnel's contours.
+leaving trails that follow the tunnel's contours. Use the decorator-based
+control system to create intuitive adjustments.
 ```
 
 ### Performance Optimization
@@ -157,6 +159,118 @@ Or:
 The colors in my WebGL shader aren't matching what I expected.
 I want vibrant purples and cyans, but I'm getting muted colors.
 Here's my shader code: [code]
+```
+
+## 📝 Example of AI-Generated Effect
+
+Here's what an AI-generated effect might look like using the decorator-based approach:
+
+```typescript
+// effects/cosmic-pulse/main.ts
+import {
+  Effect,
+  WebGLEffect,
+  NumberControl,
+  ComboboxControl,
+  ColorControl,
+} from "core/decorators";
+import fragmentShader from "./fragment.glsl";
+
+interface CosmicPulseControls {
+  speed: number;
+  intensity: number;
+  density: number;
+  colorScheme: string;
+  glowAmount: number;
+}
+
+@Effect({
+  name: "Cosmic Pulse",
+  description: "Raymarched nebula with pulsing colors",
+  author: "AI Assistant",
+})
+export class CosmicPulseEffect extends WebGLEffect<CosmicPulseControls> {
+  @NumberControl({
+    label: "Animation Speed",
+    min: 0.1,
+    max: 5.0,
+    default: 1.0,
+    tooltip: "Controls how fast the nebula pulses",
+  })
+  speed!: number;
+
+  @NumberControl({
+    label: "Color Intensity",
+    min: 0.0,
+    max: 2.0,
+    default: 1.0,
+    tooltip: "Adjusts the vibrancy of colors",
+  })
+  intensity!: number;
+
+  @NumberControl({
+    label: "Nebula Density",
+    min: 1.0,
+    max: 10.0,
+    default: 5.0,
+    tooltip: "Controls how dense the nebula appears",
+  })
+  density!: number;
+
+  @ComboboxControl({
+    label: "Color Scheme",
+    values: ["Cosmic", "Electric", "Sunset", "Aurora"],
+    default: "Cosmic",
+    tooltip: "Changes the color palette of the nebula",
+  })
+  colorScheme!: string;
+
+  @NumberControl({
+    label: "Glow Amount",
+    min: 0.0,
+    max: 1.0,
+    default: 0.5,
+    tooltip: "Controls the amount of bloom/glow",
+  })
+  glowAmount!: number;
+
+  constructor() {
+    super({
+      fragmentShader,
+    });
+  }
+
+  protected onInit(): void {
+    // Initialize any additional resources
+  }
+
+  protected updateUniforms(controls: CosmicPulseControls): void {
+    if (!this.material) return;
+
+    this.material.uniforms.iSpeed.value = window.speed || 1.0;
+    this.material.uniforms.iIntensity.value = window.intensity || 1.0;
+    this.material.uniforms.iDensity.value = window.density || 5.0;
+    this.material.uniforms.iGlowAmount.value = window.glowAmount || 0.5;
+
+    // Convert color scheme name to value
+    let colorSchemeValue = 0;
+    switch (window.colorScheme) {
+      case "Electric":
+        colorSchemeValue = 1;
+        break;
+      case "Sunset":
+        colorSchemeValue = 2;
+        break;
+      case "Aurora":
+        colorSchemeValue = 3;
+        break;
+      default:
+        colorSchemeValue = 0; // Cosmic
+    }
+
+    this.material.uniforms.iColorScheme.value = colorSchemeValue;
+  }
+}
 ```
 
 ## 🚀 Getting Started Today

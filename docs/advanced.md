@@ -13,10 +13,12 @@ This guide explores advanced techniques for creating sophisticated RGB lighting 
 ## 📑 Table of Contents
 
 - [Design Patterns](#-design-patterns)
+- [Advanced Decorator Techniques](#-advanced-decorator-techniques)
 - [Advanced Shader Techniques](#-advanced-shader-techniques)
 - [Performance Optimization](#-performance-optimization)
 - [Audio Reactivity](#-audio-reactivity)
 - [Device-Aware Effects](#-device-aware-effects)
+- [Build System & Plugins](#-build-system--plugins)
 - [Debugging Complex Issues](#-debugging-complex-issues)
 
 ## 🧩 Design Patterns
@@ -60,18 +62,33 @@ finalColor = finalColor + highlight * highlightIntensity;
 For effects with distinct visual states:
 
 ```typescript
-class MultiStateEffect extends BaseEffect<MyControls> {
+@Effect({
+  name: "Multi-State Effect",
+  description: "Effect with different visual states",
+  author: "YourName",
+})
+class MultiStateEffect extends WebGLEffect<MyControls> {
   private state: "idle" | "active" | "transition" = "idle";
   private stateTime = 0;
   private lastTime = 0;
+
+  @BooleanControl({
+    label: "Activate Effect",
+    default: false,
+    tooltip: "Switch between idle and active states",
+  })
+  activated!: boolean;
 
   protected onFrame(time: number): void {
     // Calculate delta time
     const deltaTime = time - this.lastTime;
     this.lastTime = time;
 
-    // Update state based on conditions
-    if (this.controls.activated && this.state === "idle") {
+    // Update state based on controls
+    if (window.activated && this.state === "idle") {
+      this.state = "transition";
+      this.stateTime = 0;
+    } else if (!window.activated && this.state === "active") {
       this.state = "transition";
       this.stateTime = 0;
     }
@@ -81,7 +98,7 @@ class MultiStateEffect extends BaseEffect<MyControls> {
 
     // Complete transitions
     if (this.state === "transition" && this.stateTime > 1.0) {
-      this.state = "active";
+      this.state = window.activated ? "active" : "idle";
     }
 
     // Update uniforms based on state
@@ -171,16 +188,297 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-// Usage in effect
-const timeline = new Timeline();
-timeline.addKeyframe(0, { intensity: 0, color: [1, 0, 0] });
-timeline.addKeyframe(1, { intensity: 1, color: [0, 1, 0] });
-timeline.addKeyframe(3, { intensity: 0.5, color: [0, 0, 1] });
+// Usage in effect with decorators
+@Effect({
+  name: "Timeline Effect",
+  description: "Effect with keyframe animation",
+  author: "YourName",
+})
+class TimelineEffect extends WebGLEffect<MyControls> {
+  private timeline = new Timeline();
 
-// In render method
-const timeValues = timeline.getValuesAtTime(this.time);
-this.material.uniforms.intensity.value = timeValues.intensity;
-this.material.uniforms.color.value = timeValues.color;
+  constructor() {
+    super({
+      id: "timeline-effect",
+      name: "Timeline Effect",
+      fragmentShader,
+    });
+
+    // Create animation timeline
+    this.timeline.addKeyframe(0, { intensity: 0, color: [1, 0, 0] });
+    this.timeline.addKeyframe(1, { intensity: 1, color: [0, 1, 0] });
+    this.timeline.addKeyframe(3, { intensity: 0.5, color: [0, 0, 1] });
+  }
+
+  protected onFrame(time: number): void {
+    super.onFrame(time);
+
+    // Get values at current time
+    const timeValues = this.timeline.getValuesAtTime(time);
+
+    // Update uniforms
+    if (this.material) {
+      this.material.uniforms.intensity.value = timeValues.intensity;
+      this.material.uniforms.color.value = timeValues.color;
+    }
+  }
+}
+```
+
+## 🔧 Advanced Decorator Techniques
+
+The decorator-based control system opens up many powerful possibilities for creating richer effects.
+
+### Custom Control Groups
+
+You can create logical groups of controls using class organization and naming conventions:
+
+```typescript
+@Effect({
+  name: "Advanced Particle System",
+  description: "Particle system with advanced controls",
+  author: "YourName",
+})
+class AdvancedParticleEffect extends WebGLEffect<AdvancedControls> {
+  // Particle appearance controls
+  @NumberControl({
+    label: "Particle Size",
+    min: 1,
+    max: 20,
+    default: 5,
+    tooltip: "Size of particles",
+  })
+  particleSize!: number;
+
+  @NumberControl({
+    label: "Particle Count",
+    min: 10,
+    max: 1000,
+    default: 100,
+    tooltip: "Number of particles",
+  })
+  particleCount!: number;
+
+  @ColorControl({
+    label: "Particle Color",
+    default: "#ff71ce",
+    tooltip: "Base color of particles",
+  })
+  particleColor!: string;
+
+  // Particle physics controls
+  @NumberControl({
+    label: "Gravity",
+    min: -10,
+    max: 10,
+    default: 1,
+    tooltip: "Gravitational force applied to particles",
+  })
+  gravity!: number;
+
+  @NumberControl({
+    label: "Wind Force",
+    min: -10,
+    max: 10,
+    default: 0,
+    tooltip: "Horizontal force applied to particles",
+  })
+  windForce!: number;
+
+  @BooleanControl({
+    label: "Bounce off Edges",
+    default: true,
+    tooltip: "Whether particles bounce off screen edges",
+  })
+  bounceOffEdges!: boolean;
+}
+```
+
+### Computed Control Values
+
+Create derived values from your decorated control properties:
+
+```typescript
+@Effect({
+  name: "Computed Controls Demo",
+  description: "Shows how to use computed values",
+  author: "YourName",
+})
+class ComputedControlsEffect extends WebGLEffect<ComputedControls> {
+  @NumberControl({
+    label: "Base Speed",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Base animation speed",
+  })
+  baseSpeed!: number;
+
+  @NumberControl({
+    label: "Speed Multiplier",
+    min: 1,
+    max: 5,
+    default: 1,
+    tooltip: "Multiplier applied to base speed",
+  })
+  speedMultiplier!: number;
+
+  // No decorator - this is computed
+  private get effectiveSpeed(): number {
+    return (window.baseSpeed || 5) * (window.speedMultiplier || 1) * 0.2;
+  }
+
+  protected updateUniforms(controls: ComputedControls): void {
+    if (!this.material) return;
+
+    // Use the computed value
+    this.material.uniforms.iSpeed.value = this.effectiveSpeed;
+    // Other updates...
+  }
+}
+```
+
+### Decorator Inheritance
+
+When creating a common base class for multiple effects, you can define shared controls:
+
+```typescript
+// Base class with common controls
+abstract class AudioReactiveBase<T> extends WebGLEffect<T> {
+  @NumberControl({
+    label: "Audio Reactivity",
+    min: 0,
+    max: 100,
+    default: 50,
+    tooltip: "How strongly the effect reacts to audio",
+  })
+  audioReactivity!: number;
+
+  @BooleanControl({
+    label: "Bass Only",
+    default: false,
+    tooltip: "Only react to bass frequencies",
+  })
+  bassOnly!: boolean;
+
+  protected getAudioLevel(): number {
+    if (!window.engine || !window.engine.audio) return 0;
+
+    let level = 0;
+    if (window.bassOnly) {
+      // Get only bass frequencies
+      level = window.engine.audio.bassLevel || 0;
+    } else {
+      // Get overall audio level
+      level = window.engine.audio.level || 0;
+    }
+
+    // Normalize and scale by reactivity
+    return (
+      Math.min(1, Math.max(0, (level + 50) / 50)) *
+      ((window.audioReactivity || 50) / 100)
+    );
+  }
+}
+
+// Concrete implementation with additional controls
+@Effect({
+  name: "Audio Visualizer",
+  description: "Audio reactive visualizer",
+  author: "YourName",
+})
+class AudioVisualizerEffect extends AudioReactiveBase<VisualizerControls> {
+  @ComboboxControl({
+    label: "Visualization Style",
+    values: ["Bars", "Circles", "Waves"],
+    default: "Bars",
+    tooltip: "Visual style of the audio visualization",
+  })
+  visualStyle!: string;
+
+  // Implementation...
+}
+```
+
+### Dynamic Control Visibility
+
+While the framework doesn't directly support conditional control visibility, you can implement it in your effect logic:
+
+```typescript
+@Effect({
+  name: "Dynamic Controls",
+  description: "Controls that affect each other",
+  author: "YourName",
+})
+class DynamicControlsEffect extends WebGLEffect<DynamicControls> {
+  @ComboboxControl({
+    label: "Effect Type",
+    values: ["Simple", "Advanced", "Experimental"],
+    default: "Simple",
+    tooltip: "Type of effect to display",
+  })
+  effectType!: string;
+
+  @NumberControl({
+    label: "Advanced Iterations",
+    min: 1,
+    max: 10,
+    default: 3,
+    tooltip: "Number of iterations (Advanced and Experimental only)",
+  })
+  advancedIterations!: number;
+
+  @ColorControl({
+    label: "Experimental Color",
+    default: "#01cdfe",
+    tooltip: "Special color for Experimental mode",
+  })
+  experimentalColor!: string;
+
+  protected updateUniforms(controls: DynamicControls): void {
+    if (!this.material) return;
+
+    // Base uniforms
+    this.material.uniforms.iEffectType.value = this.getEffectTypeValue(
+      window.effectType as string,
+    );
+
+    // Only use advanced iterations if in Advanced or Experimental mode
+    if (
+      window.effectType === "Advanced" ||
+      window.effectType === "Experimental"
+    ) {
+      this.material.uniforms.iIterations.value = window.advancedIterations || 3;
+    } else {
+      this.material.uniforms.iIterations.value = 1; // Simple mode always uses 1
+    }
+
+    // Only apply experimental color in Experimental mode
+    if (window.effectType === "Experimental") {
+      this.material.uniforms.iSpecialColor.value = this.hexToRgb(
+        (window.experimentalColor as string) || "#01cdfe",
+      );
+    }
+  }
+
+  private getEffectTypeValue(type: string): number {
+    switch (type) {
+      case "Simple":
+        return 0;
+      case "Advanced":
+        return 1;
+      case "Experimental":
+        return 2;
+      default:
+        return 0;
+    }
+  }
+
+  private hexToRgb(hex: string): THREE.Vector3 {
+    // Convert hex to rgb and return as Vector3...
+    return new THREE.Vector3(1, 0, 1); // Placeholder
+  }
+}
 ```
 
 ## 🧙‍♂️ Advanced Shader Techniques
@@ -364,54 +662,6 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 }
 ```
 
-### Custom Easing Functions
-
-Create smooth transitions with custom easing functions:
-
-```glsl
-// Smooth start (ease in)
-float easeIn(float t) {
-  return t * t;
-}
-
-// Smooth stop (ease out)
-float easeOut(float t) {
-  return 1.0 - (1.0 - t) * (1.0 - t);
-}
-
-// Smooth start and stop (ease in-out)
-float easeInOut(float t) {
-  return t < 0.5 ? 2.0 * t * t : 1.0 - pow(-2.0 * t + 2.0, 2.0) / 2.0;
-}
-
-// Exponential ease in
-float easeInExpo(float t) {
-  return t == 0.0 ? 0.0 : pow(2.0, 10.0 * (t - 1.0));
-}
-
-// Elastic ease out
-float easeOutElastic(float t) {
-  float p = 0.3;
-  return pow(2.0, -10.0 * t) * sin((t - p / 4.0) * (2.0 * 3.14159) / p) + 1.0;
-}
-
-// Bounce ease out
-float easeOutBounce(float t) {
-  if (t < 1.0 / 2.75) {
-    return 7.5625 * t * t;
-  } else if (t < 2.0 / 2.75) {
-    t -= 1.5 / 2.75;
-    return 7.5625 * t * t + 0.75;
-  } else if (t < 2.5 / 2.75) {
-    t -= 2.25 / 2.75;
-    return 7.5625 * t * t + 0.9375;
-  } else {
-    t -= 2.625 / 2.75;
-    return 7.5625 * t * t + 0.984375;
-  }
-}
-```
-
 ## ⚡ Performance Optimization
 
 Optimizing your effects is crucial for maintaining smooth performance across different devices.
@@ -562,32 +812,6 @@ float getNoise(vec2 p) {
    float result = sinX * variable1 + cosX * variable2;
    ```
 
-### Resource Management
-
-Efficiently manage WebGL resources:
-
-```typescript
-// Dispose resources when no longer needed
-protected onDestroy(): void {
-  // Dispose textures
-  for (const texture of this.textures) {
-    texture.dispose();
-  }
-
-  // Dispose geometries
-  for (const geometry of this.geometries) {
-    geometry.dispose();
-  }
-
-  // Dispose materials
-  if (this.material) {
-    this.material.dispose();
-  }
-
-  super.onDestroy();
-}
-```
-
 ## 🎵 Audio Reactivity
 
 Create effects that react to audio input from SignalRGB.
@@ -595,32 +819,40 @@ Create effects that react to audio input from SignalRGB.
 ### Accessing Audio Data
 
 ```typescript
-protected onFrame(time: number): void {
-  super.onFrame(time);
+@Effect({
+  name: "Audio Reactive",
+  description: "Responds to audio input",
+  author: "YourName",
+})
+class AudioReactiveEffect extends WebGLEffect<AudioControls> {
+  // Override onFrame to access audio data
+  protected onFrame(time: number): void {
+    super.onFrame(time);
 
-  // Check if audio data is available
-  if (window.engine && window.engine.audio) {
-    // Get overall audio level (loudness)
-    const audioLevel = window.engine.audio.level || -100;
-    const normalizedLevel = Math.min(1, Math.max(0, (audioLevel + 50) / 50));
+    // Check if audio data is available
+    if (window.engine && window.engine.audio) {
+      // Get overall audio level (loudness)
+      const audioLevel = window.engine.audio.level || -100;
+      const normalizedLevel = Math.min(1, Math.max(0, (audioLevel + 50) / 50));
 
-    // Get audio frequency data (full spectrum)
-    const frequency = window.engine.audio.freq || new Int8Array(200);
+      // Get audio frequency data (full spectrum)
+      const frequency = window.engine.audio.freq || new Int8Array(200);
 
-    // Get audio density (tone roughness)
-    const density = window.engine.audio.density || 0;
+      // Get audio density (tone roughness)
+      const density = window.engine.audio.density || 0;
 
-    // Get audio width (stereo width)
-    const width = window.engine.audio.width || 0;
+      // Get audio width (stereo width)
+      const width = window.engine.audio.width || 0;
 
-    // Update shader uniforms
-    if (this.material) {
-      this.material.uniforms.iAudioLevel.value = normalizedLevel;
-      this.material.uniforms.iAudioDensity.value = density;
-      this.material.uniforms.iAudioWidth.value = width;
+      // Update shader uniforms
+      if (this.material) {
+        this.material.uniforms.iAudioLevel.value = normalizedLevel;
+        this.material.uniforms.iAudioDensity.value = density;
+        this.material.uniforms.iAudioWidth.value = width;
 
-      // Pass frequency data if needed
-      // this.material.uniforms.iAudioFreq.value = frequency;
+        // Pass frequency data if needed
+        // this.material.uniforms.iAudioFreq.value = frequency;
+      }
     }
   }
 }
@@ -677,48 +909,6 @@ if (window.engine && window.engine.audio && window.engine.audio.freq) {
 }
 ```
 
-### Audio Reactive Visualization
-
-Add audio responsiveness to your fragment shader:
-
-```glsl
-uniform float iAudioLevel;
-uniform float iAudioBass;
-uniform float iAudioMid;
-uniform float iAudioHigh;
-
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-  vec2 uv = fragCoord / iResolution.xy;
-
-  // Base color
-  vec3 color = vec3(0.1, 0.2, 0.3);
-
-  // Audio reactive circles
-  float bassPulse = 0.3 + iAudioBass * 0.7;
-  float midPulse = 0.2 + iAudioMid * 0.5;
-  float highPulse = 0.1 + iAudioHigh * 0.3;
-
-  // Center coordinate
-  vec2 center = uv - 0.5;
-  float dist = length(center);
-
-  // Create circles for each frequency band
-  float bassCircle = smoothstep(bassPulse, bassPulse - 0.05, dist);
-  float midCircle = smoothstep(midPulse, midPulse - 0.05, dist);
-  float highCircle = smoothstep(highPulse, highPulse - 0.05, dist);
-
-  // Add circles to base color
-  color += vec3(0.8, 0.1, 0.1) * bassCircle; // Red for bass
-  color += vec3(0.1, 0.8, 0.1) * midCircle;  // Green for mids
-  color += vec3(0.1, 0.1, 0.8) * highCircle; // Blue for highs
-
-  // Global audio level affects overall brightness
-  color *= 0.6 + iAudioLevel * 0.8;
-
-  fragColor = vec4(color, 1.0);
-}
-```
-
 ## 🖥️ Device-Aware Effects
 
 Create effects that adapt to different types of RGB devices.
@@ -752,69 +942,144 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 }
 ```
 
-### Device-Specific Effects
+## 🔧 Build System & Plugins
+
+LightScript Workshop uses a custom Vite-based build system with specialized plugins for producing SignalRGB-compatible effects.
+
+### Core Build System
+
+The build system is powered by Vite and enhanced with custom plugins designed specifically for SignalRGB compatibility:
 
 ```typescript
-class DeviceAwareEffect extends BaseEffect<MyControls> {
-  protected initialize(): void {
-    super.initialize();
+// vite.config.ts
+import { defineConfig } from "vite";
+import glsl from "vite-plugin-glsl";
+import swcPlugin from "@vitejs/plugin-react-swc";
 
-    // Get device information if available from SignalRGB
-    this.detectDeviceType();
+// Import our custom plugins
+import {
+  lightscriptDecoratorsPlugin,
+  signalRGBPlugin,
+  getEffectBuildConfig,
+} from "./plugins";
 
-    // Listen for canvas size changes
-    window.addEventListener("resize", () => this.onResize());
-  }
+export default defineConfig(({ command }) => {
+  const isDevelopment = command === "serve";
 
-  private detectDeviceType(): void {
-    const canvas = this.webGLContext?.canvas;
-    if (!canvas) return;
+  return {
+    plugins: [
+      // SWC with decorator support
+      swcPlugin({
+        tsDecorators: true,
+      }),
 
-    const aspectRatio = canvas.width / canvas.height;
+      // SignalRGB HTML generation
+      signalRGBPlugin(),
 
-    // Update uniforms with device type info
-    if (!this.material) return;
+      // GLSL shader support
+      glsl(),
 
-    if (aspectRatio > 4) {
-      // Likely an ultrawide monitor, LED strip, or similar
-      this.material.uniforms.iDeviceType.value = 0;
-    } else if (aspectRatio > 2) {
-      // Likely a normal monitor or screen
-      this.material.uniforms.iDeviceType.value = 1;
-    } else if (aspectRatio > 0.75) {
-      // Likely a keyboard, mousepad, or similar
-      this.material.uniforms.iDeviceType.value = 2;
-    } else {
-      // Likely a vertical device
-      this.material.uniforms.iDeviceType.value = 3;
-    }
-  }
+      // Only add lightscript decorators plugin for development mode
+      ...(isDevelopment ? [lightscriptDecoratorsPlugin()] : []),
+    ],
+    // Build configuration from effect settings
+    build: getEffectBuildConfig(),
+  };
+});
+```
 
-  private onResize(): void {
-    this.detectDeviceType();
-  }
+### Decorator Support Plugin
+
+This plugin enables TypeScript decorators to work correctly in development mode:
+
+```typescript
+// plugins/decorators.ts
+export function lightscriptDecoratorsPlugin(): Plugin {
+  return {
+    name: "lightscript-decorators",
+    transform(code, id) {
+      // Apply to any TypeScript files that use decorators
+      if (
+        id.includes("/src/") &&
+        id.endsWith(".ts") &&
+        (code.includes("@Effect") ||
+          code.includes("@NumberControl") ||
+          code.includes("@BooleanControl") ||
+          code.includes("@ComboboxControl"))
+      ) {
+        // Add reflect-metadata import if needed
+        const hasReflectImport = code.includes('import "reflect-metadata"');
+
+        let modifiedCode = code;
+        if (!hasReflectImport) {
+          modifiedCode = `import 'reflect-metadata';\n${code}`;
+        }
+
+        // Make sure symbols for decorators are preserved
+        const keepSymbols = `
+// Ensure decorator symbols are preserved
+const DECORATOR_METADATA_SYMBOL = Symbol.for('lightscript:controls');
+const EFFECT_METADATA_SYMBOL = Symbol.for('lightscript:effect');
+`;
+
+        return {
+          code: keepSymbols + modifiedCode,
+          map: null,
+        };
+      }
+      return null;
+    },
+  };
 }
 ```
 
-In your shader:
+### SignalRGB Plugin
 
-```glsl
-uniform int iDeviceType; // 0: ultrawide, 1: monitor, 2: keyboard, 3: vertical
+This plugin automatically generates HTML files from your TypeScript code by extracting metadata from your decorators:
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-  vec2 uv = fragCoord / iResolution.xy;
+```typescript
+// plugins/signalrgb.ts (simplified)
+export function signalRGBPlugin(): Plugin {
+  return {
+    name: "signalrgb-plugin",
+    apply: "build", // only apply during build
 
-  // Adjust UV based on device type
-  if (iDeviceType == 0) {
-    // Ultrawide-specific adjustments
-    uv.x = fract(uv.x * 2.0); // Repeat pattern horizontally
-  } else if (iDeviceType == 3) {
-    // Vertical device adjustments
-    uv = uv.yx; // Swap coordinates for vertical orientation
-  }
+    // After build is complete
+    closeBundle() {
+      // Process effect files
+      for (const effect of effects) {
+        // Extract metadata from decorators
+        const metadata = extractMetadataFromDecorators(effect);
 
-  // Continue with effect...
+        // Generate HTML template
+        const template = generateSignalRGBTemplate(metadata);
+
+        // Insert JavaScript bundle
+        const bundlePath = `dist/${effect.id}.js`;
+        const jsContent = fs.readFileSync(bundlePath, "utf-8");
+        const finalHtml = insertBundleIntoTemplate(template, jsContent);
+
+        // Write output HTML file
+        fs.writeFileSync(`dist/${effect.id}.html`, finalHtml);
+      }
+    },
+  };
 }
+```
+
+### Using Build Commands
+
+Building your effects for SignalRGB:
+
+```bash
+# Build a specific effect
+EFFECT=awesome-wave npm run build
+
+# Build all effects
+npm run build
+
+# Build with debug info (no minification)
+NO_MINIFY=true EFFECT=awesome-wave npm run build:debug
 ```
 
 ## 🐞 Debugging Complex Issues

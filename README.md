@@ -13,7 +13,7 @@ _Create stunning RGB lighting effects with modern tools_
 
 </div>
 
-LightScript Workshop is a modern TypeScript framework for creating beautiful RGB lighting effects for [SignalRGB](https://signalrgb.com/). Transform the way you build Lightscripts with a type-safe, component-based approach featuring hot reloading, WebGL integration, and an efficient build system.
+LightScript Workshop is a modern TypeScript framework for creating beautiful RGB lighting effects for [SignalRGB](https://signalrgb.com/). Transform the way you build Lightscripts with a type-safe, decorator-based approach featuring hot reloading, WebGL integration, and an efficient build system.
 
 ## ⚡ Features
 
@@ -21,8 +21,8 @@ LightScript Workshop is a modern TypeScript framework for creating beautiful RGB
 - **🔮 Three.js Integration** - Powerful WebGL rendering capabilities
 - **🎨 Canvas 2D Support** - Traditional drawing API for simpler effects
 - **⚡ Hot Reloading** - Instant visual feedback while coding
-- **🕹️ Declarative Controls** - Define UI elements with simple HTML
-- **⚙️ Optimized Build Pipeline** - Production-ready effects
+- **🧩 Decorator-Based Controls** - Define UI elements with TypeScript decorators
+- **⚙️ Optimized Build Pipeline** - Production-ready effects with Vite
 - **🧪 Testing Framework** - Maintain quality with Vitest
 - **🤖 AI-Assisted Development** - Create effects with AI assistance
 
@@ -89,16 +89,15 @@ A vibrant particle system with glowing effects using Canvas 2D rendering.
 
 ## 💻 Development Workflow
 
-1. **Create** a new effect directory in `src/effects/your-effect-name/`
+1. **Create** a new effect directory in `effects/your-effect-name/`
 
    ```
    effects/your-effect-name/
    ├── fragment.glsl  # Shader code
-   ├── main.ts        # Effect implementation
-   └── template.html  # HTML template with controls
+   └── main.ts        # Effect implementation with decorators
    ```
 
-2. **Register** your effect in `src/index.ts`
+2. **Register** your effect in the effects registry
 
 3. **Develop** with live reloading
 
@@ -118,10 +117,10 @@ A vibrant particle system with glowing effects using Canvas 2D rendering.
 
 Creating a new effect is easy with the LightScript framework:
 
-1. Create effect directory structure
-2. Define HTML template with controls
+1. Create effect directory structure in `effects/`
+2. Define controls using TypeScript decorators in your effect class
 3. Create GLSL shader for visuals
-4. Implement TypeScript class extending BaseEffect
+4. Implement TypeScript class extending BaseEffect with the `@Effect` decorator
 5. Register your effect
 
 Check the [Developer Guide](/docs/developer-guide.md) for a complete walkthrough or try the [AI-Assisted Development](/docs/ai-assisted-development.md) approach for faster results.

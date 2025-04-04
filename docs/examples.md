@@ -35,8 +35,7 @@ A beautiful moving wave of color that flows across your devices.
 ```
 effects/color-wave/
 ├── fragment.glsl  # Shader code
-├── main.ts        # Effect implementation
-└── template.html  # HTML template with controls
+└── main.ts        # Effect implementation with decorators
 ```
 
 ### Fragment Shader
@@ -112,13 +111,17 @@ void main() {
 ```typescript
 // effects/color-wave/main.ts
 
-import { BaseEffect } from "../../common/effect";
+import { WebGLEffect } from "../../core/effects/webgl-effect";
+import {
+  Effect,
+  NumberControl,
+  ComboboxControl,
+} from "../../core/controls/decorators";
 import {
   normalizeSpeed,
   normalizePercentage,
-  getControlValue,
-} from "../../common/controls";
-import { initializeEffect } from "../../common";
+} from "../../core/controls/helpers";
+import { initializeEffect } from "../../core";
 import * as THREE from "three";
 
 // Import the shader
@@ -135,9 +138,50 @@ export interface ColorWaveControls {
 /**
  * ColorWave effect implementation
  */
-export class ColorWaveEffect extends BaseEffect<ColorWaveControls> {
+@Effect({
+  name: "Color Wave",
+  description: "A flowing wave of color",
+  author: "LightScript Workshop",
+})
+export class ColorWaveEffect extends WebGLEffect<ColorWaveControls> {
   // Color mode options
   private readonly colorModes = ["Rainbow", "Ocean", "Fire", "Neon"];
+
+  // Control properties with decorators
+  @NumberControl({
+    label: "Animation Speed",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Controls the speed of the wave animation (1=Slow, 10=Fast)",
+  })
+  speed!: number;
+
+  @NumberControl({
+    label: "Wave Width",
+    min: 1,
+    max: 20,
+    default: 5,
+    tooltip: "Number of wave cycles across the width",
+  })
+  waveWidth!: number;
+
+  @NumberControl({
+    label: "Wave Height",
+    min: 10,
+    max: 100,
+    default: 50,
+    tooltip: "Controls the maximum height of the wave (percentage)",
+  })
+  waveHeight!: number;
+
+  @ComboboxControl({
+    label: "Color Scheme",
+    values: ["Rainbow", "Ocean", "Fire", "Neon"],
+    default: "Rainbow",
+    tooltip: "Select the color palette for the effect",
+  })
+  colorMode!: string;
 
   constructor() {
     super({
@@ -163,11 +207,7 @@ export class ColorWaveEffect extends BaseEffect<ColorWaveControls> {
    */
   protected getControlValues(): ColorWaveControls {
     // Convert colorMode from string to index if needed
-    const rawColorMode = getControlValue<string | number>(
-      "colorMode",
-      "Rainbow",
-    );
-    let colorMode: string | number = rawColorMode;
+    let colorMode: string | number = window.colorMode;
 
     if (typeof colorMode === "string") {
       const modeIndex = this.colorModes.indexOf(colorMode);
@@ -175,13 +215,9 @@ export class ColorWaveEffect extends BaseEffect<ColorWaveControls> {
     }
 
     return {
-      speed: normalizeSpeed(getControlValue<number>("speed", 5)),
-      waveWidth: getControlValue<number>("waveWidth", 5),
-      waveHeight: normalizePercentage(
-        getControlValue<number>("waveHeight", 50),
-        100,
-        0.05,
-      ),
+      speed: normalizeSpeed(window.speed ?? 5),
+      waveWidth: window.waveWidth ?? 5,
+      waveHeight: normalizePercentage(window.waveHeight ?? 50, 100, 0.05),
       colorMode,
     };
   }
@@ -221,83 +257,12 @@ initializeEffect(() => {
 export default effect;
 ```
 
-### HTML Template
-
-```html
-<!-- effects/color-wave/template.html -->
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Color Wave</title>
-    <meta name="description" content="A flowing wave of color" />
-    <meta name="keywords" content="SignalRGB, wave, color, effect" />
-    <meta publisher="LightScript Workshop" />
-
-    <!-- Controls -->
-    <meta
-      property="speed"
-      label="Animation Speed"
-      type="number"
-      min="1"
-      max="10"
-      default="5"
-      tooltip="Controls how fast the wave moves"
-    />
-    <meta
-      property="waveWidth"
-      label="Wave Width"
-      type="number"
-      min="1"
-      max="20"
-      default="5"
-      tooltip="Number of wave cycles across the width"
-    />
-    <meta
-      property="waveHeight"
-      label="Wave Height"
-      type="number"
-      min="10"
-      max="100"
-      default="50"
-      tooltip="Controls the maximum height of the wave (percentage)"
-    />
-    <meta
-      property="colorMode"
-      label="Color Scheme"
-      type="combobox"
-      values="Rainbow,Ocean,Fire,Neon"
-      default="Rainbow"
-      tooltip="Select the color palette for the effect"
-    />
-    <style>
-      body {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        background-color: #000;
-      }
-      canvas {
-        display: block;
-        width: 100%;
-        height: 100%;
-      }
-    </style>
-  </head>
-  <body>
-    <canvas id="exCanvas" width="320" height="200"></canvas>
-    <script>
-      <!-- BUNDLE_SCRIPT_INJECT -->
-    </script>
-  </body>
-</html>
-```
-
 ### Key Techniques
 
 - **Sine Wave Generation**: Using sine functions to create smooth wave motion
 - **Dynamic Color Schemes**: Multiple color palettes with smooth transitions
 - **Normalized Coordinates**: Using UV coordinates for resolution-independent effects
+- **Decorator-Based Controls**: TypeScript decorators for defining user controls
 
 ## 🎵 Audio Reactive Pulse
 
@@ -364,112 +329,61 @@ void main() {
 }
 ```
 
-### TypeScript Implementation
+### Implementation Overview
+
+Instead of showing the full implementation, here's a summary of how to implement this with decorators:
 
 ```typescript
-// effects/audio-pulse/main.ts
+@Effect({
+  name: "Audio Pulse",
+  description: "A pulsing effect that reacts to audio",
+  author: "YourName",
+})
+export class AudioPulseEffect extends WebGLEffect<AudioPulseControls> {
+  @NumberControl({
+    label: "Base Pulse Size",
+    min: 10,
+    max: 50,
+    default: 30,
+    tooltip: "Base size of the pulse circle",
+  })
+  basePulse!: number;
 
-import { BaseEffect } from "../../common/effect";
-import {
-  normalizeSpeed,
-  normalizePercentage,
-  getControlValue,
-} from "../../common/controls";
-import { initializeEffect } from "../../common";
-import * as THREE from "three";
+  @NumberControl({
+    label: "Color Shift Speed",
+    min: 0,
+    max: 10,
+    default: 5,
+    tooltip: "Speed of color rotation",
+  })
+  colorShift!: number;
 
-// Import shader
-import fragmentShader from "./fragment.glsl";
+  @NumberControl({
+    label: "Intensity",
+    min: 50,
+    max: 200,
+    default: 100,
+    tooltip: "Brightness of the effect",
+  })
+  intensity!: number;
 
-// Control interface
-export interface AudioPulseControls {
-  basePulse: number;
-  colorShift: number;
-  intensity: number;
-}
-
-/**
- * AudioPulse effect implementation
- */
-export class AudioPulseEffect extends BaseEffect<AudioPulseControls> {
-  constructor() {
-    super({
-      id: "audio-pulse",
-      name: "Audio Pulse",
-      debug: true,
-      fragmentShader,
-    });
-  }
-
-  /**
-   * Initialize controls
-   */
-  protected initializeControls(): void {
-    window.basePulse = 30;
-    window.colorShift = 5;
-    window.intensity = 100;
-  }
-
-  /**
-   * Get control values
-   */
-  protected getControlValues(): AudioPulseControls {
-    return {
-      basePulse: getControlValue<number>("basePulse", 30) / 100,
-      colorShift: normalizeSpeed(getControlValue<number>("colorShift", 5)) / 10,
-      intensity: normalizePercentage(getControlValue<number>("intensity", 100)),
-    };
-  }
-
-  /**
-   * Create uniforms
-   */
-  protected createUniforms(): Record<string, THREE.IUniform> {
-    return {
-      iAudioLevel: { value: 0.0 },
-      iBasePulse: { value: 0.3 },
-      iColorShift: { value: 0.5 },
-      iIntensity: { value: 1.0 },
-    };
-  }
-
-  /**
-   * Update uniforms
-   */
-  protected updateUniforms(controls: AudioPulseControls): void {
-    if (!this.material) return;
-
-    this.material.uniforms.iBasePulse.value = controls.basePulse;
-    this.material.uniforms.iColorShift.value = controls.colorShift;
-    this.material.uniforms.iIntensity.value = controls.intensity;
-  }
-
-  /**
-   * Override onFrame to get audio input from SignalRGB
-   */
+  // Override onFrame to access audio data
   protected onFrame(time: number): void {
     super.onFrame(time);
 
-    // Read audio level from SignalRGB if available
-    let audioLevel = 0;
-
+    // Get audio data from SignalRGB
     if (window.engine && window.engine.audio) {
-      // Convert from dB (-100 to 0) to linear (0 to 1)
-      const dbLevel = window.engine.audio.level || -100;
-      audioLevel = Math.min(1, Math.max(0, (dbLevel + 50) / 50)) * 0.5;
-    }
+      const audioLevel = window.engine.audio.level || -100;
+      const normalizedLevel =
+        Math.min(1, Math.max(0, (audioLevel + 50) / 50)) * 0.5;
 
-    if (this.material) {
-      this.material.uniforms.iAudioLevel.value = audioLevel;
+      // Update audio-related uniform
+      if (this.material) {
+        this.material.uniforms.iAudioLevel.value = normalizedLevel;
+      }
     }
   }
 }
-
-// Create and initialize effect
-const effect = new AudioPulseEffect();
-initializeEffect(() => effect.initialize());
-
-export default effect;
 ```
 
 ### Key Techniques
@@ -477,6 +391,7 @@ export default effect;
 - **Audio Input**: Accessing SignalRGB's audio level data
 - **Radial Gradients**: Creating pulse effects using distance from center
 - **Color Cycling**: Shifting hues based on angle for a rainbow effect
+- **Custom Frame Logic**: Overriding the onFrame method to process audio data
 
 ## 🌠 Rainbow Starfield
 
@@ -493,119 +408,51 @@ A classic star field effect with color and motion controls.
        *    *      *
 ```
 
-### Fragment Shader
+### Implementation Overview
 
-```glsl
-// effects/rainbow-stars/fragment.glsl
+You would implement this using the decorator pattern as follows:
 
-uniform float iTime;
-uniform vec2 iResolution;
-uniform float iSpeed;
-uniform float iStarDensity;
-uniform float iStarSize;
-uniform int iColorMode;
+```typescript
+@Effect({
+  name: "Rainbow Starfield",
+  description: "A classic starfield with rainbow colors",
+  author: "YourName",
+})
+export class RainbowStarfieldEffect extends WebGLEffect<StarfieldControls> {
+  @NumberControl({
+    label: "Star Speed",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Controls how fast stars move",
+  })
+  speed!: number;
 
-// Random and noise functions
-float random(vec2 st) {
-  return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-}
+  @NumberControl({
+    label: "Star Density",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Number of stars",
+  })
+  starDensity!: number;
 
-// Hash function for star positions
-float hash(vec2 p) {
-  p = fract(p * vec2(123.34, 456.21));
-  p += dot(p, p + 45.32);
-  return fract(p.x * p.y);
-}
+  @NumberControl({
+    label: "Star Size",
+    min: 1,
+    max: 10,
+    default: 3,
+    tooltip: "Size of stars",
+  })
+  starSize!: number;
 
-// Star function
-float star(vec2 uv, float flare) {
-  float d = length(uv);
-  float m = iStarSize / d;
-
-  float rays = max(0.0, 1.0 - abs(uv.x * uv.y * 1000.0));
-  m += rays * flare;
-  m = smoothstep(0.0, 1.0, m);
-  return m;
-}
-
-// HSV to RGB conversion
-vec3 hsv2rgb(vec3 c) {
-  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
-
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-  vec2 uv = (fragCoord - 0.5 * iResolution.xy) / min(iResolution.x, iResolution.y);
-
-  // Star field setup
-  vec3 color = vec3(0.0);
-
-  // Several layers of stars with different sizes and movement speeds
-  for (int i = 0; i < 3; i++) {
-    // Offset per layer
-    float offset = float(i) / 3.0;
-
-    // Moving coordinate system for parallax
-    float speed = iSpeed * (1.0 + float(i)) * 0.5;
-    float movementScale = 1.0 + float(i) * 0.2;
-    vec2 scaledUV = uv * (0.5 + float(i) * 0.5);
-
-    // Create grid for stars
-    vec2 gv = fract(scaledUV + offset) - 0.5;
-    vec2 id = floor(scaledUV + offset);
-
-    // For each potential star position
-    for (int y = -1; y <= 1; y++) {
-      for (int x = -1; x <= 1; x++) {
-        // Neighbor cell
-        vec2 offs = vec2(float(x), float(y));
-
-        // Random position within cell
-        vec2 cellId = id + offs;
-        vec2 cellUV = gv - offs;
-
-        // Random star brightness and size based on cell
-        float cellHash = hash(cellId);
-
-        // Only draw some stars based on density
-        if (cellHash > (1.0 - iStarDensity * 0.5)) {
-          // Star center position with random offset
-          vec2 starPos = cellUV - (vec2(cellHash, fract(cellHash * 34.12)) - 0.5) * 0.5;
-
-          // Draw star
-          float brightnessFactor = smoothstep(0.4, 1.0, cellHash) * 0.8 + 0.2;
-          float starBrightness = star(starPos, brightnessFactor);
-
-          // Star color based on mode
-          vec3 starColor;
-          if (iColorMode == 0) {
-            // White stars with slight color variation
-            starColor = mix(vec3(0.8, 0.8, 1.0), vec3(1.0, 0.9, 0.8), cellHash);
-          } else if (iColorMode == 1) {
-            // Rainbow stars
-            starColor = hsv2rgb(vec3(cellHash, 0.8, 1.0));
-          } else if (iColorMode == 2) {
-            // Blue-white stars
-            starColor = mix(vec3(0.5, 0.5, 1.0), vec3(1.0, 1.0, 1.0), cellHash);
-          } else {
-            // Gold-orange stars
-            starColor = mix(vec3(1.0, 0.6, 0.0), vec3(1.0, 0.8, 0.4), cellHash);
-          }
-
-          // Add star to scene
-          color += starColor * starBrightness;
-        }
-      }
-    }
-  }
-
-  // Output
-  fragColor = vec4(color, 1.0);
-}
-
-void main() {
-  mainImage(gl_FragColor, gl_FragCoord.xy);
+  @ComboboxControl({
+    label: "Color Mode",
+    values: ["White", "Rainbow", "Blue", "Gold"],
+    default: "Rainbow",
+    tooltip: "Color scheme for stars",
+  })
+  colorMode!: string;
 }
 ```
 
@@ -631,87 +478,52 @@ A realistic fire simulation effect.
 ^^^^^^^^^^^^^
 ```
 
-### Fragment Shader
+### Implementation Overview
 
-```glsl
-// effects/fire-effect/fragment.glsl
+Implement using decorators as follows:
 
-uniform float iTime;
-uniform vec2 iResolution;
-uniform float iSpeed;
-uniform float iIntensity;
-uniform float iFlameHeight;
-uniform float iFlameDetail;
+```typescript
+@Effect({
+  name: "Fire Effect",
+  description: "A realistic fire simulation",
+  author: "YourName",
+})
+export class FireEffect extends WebGLEffect<FireEffectControls> {
+  @NumberControl({
+    label: "Animation Speed",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Controls how fast the fire animates",
+  })
+  speed!: number;
 
-// Noise function adapted from Inigo Quilez
-float hash(float n) { return fract(sin(n) * 1e4); }
-float hash(vec2 p) { return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }
+  @NumberControl({
+    label: "Intensity",
+    min: 50,
+    max: 150,
+    default: 100,
+    tooltip: "Brightness of the flames",
+  })
+  intensity!: number;
 
-float noise(vec2 x) {
-  vec2 i = floor(x);
-  vec2 f = fract(x);
-  float a = hash(i);
-  float b = hash(i + vec2(1.0, 0.0));
-  float c = hash(i + vec2(0.0, 1.0));
-  float d = hash(i + vec2(1.0, 1.0));
-  vec2 u = f * f * (3.0 - 2.0 * f);
-  return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-}
+  @NumberControl({
+    label: "Flame Height",
+    min: 10,
+    max: 100,
+    default: 50,
+    tooltip: "Controls how high the flames reach",
+  })
+  flameHeight!: number;
 
-float fbm(vec2 x) {
-  float v = 0.0;
-  float a = 0.5;
-  vec2 shift = vec2(100);
-  // Rotate to reduce axial bias
-  mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
-  for (int i = 0; i < 5; ++i) {
-    v += a * noise(x);
-    x = rot * x * 2.0 + shift;
-    a *= 0.5;
-  }
-  return v;
-}
-
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-  // Normalized coordinates with aspect ratio correction
-  vec2 uv = fragCoord / iResolution.xy;
-
-  // Time variable
-  float time = iTime * iSpeed;
-
-  // Fire base at bottom
-  float y = 1.0 - uv.y;
-
-  // Generate noise
-  vec2 q = vec2(uv.x, y * iFlameHeight);
-
-  float strength = iFlameHeight;
-  float f = 0.0;
-
-  // Fire shape
-  f = 1.0 - pow(abs(uv.y - 1.0), 2.0) * 2.5;
-
-  // Fractal noise for flame
-  f *= fbm(q * vec2(1.0, 2.0) + time * 0.5) * iFlameDetail;
-
-  // Adjust by position (more fire at bottom)
-  f *= 1.0 - pow(uv.y, 4.0);
-
-  // Intensity control
-  f *= iIntensity;
-
-  // Color palette for fire
-  vec3 color = vec3(1.5 * f, 1.5 * f * f * f, f * f * f * f * f * f);
-
-  // Gamma correction
-  color = pow(color, vec3(1.0 / 2.2));
-
-  // Output
-  fragColor = vec4(color, 1.0);
-}
-
-void main() {
-  mainImage(gl_FragColor, gl_FragCoord.xy);
+  @NumberControl({
+    label: "Detail Level",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Controls the amount of detail in flames",
+  })
+  flameDetail!: number;
 }
 ```
 
@@ -720,107 +532,6 @@ void main() {
 - **Fractional Brownian Motion**: Layered noise for natural fire movement
 - **Custom Fire Shape**: Using power functions to create flame shapes
 - **Fire Color Palette**: Non-linear color mapping for realistic fire appearance
-
-## 🔧 Tips & Tricks
-
-### Performance Optimization
-
-1. **Limit Complex Math**: Expensive functions like sin, cos, pow can slow down your effect
-
-   ```glsl
-   // Instead of this (expensive)
-   float result = pow(sin(x * 10.0), 5.0);
-
-   // Try this (more efficient)
-   float sinx = sin(x * 10.0);
-   float result = sinx * sinx * sinx * sinx * sinx;
-   ```
-
-2. **Use Texture Lookups**: For complex patterns, precalculate and use texture lookups
-
-   ```glsl
-   // Define lookup texture in createUniforms()
-   iNoiseTexture: { value: createNoiseTexture() }
-
-   // Then in shader, use texture lookup instead of calculation
-   vec4 noise = texture2D(iNoiseTexture, uv);
-   ```
-
-3. **Avoid Loops**: Unroll loops when possible or keep iterations minimal
-
-   ```glsl
-   // Instead of this
-   float sum = 0.0;
-   for (int i = 0; i < 10; i++) {
-     sum += calculateValue(i);
-   }
-
-   // Unroll for better performance
-   float sum = calculateValue(0) + calculateValue(1) + calculateValue(2) +
-               calculateValue(3) + calculateValue(4) + calculateValue(5) +
-               calculateValue(6) + calculateValue(7) + calculateValue(8) +
-               calculateValue(9);
-   ```
-
-### Visual Quality
-
-1. **Color Spaces**: HSV is often more intuitive than RGB for creating color gradients
-
-   ```glsl
-   // HSV for better color control
-   vec3 color = hsv2rgb(vec3(hue, saturation, brightness));
-   ```
-
-2. **Smooth Transitions**: Use smoothstep instead of step for smoother edges
-
-   ```glsl
-   // Hard edge (harsh)
-   float edge = step(0.5, value);
-
-   // Smooth edge (better looking)
-   float edge = smoothstep(0.45, 0.55, value);
-   ```
-
-3. **Gamma Correction**: Apply `pow(color, vec3(1.0/2.2))` for more accurate colors
-   ```glsl
-   // Apply gamma correction as the final step
-   color = pow(color, vec3(1.0/2.2));
-   ```
-
-### Code Organization
-
-1. **Utility Functions**: Create reusable functions for common operations
-
-   ```glsl
-   // Reusable functions for cleaner code
-   float circle(vec2 uv, vec2 center, float radius) {
-     return smoothstep(radius + 0.005, radius - 0.005, length(uv - center));
-   }
-   ```
-
-2. **Normalized Coordinates**: Always work with normalized (0-1) coordinates for resolution independence
-
-   ```glsl
-   // Normalize coordinates
-   vec2 uv = fragCoord / iResolution.xy;
-
-   // Center if needed
-   vec2 centered = uv - 0.5;
-   ```
-
-3. **Control Grouping**: Group related controls together in your HTML template
-   ```html
-   <!-- Group related controls with similar prefixes -->
-   <meta property="waveWidth" ... />
-   <meta property="waveHeight" ... />
-   <meta property="waveSpeed" ... />
-   ```
-
-### Testing
-
-1. **Start Simple**: Begin with a basic effect and add complexity incrementally
-2. **Test on Hardware**: Effects can look different on actual RGB devices than in the preview
-3. **Vary Device Layout**: Test with different device arrangements to ensure your effect scales well
 
 ## ✨ Glowing Particles (Canvas 2D)
 
@@ -843,221 +554,68 @@ A vibrant particle system with glowing effects using Canvas 2D rendering.
 effects/glow-particles/
 ├── glow-particles-effect.ts  # Main implementation
 ├── main.ts                   # Entry point
-├── template.html             # HTML template with controls
 └── types.ts                  # Type definitions
 ```
 
-### TypeScript Types
+### Canvas Effect Implementation Overview
+
+Using the decorator-based approach:
 
 ```typescript
-// effects/glow-particles/types.ts
-
-export interface Particle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  color: string;
-  alpha: number;
-}
-
-export interface GlowParticlesControls {
-  particleCount: number;
-  speed: number;
-  particleSize: number;
-  colorMode: string | number;
-  glowIntensity: number;
-}
-```
-
-### Canvas Effect Implementation
-
-```typescript
-// effects/glow-particles/glow-particles-effect.ts
-
-import { CanvasEffect } from "../../common/canvas-effect";
-import { normalizeSpeed, getControlValue } from "../../common/controls";
-import { Particle, GlowParticlesControls } from "./types";
-
+@Effect({
+  name: "Glow Particles",
+  description: "A vibrant particle system with glowing effects",
+  author: "YourName",
+})
 export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
   private particles: Particle[] = [];
 
-  constructor() {
-    super({
-      id: "glow-particles",
-      name: "Glow Particles",
-      debug: true,
-      backgroundColor: "rgba(0, 0, 0, 0.2)", // Semi-transparent for trails
-    });
-  }
+  @NumberControl({
+    label: "Particle Count",
+    min: 10,
+    max: 500,
+    default: 100,
+    tooltip: "Number of particles in the system",
+  })
+  particleCount!: number;
 
-  /**
-   * Initialize control default values
-   */
-  protected initializeControls(): void {
-    window.particleCount = 100;
-    window.speed = 5;
-    window.particleSize = 5;
-    window.colorMode = "Rainbow";
-    window.glowIntensity = 50;
-  }
+  @NumberControl({
+    label: "Movement Speed",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Controls how fast particles move",
+  })
+  speed!: number;
 
-  /**
-   * Get current control values
-   */
-  protected getControlValues(): GlowParticlesControls {
-    return {
-      particleCount: getControlValue<number>("particleCount", 100),
-      speed: normalizeSpeed(getControlValue<number>("speed", 5)),
-      particleSize: getControlValue<number>("particleSize", 5),
-      colorMode: getControlValue<string>("colorMode", "Rainbow"),
-      glowIntensity: getControlValue<number>("glowIntensity", 50) / 50,
-    };
-  }
+  @NumberControl({
+    label: "Particle Size",
+    min: 1,
+    max: 20,
+    default: 5,
+    tooltip: "Size of particles",
+  })
+  particleSize!: number;
 
-  /**
-   * Apply control changes
-   */
-  protected applyControls(controls: GlowParticlesControls): void {
-    // Adjust particle count if needed
-    if (this.particles.length !== controls.particleCount) {
-      this.createParticles(controls.particleCount);
-    }
-  }
+  @ComboboxControl({
+    label: "Color Mode",
+    values: ["Rainbow", "Blues", "Neon", "Fire"],
+    default: "Rainbow",
+    tooltip: "Color scheme for particles",
+  })
+  colorMode!: string;
 
-  /**
-   * Set up initial particles after renderer is initialized
-   */
-  protected async initializeRenderer(): Promise<void> {
-    await super.initializeRenderer();
-    this.createParticles(100);
-  }
+  @NumberControl({
+    label: "Glow Intensity",
+    min: 10,
+    max: 100,
+    default: 50,
+    tooltip: "Controls the glow effect intensity",
+  })
+  glowIntensity!: number;
 
-  /**
-   * Create particles
-   */
-  private createParticles(count: number): void {
-    this.particles = [];
-
-    if (!this.canvas) return;
-
-    const width = this.canvas.width;
-    const height = this.canvas.height;
-
-    for (let i = 0; i < count; i++) {
-      this.particles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 2,
-        vy: (Math.random() - 0.5) * 2,
-        size: Math.random() * 4 + 1,
-        color: this.getRandomColor(
-          getControlValue<string>("colorMode", "Rainbow"),
-        ),
-        alpha: Math.random() * 0.5 + 0.5,
-      });
-    }
-  }
-
-  /**
-   * Get color based on selected color mode
-   */
-  private getRandomColor(colorMode: string): string {
-    switch (colorMode) {
-      case "Rainbow":
-        return `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`;
-      case "Blues":
-        return `hsl(${200 + Math.floor(Math.random() * 40)}, 100%, 60%)`;
-      case "Neon":
-        const neonHues = [320, 260, 180, 120]; // Pink, Purple, Cyan, Green
-        return `hsl(${neonHues[Math.floor(Math.random() * neonHues.length)]}, 100%, 60%)`;
-      case "Fire":
-        return `hsl(${Math.floor(Math.random() * 30) + 10}, 100%, 55%)`;
-      default:
-        return `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`;
-    }
-  }
-
-  /**
-   * Draw the particles on the canvas
-   */
-  protected draw(time: number, deltaTime: number): void {
-    if (!this.ctx || !this.canvas) return;
-
-    const width = this.canvas.width;
-    const height = this.canvas.height;
-    const controls = this.getControlValues();
-
-    // Draw background with fade effect (trail effect)
-    this.ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
-    this.ctx.fillRect(0, 0, width, height);
-
-    // Configure glow effect
-    this.ctx.shadowBlur = 15 * controls.glowIntensity;
-    this.ctx.globalCompositeOperation = "lighter";
-
-    // Draw each particle
-    for (const particle of this.particles) {
-      // Set shadow and fill colors for glow
-      this.ctx.shadowColor = particle.color;
-      this.ctx.fillStyle = particle.color;
-      this.ctx.globalAlpha = particle.alpha;
-
-      // Draw particle
-      this.ctx.beginPath();
-      this.ctx.arc(
-        particle.x,
-        particle.y,
-        (particle.size * controls.particleSize) / 5,
-        0,
-        Math.PI * 2,
-      );
-      this.ctx.fill();
-
-      // Update position
-      particle.x += particle.vx * controls.speed * deltaTime * 60;
-      particle.y += particle.vy * controls.speed * deltaTime * 60;
-
-      // Bounce off edges
-      if (particle.x < 0 || particle.x > width) {
-        particle.vx *= -1;
-      }
-      if (particle.y < 0 || particle.y > height) {
-        particle.vy *= -1;
-      }
-
-      // Random color changes
-      if (Math.random() < 0.01) {
-        particle.color = this.getRandomColor(controls.colorMode as string);
-      }
-    }
-
-    // Reset composite operation
-    this.ctx.globalCompositeOperation = "source-over";
-    this.ctx.globalAlpha = 1;
-  }
+  // Implementation details would follow...
 }
-```
-
-### Entry Point
-
-```typescript
-// effects/glow-particles/main.ts
-
-import { initializeEffect } from "../../common";
-import { GlowParticlesEffect } from "./glow-particles-effect";
-
-// Create effect instance
-const effect = new GlowParticlesEffect();
-
-// Initialize the effect using the common initializer
-initializeEffect(() => {
-  console.log("[GlowParticles] Initializing");
-  effect.initialize();
-});
-
-export default effect;
 ```
 
 ### Key Techniques
@@ -1068,20 +626,44 @@ export default effect;
 - **Glow Effects**: Using Canvas shadow properties for light bloom
 - **Delta Time**: Using time between frames to ensure consistent animation speeds
 
-### Canvas vs WebGL
+## 🔧 Tips & Tricks
 
-When deciding between Canvas 2D and WebGL for your effect:
+### Performance Optimization
 
-**Choose Canvas 2D when:**
+1. **Limit Complex Math**: Expensive functions like sin, cos, pow can slow down your effect
 
-- Creating effects with fewer than ~1000 elements
-- Needing simpler drawing operations like shapes, text, and images
-- Working with transparency and blend modes is important
-- You want easier debugging and more accessible code
+   ```glsl
+   // Instead of this (expensive)
+   float result = pow(sin(x * 10.0), 5.0);
 
-**Choose WebGL when:**
+   // Try this (more efficient)
+   float sinx = sin(x * 10.0);
+   float result = sinx * sinx * sinx * sinx * sinx;
+   ```
 
-- Creating effects with thousands of elements or pixels
-- Using complex fragment shaders for per-pixel operations
-- Needing maximum performance for complex animations
-- Working with 3D elements or advanced visual effects
+2. **Use Texture Lookups**: For complex patterns, precalculate and use texture lookups
+
+3. **Avoid Loops**: Unroll loops when possible or keep iterations minimal
+
+### Visual Quality
+
+1. **Color Spaces**: HSV is often more intuitive than RGB for creating color gradients
+
+   ```glsl
+   // HSV for better color control
+   vec3 color = hsv2rgb(vec3(hue, saturation, brightness));
+   ```
+
+2. **Smooth Transitions**: Use smoothstep instead of step for smoother edges
+
+3. **Gamma Correction**: Apply `pow(color, vec3(1.0/2.2))` for more accurate colors
+
+### Decorator Best Practices
+
+1. **Meaningful Defaults**: Set defaults that produce a good-looking effect right away
+
+2. **Appropriate Ranges**: Set min/max values that prevent breaking the effect
+
+3. **Clear Tooltips**: Provide descriptive tooltips for complex controls
+
+4. **Logical Grouping**: Keep related controls together in your class definition
