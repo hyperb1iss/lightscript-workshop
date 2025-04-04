@@ -9,6 +9,8 @@
 
 _Create stunning RGB lighting effects with modern tools_
 
+![LightScript Workshop Screenshot](public/assets/workshop.png)
+
 </div>
 
 LightScript Workshop is a modern TypeScript framework for creating beautiful RGB lighting effects for [SignalRGB](https://signalrgb.com/). Transform the way you build Lightscripts with a type-safe, component-based approach featuring hot reloading, WebGL integration, and an efficient build system.
