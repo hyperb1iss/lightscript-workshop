@@ -1,5 +1,3 @@
-/** @jsx h */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { h, FunctionComponent } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 

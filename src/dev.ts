@@ -43,8 +43,7 @@ async function initializeDevEnvironment() {
     const engine = new PreactDevEngine();
 
     try {
-      const container = document.body;
-      await engine.initialize(container);
+      await engine.initialize();
       console.log("✨ Engine initialized successfully");
 
       // Display welcome notification

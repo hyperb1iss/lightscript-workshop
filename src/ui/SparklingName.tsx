@@ -1,4 +1,3 @@
-/** @jsx h */
 import { h, FunctionComponent } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import './sparklingName.css';

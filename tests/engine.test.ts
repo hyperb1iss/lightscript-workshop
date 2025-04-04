@@ -87,7 +87,6 @@ const mockControls = [
 // Create mock instance with all required methods
 describe("DevEngine", () => {
   let engine: any; // Use 'any' type to bypass TypeScript constraints
-  let container: HTMLElement;
 
   beforeEach(() => {
     // Reset mocks
@@ -96,15 +95,14 @@ describe("DevEngine", () => {
     // Set up DOM
     document.body.innerHTML =
       '<div id="container"><canvas id="exCanvas"></canvas></div>';
-    container = document.getElementById("container") as HTMLElement;
 
     // Create a mock engine with the methods we need
     engine = {
-      initialize: vi.fn().mockImplementation(async (container) => {
+      initialize: vi.fn().mockImplementation(async () => {
         // Create control container
         const controlsContainer = document.createElement("div");
         controlsContainer.className = "controls-container";
-        container.appendChild(controlsContainer);
+        document.getElementById("container")?.appendChild(controlsContainer);
 
         // Call parseControlsFromTemplate directly for the test
         parseControlsFromTemplate("<dummy>");
@@ -147,7 +145,7 @@ describe("DevEngine", () => {
 
     // Mock URL params
     delete (window as any).location;
-    window.location = { search: "?effect=simple-wave" } as Location;
+    (window as any).location = { search: "?effect=simple-wave" };
 
     // Mock fetch with a more complete response
     global.fetch = vi
@@ -166,14 +164,14 @@ describe("DevEngine", () => {
 
   describe("initialization", () => {
     it("should create control container when initialized", async () => {
-      await engine.initialize(container);
+      await engine.initialize();
       const controlsContainer = document.querySelector(".controls-container");
       expect(controlsContainer).not.toBeNull();
     });
 
     it("should create effect selector when multiple effects exist", async () => {
       // We already have multiple effects in the mocked effects array
-      await engine.initialize(container);
+      await engine.initialize();
 
       // Check if effect was loaded properly
       expect(parseControlsFromTemplate).toHaveBeenCalled();
@@ -191,7 +189,7 @@ describe("DevEngine", () => {
         template: "./effects/simple-wave/template.html",
       });
 
-      await engine.initialize(container);
+      await engine.initialize();
 
       // Verify the effect is loaded
       expect(generateControlUI).toHaveBeenCalled();

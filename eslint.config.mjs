@@ -44,6 +44,7 @@ const eslintConfig = [
         "error",
         {
           argsIgnorePattern: "^_",
+          varsIgnorePattern: "^h$",
         },
       ],
     },

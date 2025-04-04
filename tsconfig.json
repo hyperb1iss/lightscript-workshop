@@ -21,8 +21,8 @@
     "noUncheckedSideEffectImports": true,
     
     /* JSX for Preact */
-    "jsx": "react-jsx",
-    "jsxImportSource": "preact",
+    "jsx": "react",
+    "jsxFactory": "h",
     
     /* GLSL shader imports */
     "types": [

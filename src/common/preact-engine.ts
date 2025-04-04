@@ -22,7 +22,6 @@ export class PreactDevEngine {
   private controlValues: ControlValues = {};
 
   // DOM elements
-  private containerElement: HTMLElement | null = null;
   private canvas: HTMLCanvasElement | null = null;
   private fpsValue = 0;
   private frameCount = 0;
@@ -57,12 +56,9 @@ export class PreactDevEngine {
   /**
    * Initialize the development environment
    */
-  public async initialize(container: HTMLElement): Promise<void> {
+  public async initialize(): Promise<void> {
     // Display startup banner
     printStartupBanner();
-
-    // Store reference to the container but don't overwrite the root element
-    this.containerElement = container;
 
     // Create canvas reference
     this.canvas = document.getElementById("exCanvas") as HTMLCanvasElement;
