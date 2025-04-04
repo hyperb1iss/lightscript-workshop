@@ -47,7 +47,7 @@ async function initializeDevEnvironment() {
       console.log("✨ Engine initialized successfully");
 
       // Display welcome notification
-      engine.showNotification("Welcome to the LightScripts Workshop!");
+      engine.showNotification("Welcome to the LightScript Workshop!");
     } catch (err) {
       console.error("❌ Error initializing engine:", err);
     }

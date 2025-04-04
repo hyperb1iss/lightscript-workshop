@@ -212,7 +212,7 @@ export class PreactDevEngine {
       debug("debug", "Control values initialized", globalControls);
 
       // Set page title to include effect name
-      document.title = `${effect.name} | LightScripts Workshop`;
+      document.title = `${effect.name} | LightScript Workshop`;
 
       // Force update the effect if the update function exists
       if (typeof window.update === "function") {

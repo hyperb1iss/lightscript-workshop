@@ -24,14 +24,14 @@ export const WelcomeModal: FunctionComponent<WelcomeModalProps> = ({ onClose }) 
       <div className="welcome-title">
         <span>🌠</span>
         <SparklingName 
-          name="LightScripts Workshop" 
+          name="LightScript Workshop" 
           sparkleCount={20} 
           gradient={true}
           className="workshop-title"
         />
         <span>💻</span>
       </div>
-      <p>Welcome to the LightScripts development environment. This workspace allows you to create, test, and refine RGB lighting effects for the SignalRGB platform.</p>
+      <p>Welcome to the LightScript development environment. This workspace allows you to create, test, and refine RGB lighting effects for the SignalRGB platform.</p>
       
       <div className="quick-guide">
         <strong>Quick Guide:</strong>
