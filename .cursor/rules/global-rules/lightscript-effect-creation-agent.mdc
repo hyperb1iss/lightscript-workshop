@@ -1,0 +1,288 @@
+---
+description: `This rule governs the creation of new effects in LightScript Workshop. Apply it when users request a new effect, want to convert a Shadertoy shader, or need guidance on implementing specific visual styles. This rule ensures consistent effect structure, proper implementation of lifecycle methods, and compatibility with the SignalRGB platform. It provides clear patterns for both Canvas 2D and WebGL-based effects, including setup, controls definition, and rendering techniques. Following this rule ensures new effects leverage the framework correctly and maintain consistent quality.`
+globs: 
+alwaysApply: false
+---
+
+# LightScript Effect Creation Guidelines
+
+## Critical Rules
+
+- New effects must follow one of two base patterns: `CanvasEffect<T>` (Canvas 2D) or `WebGLEffect<T>` (WebGL/Three.js)
+- Each effect requires at minimum three files:
+  - `main.ts` - Entry point with effect registration
+  - `template.html` - HTML template with control definitions using `<meta>` tags
+  - Effect implementation file (e.g., `effect-name-effect.ts`)
+- All controls must be defined in the template.html file with proper metadata
+- WebGL effects must include shader code as separate `.glsl` files and import them
+- Shadertoy conversions must adapt uniforms to match the LightScript naming convention
+- Control interfaces must extend `BaseControls` and define all parameters with proper types
+- Implement all required abstract methods from the base class
+- Canvas effects must implement the `draw(time, deltaTime)` method
+- WebGL effects must implement `createUniforms()` and `updateUniforms()` methods
+- New effects must be registered in `src/index.ts` to be discoverable
+- Follow the pattern: initialize → loadResources → render → update → cleanup
+- Always use strong typing with proper generics: `CanvasEffect<MyControlsInterface>`
+- Control values must be normalized using helper functions from `controls.ts`
+- Effect implementation must handle window resizing and device pixel ratio
+- Use provided debug utilities with consistent log levels and namespaces
+- Clean up all resources in the `stop()` method to prevent memory leaks
+- Include comprehensive JSDoc comments for public methods
+
+## Canvas Effect Creation Workflow
+
+1. Create directory structure: `src/effects/{effect-id}/`
+2. Define control interface extending `BaseControls`
+3. Create template.html with control metadata
+4. Implement effect class extending `CanvasEffect<T>`
+5. Implement `draw()` method with Canvas 2D rendering logic
+6. Register the effect in src/index.ts
+
+## WebGL Effect Creation Workflow
+
+1. Create directory structure: `src/effects/{effect-id}/`
+2. Define fragment shader (and optionally vertex shader) in .glsl files
+3. Define control interface extending `BaseControls`
+4. Create template.html with control metadata
+5. Implement effect class extending `WebGLEffect<T>`
+6. Implement shader uniform creation and updating
+7. Register the effect in src/index.ts
+
+## Examples
+
+<example>
+// Canvas Effect Example (basic structure)
+
+// src/effects/my-canvas-effect/main.ts
+import { initializeEffect } from "../../common";
+import { MyCanvasEffect } from "./my-canvas-effect";
+
+// Create and export the effect instance
+const effect = new MyCanvasEffect();
+
+// Initialize the effect
+initializeEffect(() => {
+  effect.initialize();
+});
+
+export default effect;
+
+// src/effects/my-canvas-effect/my-canvas-effect.ts
+import { CanvasEffect } from "../../common/canvas-effect";
+import { MyEffectControls } from "./types";
+import { getControlValue, normalizeSpeed } from "../../common/controls";
+
+export class MyCanvasEffect extends CanvasEffect<MyEffectControls> {
+  // Effect properties
+  private particles = [];
+  private lastTime = 0;
+  
+  constructor() {
+    super({
+      id: "my-canvas-effect",
+      name: "My Canvas Effect",
+      backgroundColor: "black"
+    });
+  }
+  
+  protected initializeControls(): void {
+    // Set default values
+    window.speed = 5;
+    window.particleCount = 100;
+    window.useGlow = 1;
+  }
+  
+  protected getControlValues(): MyEffectControls {
+    return {
+      speed: normalizeSpeed(getControlValue("speed", 5)),
+      particleCount: getControlValue("particleCount", 100),
+      useGlow: Boolean(getControlValue("useGlow", 1)),
+      colorIntensity: getControlValue("colorIntensity", 100),
+      colorSaturation: getControlValue("colorSaturation", 100)
+    };
+  }
+  
+  protected applyControls(controls: MyEffectControls): void {
+    // Apply control values to effect state
+    // Create/update particles etc.
+  }
+  
+  protected draw(time: number, deltaTime: number): void {
+    if (!this.ctx || !this.canvas) return;
+    
+    // Clear canvas
+    this.clearCanvas();
+    
+    // Draw effect using Canvas 2D API
+    this.ctx.fillStyle = "white";
+    // Drawing implementation...
+  }
+}
+
+// src/effects/my-canvas-effect/types.ts
+import { BaseControls } from "../../common/controls";
+
+export interface MyEffectControls extends BaseControls {
+  particleCount: number;
+  useGlow: boolean;
+}
+</example>
+
+<example>
+// WebGL/Shadertoy Conversion Example
+
+// src/effects/shadertoy-effect/fragment.glsl
+// Modified Shadertoy shader with LightScript uniforms
+uniform float iTime;
+uniform vec2 iResolution;
+uniform float iSpeed;
+uniform float iColorIntensity;
+uniform int iColorMode;
+uniform float iPattern;
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+  // Shadertoy shader code adapted to use LightScript uniforms
+  vec2 uv = fragCoord/iResolution.xy;
+  
+  // Apply effect parameters from controls
+  float time = iTime * iSpeed;
+  float pattern = iPattern;
+  
+  // Your shader calculation here
+  vec3 color = vec3(0.5 + 0.5 * sin(time + uv.xyx + vec3(0,2,4)));
+  
+  // Apply color intensity
+  color *= iColorIntensity;
+  
+  // Apply different color modes
+  if (iColorMode == 1) {
+    // Different color calculation
+  }
+  
+  fragColor = vec4(color, 1.0);
+}
+
+void main() {
+  mainImage(gl_FragColor, gl_FragCoord.xy);
+}
+
+// src/effects/shadertoy-effect/main.ts
+import { WebGLEffect } from "../../common/webgl-effect";
+import { initializeEffect } from "../../common";
+import * as THREE from "three";
+import fragmentShader from "./fragment.glsl";
+import { getControlValue, normalizeSpeed } from "../../common/controls";
+
+interface ShadertoyEffectControls {
+  speed: number;
+  colorIntensity: number;
+  colorMode: string | number;
+  pattern: number;
+  colorSaturation: number;
+}
+
+class ShadertoyEffect extends WebGLEffect<ShadertoyEffectControls> {
+  private readonly colorModes = ["Standard", "Neon", "Monochrome"];
+  
+  constructor() {
+    super({
+      id: "shadertoy-effect",
+      name: "Shadertoy Effect",
+      fragmentShader
+    });
+  }
+  
+  protected initializeControls(): void {
+    window.speed = 5;
+    window.colorIntensity = 100;
+    window.colorMode = "Standard";
+    window.pattern = 5;
+    window.colorSaturation = 100;
+  }
+  
+  protected getControlValues(): ShadertoyEffectControls {
+    // Handle colorMode conversion
+    const rawColorMode = getControlValue("colorMode", "Standard");
+    let colorMode: number | string = rawColorMode;
+    
+    if (typeof colorMode === "string") {
+      const modeIndex = this.colorModes.indexOf(colorMode);
+      colorMode = modeIndex === -1 ? 0 : modeIndex;
+    }
+    
+    return {
+      speed: normalizeSpeed(getControlValue("speed", 5)),
+      colorIntensity: getControlValue("colorIntensity", 100) / 100,
+      colorMode,
+      pattern: getControlValue("pattern", 5),
+      colorSaturation: getControlValue("colorSaturation", 100)
+    };
+  }
+  
+  protected createUniforms(): Record<string, THREE.IUniform> {
+    return {
+      iSpeed: { value: 1.0 },
+      iColorIntensity: { value: 1.0 },
+      iColorMode: { value: 0 },
+      iPattern: { value: 5.0 }
+    };
+  }
+  
+  protected updateUniforms(controls: ShadertoyEffectControls): void {
+    if (!this.material) return;
+    
+    this.material.uniforms.iSpeed.value = controls.speed;
+    this.material.uniforms.iColorIntensity.value = controls.colorIntensity;
+    this.material.uniforms.iColorMode.value = controls.colorMode;
+    this.material.uniforms.iPattern.value = controls.pattern;
+  }
+}
+
+// Create and export effect
+const effect = new ShadertoyEffect();
+initializeEffect(() => effect.initialize());
+export default effect;
+</example>
+
+<example type="invalid">
+// Invalid WebGL effect implementation
+
+// Missing separate shader file, incorrect directory structure
+// main.js in src/ root instead of proper structure
+
+// Direct DOM manipulation instead of using framework
+const canvas = document.getElementById("canvas");
+const gl = canvas.getContext("webgl");
+
+// Inline shaders instead of separate files
+const vertexShader = `
+  attribute vec4 aPosition;
+  void main() {
+    gl_Position = aPosition;
+  }
+`;
+
+// Not using base classes
+class MyEffect {
+  constructor() {
+    this.speed = 1.0;
+    this.init();
+  }
+  
+  init() {
+    // Direct WebGL calls instead of using Three.js
+    const program = gl.createProgram();
+    // ...more WebGL code
+  }
+  
+  update() {
+    // Not using the lifecycle methods
+  }
+  
+  // Missing proper cleanup
+}
+
+// Not registering in index.ts
+const myEffect = new MyEffect();
+</example>
+</rewritten_file>

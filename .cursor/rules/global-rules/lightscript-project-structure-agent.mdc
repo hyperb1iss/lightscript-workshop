@@ -1,0 +1,82 @@
+---
+description: `This rule governs the LightScript Workshop project structure and architecture. Apply it when working with project files, creating new effects, modifying build processes, or planning architectural changes. The rule ensures consistency in file organization, component design, and build system. It's essential for maintaining the clean separation between the core framework (src/common), UI layer (src/ui), and effect implementations (src/effects). Following this structure is crucial for proper effect discovery, rendering, and compatibility with SignalRGB.`
+globs: 
+alwaysApply: false
+---
+
+# LightScript Workshop Project Structure
+
+## Critical Rules
+
+- All source code must reside in the `src` directory with strict subdirectory categorization
+- Core framework code belongs in `src/common` with focused single-purpose modules
+- UI components must be placed in `src/ui` with consistent naming patterns (PascalCase)
+- Effects must be organized as `src/effects/{effect-id}/` containing at minimum:
+  - `main.ts` - Effect implementation
+  - `template.html` - HTML template with control definitions
+  - Additional assets (shaders, images, etc.) within this directory
+- New effects MUST be registered in `src/index.ts` to be discoverable
+- The SignalRGB build process uses `vite.config.ts` - avoid modifying without understanding implications
+- Effects must extend either `CanvasEffect<T>` or `WebGLEffect<T>` base classes
+- Control definitions follow the metadata pattern in `template.html` using `<meta>` tags
+- Control Types are limited to: number, boolean, and combobox only
+- Include appropriate JSDoc comments for public APIs and interfaces
+- Unit tests should be placed in `tests` directory matching the source structure
+- Metadata must include the fields: id, name, description, author, entry, template
+
+## Examples
+
+<example>
+// src/effects/new-effect/main.ts
+import { CanvasEffect, BaseControls } from "../../common";
+
+interface NewEffectControls extends BaseControls {
+  intensity: number;
+  style: string;
+}
+
+export class NewEffect extends CanvasEffect<NewEffectControls> {
+  constructor() {
+    super({
+      id: "new-effect",
+      name: "New Effect",
+      debug: true
+    });
+  }
+  
+  // Implementation methods...
+}
+
+// src/index.ts
+export const effects = [
+  // Existing effects...
+  {
+    id: "new-effect",
+    name: "New Effect",
+    description: "Description of the new effect",
+    author: "Author Name",
+    entry: "./effects/new-effect/main.ts",
+    template: "./effects/new-effect/template.html",
+  },
+];
+</example>
+
+<example type="invalid">
+// Placing effect files directly in src/
+// main.js
+
+class NewEffect {
+  // Not extending proper base class
+  constructor() {
+    this.speed = 1.0;
+  }
+  
+  render() {
+    // Direct canvas manipulation without using framework
+  }
+}
+
+// Not registering in index.ts
+// Incorrect file structure
+// Mixing UI and effect code
+</example> 

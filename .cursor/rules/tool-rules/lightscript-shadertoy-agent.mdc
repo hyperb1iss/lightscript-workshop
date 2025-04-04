@@ -1,0 +1,269 @@
+---
+description: `This rule governs the conversion of Shadertoy shaders to LightScript Workshop effects. Apply it when users request to convert a Shadertoy shader URL or code snippet into a functional LightScript effect. The rule ensures proper mapping of uniforms, appropriate control creation, and integration with the LightScript WebGL pipeline. It's particularly important for preserving shader functionality while adapting the code to work within the SignalRGB framework. Following this guide ensures consistent, high-quality shader conversions with proper performance optimizations.`
+globs: 
+alwaysApply: false
+---
+
+# LightScript Shadertoy Conversion Guide
+
+## Critical Rules
+
+- Shadertoy shaders must be converted to WebGL effects using the `WebGLEffect<T>` base class
+- Create a proper directory structure in `src/effects/{effect-id}/`
+- Move the shader code to a separate `fragment.glsl` file with needed modifications
+- Map Shadertoy uniforms to LightScript equivalents:
+  - `uniform float iTime;` - Maintained (used for animation time)
+  - `uniform vec2 iResolution;` - Maintained (used for screen resolution)
+  - `uniform vec4 iMouse;` - Typically not used in SignalRGB
+  - `uniform float iTimeDelta;` - Replace with calculated delta time
+  - Custom uniforms must be added for all control parameters
+- Always keep the `mainImage()` function signature compatible: `void mainImage(out vec4 fragColor, in vec2 fragCoord)`
+- Add a `main()` function that calls `mainImage()` with `gl_FragColor` and `gl_FragCoord.xy`
+- Create appropriate controls in template.html that map to shader parameters
+- Convert implicit parameters to explicit uniforms (e.g., hardcoded values become controllable parameters)
+- Optimize shader code for running on peripheral devices (reduce complexity when possible)
+- Implement proper uniform management in the effect class
+- Test shader at multiple resolutions and optimize performance
+- Ensure the shader properly handles device aspect ratio
+- Adapt any textures/media to use LightScript's asset system
+- Add common controls (speed, color intensity, etc.) for user customization
+- Ensure output colors work well with RGB lighting (high contrast, saturated colors)
+- Include attribution to original Shadertoy author in comments and description
+
+## Shadertoy Uniform Mapping
+
+| Shadertoy Uniform    | LightScript Equivalent    | Notes                                      |
+|----------------------|---------------------------|-------------------------------------------|
+| `iTime`              | `iTime`                   | Automatically provided by WebGLEffect      |
+| `iResolution`        | `iResolution`             | Automatically provided as vec2             |
+| `iMouse`             | Not used                  | SignalRGB doesn't use mouse input          |
+| `iFrame`             | Not directly supported    | Use iTime for frame-based animation        |
+| `iDate`              | Not directly supported    | Can be calculated if needed                |
+| `iSampleRate`        | Not directly supported    | Audio not typically used                   |
+| `iChannelTime[4]`    | Not directly supported    | -                                          |
+| `iChannelResolution` | Not directly supported    | -                                          |
+| `iChannel0..3`       | Handled through textures  | Requires manual texture loading            |
+
+## Examples
+
+<example>
+// Original Shadertoy shader snippet
+// https://www.shadertoy.com/view/someShader
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    // Normalized pixel coordinates (from 0 to 1)
+    vec2 uv = fragCoord/iResolution.xy;
+    
+    // Time varying pixel color
+    vec3 col = 0.5 + 0.5*cos(iTime+uv.xyx+vec3(0,2,4));
+    
+    // Output to screen
+    fragColor = vec4(col,1.0);
+}
+
+// CONVERTED TO:
+
+// src/effects/cosmic-waves/fragment.glsl
+uniform float iTime;
+uniform vec2 iResolution;
+// New control uniforms
+uniform float iSpeed;
+uniform float iColorIntensity;
+uniform float iColorShift;
+uniform int iColorMode;
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+{
+    // Normalized pixel coordinates (from 0 to 1)
+    vec2 uv = fragCoord/iResolution.xy;
+    
+    // Apply speed control to time
+    float time = iTime * iSpeed;
+    
+    // Original color calculation with added controls
+    vec3 col = 0.5 + 0.5*cos(time+uv.xyx*iColorShift+vec3(0,2,4));
+    
+    // Apply color intensity
+    col *= iColorIntensity;
+    
+    // Apply different color modes
+    if (iColorMode == 1) {
+        // Invert colors
+        col = 1.0 - col;
+    } else if (iColorMode == 2) {
+        // Grayscale
+        float gray = dot(col, vec3(0.299, 0.587, 0.114));
+        col = vec3(gray);
+    }
+    
+    // Output to screen
+    fragColor = vec4(col,1.0);
+}
+
+void main() {
+    mainImage(gl_FragColor, gl_FragCoord.xy);
+}
+
+// src/effects/cosmic-waves/main.ts
+import { WebGLEffect } from "../../common/webgl-effect";
+import { initializeEffect } from "../../common";
+import * as THREE from "three";
+import fragmentShader from "./fragment.glsl";
+import { getControlValue, normalizeSpeed } from "../../common/controls";
+
+interface CosmicWavesControls {
+    speed: number;
+    colorIntensity: number;
+    colorShift: number;
+    colorMode: string | number;
+    colorSaturation: number;
+}
+
+class CosmicWavesEffect extends WebGLEffect<CosmicWavesControls> {
+    private readonly colorModes = ["Standard", "Inverted", "Grayscale"];
+    
+    constructor() {
+        super({
+            id: "cosmic-waves",
+            name: "Cosmic Waves",
+            fragmentShader
+        });
+    }
+    
+    protected initializeControls(): void {
+        window.speed = 5;
+        window.colorIntensity = 100;
+        window.colorShift = 100;
+        window.colorMode = "Standard";
+        window.colorSaturation = 100;
+    }
+    
+    protected getControlValues(): CosmicWavesControls {
+        // Handle colorMode conversion
+        const rawColorMode = getControlValue("colorMode", "Standard");
+        let colorMode: number | string = rawColorMode;
+        
+        if (typeof colorMode === "string") {
+            const modeIndex = this.colorModes.indexOf(colorMode);
+            colorMode = modeIndex === -1 ? 0 : modeIndex;
+        }
+        
+        return {
+            speed: normalizeSpeed(getControlValue("speed", 5)),
+            colorIntensity: getControlValue("colorIntensity", 100) / 100,
+            colorShift: getControlValue("colorShift", 100) / 100,
+            colorMode,
+            colorSaturation: getControlValue("colorSaturation", 100)
+        };
+    }
+    
+    protected createUniforms(): Record<string, THREE.IUniform> {
+        return {
+            iSpeed: { value: 1.0 },
+            iColorIntensity: { value: 1.0 },
+            iColorShift: { value: 1.0 },
+            iColorMode: { value: 0 }
+        };
+    }
+    
+    protected updateUniforms(controls: CosmicWavesControls): void {
+        if (!this.material) return;
+        
+        this.material.uniforms.iSpeed.value = controls.speed;
+        this.material.uniforms.iColorIntensity.value = controls.colorIntensity;
+        this.material.uniforms.iColorShift.value = controls.colorShift;
+        this.material.uniforms.iColorMode.value = controls.colorMode;
+    }
+}
+
+// Create and export effect
+const effect = new CosmicWavesEffect();
+initializeEffect(() => effect.initialize());
+export default effect;
+
+// src/effects/cosmic-waves/template.html
+// Template snippet with controls
+<meta
+  property="speed"
+  label="Animation Speed"
+  type="number"
+  min="1"
+  max="10"
+  default="5"
+  tooltip="Controls the speed of the animation (1=Slow, 10=Fast)"
+/>
+<meta
+  property="colorIntensity"
+  label="Color Intensity"
+  type="number"
+  min="1" 
+  max="200"
+  default="100"
+  tooltip="Adjust the intensity of colors (100=Normal)"
+/>
+<meta
+  property="colorShift"
+  label="Color Shift"
+  type="number"
+  min="1"
+  max="200"
+  default="100"
+  tooltip="Adjust the color pattern scaling (100=Normal)"
+/>
+<meta
+  property="colorMode"
+  label="Color Mode"
+  type="combobox"
+  values="Standard,Inverted,Grayscale"
+  default="Standard"
+  tooltip="Choose the color rendering mode"
+/>
+</example>
+
+<example type="invalid">
+// WRONG WAY TO CONVERT SHADERTOY
+
+// Direct copy of shadertoy without modification
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    // Normalized pixel coordinates (from 0 to 1)
+    vec2 uv = fragCoord/iResolution.xy;
+    
+    // Time varying pixel color
+    vec3 col = 0.5 + 0.5*cos(iTime+uv.xyx+vec3(0,2,4));
+    
+    // Using mouse input that doesn't exist in SignalRGB
+    if (iMouse.z > 0.0) {
+        col = col * iMouse.x/iResolution.x;
+    }
+    
+    // Output to screen
+    fragColor = vec4(col,1.0);
+}
+
+// Missing main() function
+// Missing standard Three.js shader structure
+
+// Incorrect implementation in main.ts
+class BadShaderEffect extends WebGLEffect {
+    // Not using generic type parameter
+    
+    constructor() {
+        super({
+            // Missing proper configuration
+        });
+    }
+    
+    // Missing implementation of required abstract methods
+    
+    // Using direct WebGL calls instead of THREE.js uniforms
+    updateShader() {
+        const gl = this.canvas.getContext('webgl');
+        const uniformLocation = gl.getUniformLocation(program, 'iTime');
+        gl.uniform1f(uniformLocation, performance.now() / 1000);
+    }
+}
+
+// Not properly handling controls or template
+</example> 

@@ -1,0 +1,108 @@
+---
+description: `This rule governs TypeScript development practices in the LightScript Workshop. Apply it when writing or modifying TypeScript code, creating new effects, implementing rendering logic, or working with controls. The rule ensures type safety, consistent interfaces, proper inheritance patterns, and efficient rendering techniques. It's particularly important when extending base classes, defining control interfaces, working with WebGL/Three.js code, or implementing effect logic. Following these practices ensures compatibility with SignalRGB, optimal performance, and maintainable code.`
+globs: 
+alwaysApply: false
+---
+
+# LightScript Workshop TypeScript Practices
+
+## Critical Rules
+
+- Use strongly-typed interfaces for all effect controls that extend `BaseControls`
+- Provide specific typing for generic parameters in base classes: `CanvasEffect<T>` or `WebGLEffect<T>`
+- Use protected access modifier for effect properties that should not be accessed externally
+- Implement all abstract methods from base classes with proper typing
+- Follow the lifecycle pattern: initialize → loadResources → render → update → cleanup
+- Use helper functions from `src/common/controls.ts` for normalizing and transforming control values
+- Leverage the debug utility with appropriate log levels: `this.debug("info", "message")`
+- Document public methods and interfaces with JSDoc comments
+- TypeScript interfaces should use PascalCase naming convention
+- Avoid using `any` type - use proper typing or `unknown` with type guards
+- Never use DOM manipulation directly - use framework provided methods
+- Implement proper cleanup in `stop()` method to prevent memory leaks
+- For WebGL effects, properly define and manage shader uniforms
+- Canvas effects must implement `draw()` method for rendering each frame
+- Add type declarations for window extensions in global module augmentation 
+- Use proper TypeScript module imports rather than global script includes
+
+## Examples
+
+<example>
+// Correctly typed control interface extending BaseControls
+interface WaveEffectControls extends BaseControls {
+  amplitude: number;
+  frequency: number;
+  colorMode: string;
+}
+
+// Properly implementing a Canvas effect
+export class WaveEffect extends CanvasEffect<WaveEffectControls> {
+  // Protected properties with proper typing
+  protected amplitude: number = 1.0;
+  protected frequency: number = 0.5;
+  protected colorMode: string = "rainbow";
+  
+  constructor() {
+    super({
+      id: "wave-effect",
+      name: "Wave Effect",
+      backgroundColor: "#000000"
+    });
+  }
+  
+  // Implementing required abstract methods
+  protected initializeControls(): void {
+    // Implementation
+  }
+  
+  protected getControlValues(): WaveEffectControls {
+    return {
+      speed: getControlValue("speed", 5),
+      colorIntensity: getControlValue("colorIntensity", 100),
+      colorSaturation: getControlValue("colorSaturation", 100),
+      amplitude: getControlValue("amplitude", 50),
+      frequency: getControlValue("frequency", 5),
+      colorMode: getControlValue("colorMode", "rainbow")
+    };
+  }
+  
+  protected applyControls(controls: WaveEffectControls): void {
+    // Normalize values using helper functions
+    this.amplitude = normalizePercentage(controls.amplitude, 50, 0.1);
+    this.frequency = normalizeSpeed(controls.frequency);
+    this.colorMode = controls.colorMode;
+  }
+  
+  protected draw(time: number, deltaTime: number): void {
+    if (!this.ctx) return;
+    // Drawing implementation
+  }
+}
+</example>
+
+<example type="invalid">
+// Using any type and lacking proper interface extension
+class BadEffect extends CanvasEffect<any> {
+  // Public property that should be protected
+  public speed = 1.0;
+  
+  // Missing proper constructor
+  constructor() {
+    super({});
+  }
+  
+  // Not implementing required abstract methods
+  
+  // Direct DOM manipulation
+  updateCanvas() {
+    const canvas = document.getElementById("exCanvas");
+    const ctx = canvas.getContext("2d");
+    ctx.fillRect(0, 0, 100, 100);
+  }
+  
+  // No cleanup in stop method
+  stop() {
+    // Missing cleanup code
+  }
+}
+</example> 

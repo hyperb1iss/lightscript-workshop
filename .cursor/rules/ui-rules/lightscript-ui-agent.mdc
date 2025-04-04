@@ -1,0 +1,117 @@
+---
+description: `This rule governs the UI component design and styling in the LightScript Workshop. Apply it when working with Preact UI components, creating new UI elements, modifying styles, or implementing UI interactions. The rule ensures consistent styling, proper component structure, accessibility, and responsive design. It's particularly important when modifying the UI panels, controls, notifications, or implementing new UI features. Following these practices ensures a cohesive visual language, maintainable components, and proper separation of concerns.`
+globs: 
+alwaysApply: false
+---
+
+# LightScript Workshop UI Component Guidelines
+
+## Critical Rules
+
+- All UI components must be placed in `src/ui/` directory
+- Use Preact's functional components with TypeScript interfaces for props
+- Component files must use PascalCase naming convention matching the component name
+- Component styles should be in `src/ui/styles.css` or component-specific CSS files
+- Use CSS custom properties (variables) for colors and common values
+- Follow the established color scheme with neon cyber aesthetic
+- All UI components must be properly exported from `src/ui/index.ts`
+- Use typed event handlers with proper event types (MouseEvent, etc.)
+- Implement proper cleanup in useEffect hooks with return functions
+- Maintain responsive design with flexible layouts
+- Use descriptive prop names and provide default values where appropriate
+- Use the SparklingName component for highlighted names or titles
+- Notification component should be used for all user feedback
+- Modal components should trap focus and handle keyboard events
+- Control elements must maintain consistent styling with the design system
+- Use CSS class naming convention: base-element-modifier
+- All user interactions should have visual feedback (hover, focus states)
+- Component props interfaces must use PascalCase naming with Props suffix
+- Limit component responsibilities (single responsibility principle)
+
+## Examples
+
+<example>
+// src/ui/ExampleComponent.tsx
+import { h, FunctionComponent } from 'preact';
+import { useState, useEffect } from 'preact/hooks';
+import { SparklingName } from './SparklingName';
+import './exampleComponent.css';
+
+interface ExampleComponentProps {
+  title: string;
+  description?: string;
+  onAction: () => void;
+}
+
+export const ExampleComponent: FunctionComponent<ExampleComponentProps> = ({
+  title,
+  description = 'Default description',
+  onAction
+}) => {
+  const [isActive, setIsActive] = useState(false);
+  
+  useEffect(() => {
+    // Setup code
+    
+    return () => {
+      // Cleanup code
+    };
+  }, []);
+  
+  const handleClick = () => {
+    setIsActive(true);
+    onAction();
+  };
+  
+  return (
+    <div className="example-component">
+      <div className="example-header">
+        <SparklingName 
+          name={title} 
+          sparkleCount={15} 
+          gradient={true}
+        />
+      </div>
+      
+      <p className="example-description">{description}</p>
+      
+      <button 
+        className={`example-button ${isActive ? 'active' : ''}`}
+        onClick={handleClick}
+      >
+        Activate
+      </button>
+    </div>
+  );
+};
+
+// src/ui/index.ts - Export component
+export { ExampleComponent } from './ExampleComponent';
+</example>
+
+<example type="invalid">
+// src/components/example.js - Wrong location and naming
+import { h } from 'preact';
+
+// Missing interface, using props: any
+export default function example(props) {
+  // Direct DOM manipulation in component
+  document.body.style.backgroundColor = 'black';
+  
+  // Inline styles instead of using class names
+  return (
+    <div style={{color: 'pink', margin: '10px'}}>
+      <h2>{props.title}</h2>
+      <p>{props.desc}</p>
+      
+      {/* No handler typing, wrong event naming */}
+      <button onClick={(e) => props.callback(e)}>
+        Click me
+      </button>
+    </div>
+  );
+}
+
+// Missing exports in index.ts
+// No component styling or design system consistency
+</example> 

@@ -1,0 +1,80 @@
+---
+description: `This rule governs the build and deployment process for LightScript Workshop effects. Apply it when working with the build system, modifying Vite configuration, creating deployment scripts, or preparing effects for SignalRGB. The rule ensures consistent build outputs, proper bundling of shaders and resources, and compatibility with SignalRGB. It's particularly important when modifying build scripts, deployment processes, or packaging effects for distribution. Following these practices ensures effects can be seamlessly integrated into SignalRGB and shared with users.`
+globs: 
+alwaysApply: false
+---
+
+# LightScript Workshop Build and Deployment
+
+## Critical Rules
+
+- All effect builds must be created with `npm run build` or `EFFECT=effect-id npm run build`
+- Build outputs are saved to `dist/{effect-id}.html` as single unified files
+- Effects must include all dependencies bundled as IIFE (Immediately Invoked Function Expression)
+- Never modify `vite.config.ts` without understanding SignalRGB compatibility requirements
+- Use `<!-- BUNDLE_SCRIPT_INJECT -->` comment in template.html for script injection point
+- Debug builds should use `NO_MINIFY=true npm run build:debug` for troubleshooting
+- Test built effects locally before deploying to SignalRGB
+- Follow SignalRGB's versioning and metadata requirements
+- Use the `dist/` directory exclusively for build outputs (don't store source code)
+- Prevent large assets from being included in the build (use small optimized assets)
+- Use ESLint and TypeScript type checking before building for production
+- SignalRGB HTML files are self-contained (don't reference external resources)
+- When importing core modules, use proper relative paths (../../common)
+- Use GLSL shader imports with the vite-plugin-glsl for shader compilation
+- Final build artifacts should be minified and optimized for production
+- The build process should be run in CI before merging to main branches
+
+## Examples
+
+<example>
+// Building a single effect
+$ EFFECT=glow-particles npm run build
+
+// Creating a debug build with unminified code
+$ NO_MINIFY=true EFFECT=simple-wave npm run build:debug
+
+// src/effects/new-effect/template.html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Effect controls -->
+  <meta property="speed" label="Speed" type="number" min="1" max="10" default="5">
+  <meta property="colorMode" label="Color Mode" type="combobox" values="rainbow,spectrum,neon" default="rainbow">
+  <meta property="showParticles" label="Show Particles" type="boolean" default="1">
+</head>
+<body>
+  <canvas id="exCanvas" width="800" height="600"></canvas>
+  
+  <!-- BUNDLE_SCRIPT_INJECT -->
+</body>
+</html>
+</example>
+
+<example type="invalid">
+// Direct modification of build files in dist/
+$ vim dist/my-effect.html
+
+// Using external resources in HTML template
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Missing control metadata -->
+  <script src="https://cdn.example.com/library.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="exCanvas"></canvas>
+  <script>
+    // Directly including script content
+    // Missing bundle injection point
+  </script>
+</body>
+</html>
+
+// Incorrect build command
+$ tsc && vite build --effect=my-effect
+</example> 
