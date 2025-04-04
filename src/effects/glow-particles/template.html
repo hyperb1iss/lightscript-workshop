@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Glow Particles</title>
+    <meta
+      name="description"
+      content="A colorful particle system with glowing effects using Canvas 2D"
+    />
+    <meta name="keywords" content="SignalRGB, particles, canvas, effect" />
+    <meta publisher="Bliss" />
+
+    <!-- Controls -->
+    <meta
+      property="speed"
+      label="Animation Speed"
+      type="number"
+      min="1"
+      max="10"
+      default="5"
+      tooltip="Controls the speed of the particles (1=Slow, 10=Fast)"
+    />
+    <meta
+      property="particleCount"
+      label="Particle Count"
+      type="number"
+      min="10"
+      max="300"
+      default="100"
+      tooltip="Number of particles to display"
+    />
+    <meta
+      property="particleSize"
+      label="Particle Size"
+      type="number"
+      min="1"
+      max="20"
+      default="4"
+      tooltip="Size of particles"
+    />
+    <meta
+      property="glowIntensity"
+      label="Glow Intensity"
+      type="number"
+      min="1"
+      max="200"
+      default="100"
+      tooltip="Controls the intensity of the glow effect"
+    />
+    <meta
+      property="colorMode"
+      label="Color Mode"
+      type="combobox"
+      values="Rainbow,Heat Map,Neon,Cyberpunk,Pastel,Ocean,Fire and Ice"
+      default="Rainbow"
+      tooltip="Color palette for particles"
+    />
+    <meta
+      property="flowDirection"
+      label="Flow Direction"
+      type="combobox"
+      values="Outward,Circular,Left to Right,Right to Left,Top to Bottom,Bottom to Top,Random"
+      default="Outward"
+      tooltip="Primary direction of particle movement"
+    />
+    <meta
+      property="connectParticles"
+      label="Connect Particles"
+      type="boolean"
+      default="1"
+      tooltip="Draw lines between nearby particles"
+    />
+    <meta
+      property="particleBounce"
+      label="Bounce Off Edges"
+      type="boolean"
+      default="1"
+      tooltip="Particles bounce off edges instead of wrapping around"
+    />
+    <meta
+      property="colorSaturation"
+      label="Color Saturation"
+      type="number"
+      min="1"
+      max="200"
+      default="100"
+      tooltip="Adjust color saturation level (100=Normal)"
+    />
+    <meta
+      property="colorIntensity"
+      label="Color Intensity"
+      type="number"
+      min="1"
+      max="200"
+      default="100"
+      tooltip="Adjust color intensity/brightness (100=Normal)"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #000;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="exCanvas" width="320" height="200"></canvas>
+
+    <script>
+      // Simple log helper
+      function log(msg, data) {
+        if (typeof console !== "undefined") {
+          console.log("[GlowParticles] " + msg, data || "");
+        }
+      }
+
+      // Log initial values from SignalRGB
+      log("Initial values received", {
+        speed: typeof speed !== "undefined" ? speed : 5,
+        particleCount:
+          typeof particleCount !== "undefined" ? particleCount : 100,
+        glowIntensity:
+          typeof glowIntensity !== "undefined" ? glowIntensity : 100,
+        // and so on...
+      });
+
+      // Initialize the effect (included in the bundle)
+      <!-- BUNDLE_SCRIPT_INJECT -->
+    </script>
+  </body>
+</html>

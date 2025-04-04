@@ -3,15 +3,19 @@
  * Provides standardized initialization, control handling, and rendering
  */
 
-import * as THREE from "three";
-import {
-  WebGLContext,
-  initializeWebGL,
-  createShaderQuad,
-  startAnimationLoop,
-  createStandardUniforms,
-} from "./webgl";
 import { createDebugLogger } from "./debug";
+
+// Extend Window interface with effect properties
+declare global {
+  interface Window {
+    update: (force?: boolean) => void;
+    effectInstance?: {
+      stop: () => void;
+    };
+    currentAnimationFrame?: number;
+    [key: string]: unknown;
+  }
+}
 
 /**
  * Configuration for BaseEffect
@@ -22,8 +26,6 @@ export interface EffectConfig {
   debug?: boolean;
   canvasWidth?: number;
   canvasHeight?: number;
-  fragmentShader: string;
-  vertexShader?: string;
 }
 
 /**
@@ -35,14 +37,10 @@ export abstract class BaseEffect<T> {
   protected id: string;
   protected name: string;
   protected debug: ReturnType<typeof createDebugLogger>;
-  protected webGLContext: WebGLContext | null = null;
-  protected material: THREE.ShaderMaterial | null = null;
   protected animationId: number | null = null;
-  protected customUniforms: Record<string, THREE.IUniform> = {};
-  protected fragmentShader: string;
-  protected vertexShader?: string;
   protected canvasWidth: number;
   protected canvasHeight: number;
+  protected canvas: HTMLCanvasElement | null = null;
 
   /**
    * Create a new BaseEffect
@@ -51,10 +49,6 @@ export abstract class BaseEffect<T> {
     this.id = config.id;
     this.name = config.name;
     this.debug = createDebugLogger(this.name, config.debug ?? false);
-
-    // Store shaders
-    this.fragmentShader = config.fragmentShader;
-    this.vertexShader = config.vertexShader;
 
     // Canvas dimensions
     this.canvasWidth = config.canvasWidth ?? 320;
@@ -72,36 +66,19 @@ export abstract class BaseEffect<T> {
     this.debug("info", "Initializing effect...");
 
     try {
-      // Initialize WebGL context
-      this.webGLContext = initializeWebGL({
-        canvasId: "exCanvas",
-        canvasWidth: this.canvasWidth,
-        canvasHeight: this.canvasHeight,
-      });
+      // Get or create canvas
+      this.canvas = document.getElementById("exCanvas") as HTMLCanvasElement;
+      if (!this.canvas) {
+        this.debug("warn", "Canvas not found, creating one");
+        this.canvas = document.createElement("canvas");
+        this.canvas.id = "exCanvas";
+        this.canvas.width = this.canvasWidth;
+        this.canvas.height = this.canvasHeight;
+        document.body.appendChild(this.canvas);
+      }
 
-      const { canvas, scene } = this.webGLContext;
-
-      // Create uniforms
-      const standardUniforms = createStandardUniforms(canvas);
-      this.customUniforms = this.createUniforms();
-
-      const uniforms = {
-        ...standardUniforms,
-        ...this.customUniforms,
-      };
-
-      // Create shader quad
-      const { mesh, material } = createShaderQuad(
-        this.fragmentShader,
-        uniforms,
-        this.vertexShader,
-      );
-
-      // Store material for updates
-      this.material = material;
-
-      // Add mesh to scene
-      scene.add(mesh);
+      // Initialize rendering context (implemented by subclasses)
+      await this.initializeRenderer();
 
       // Initialize controls and register global update function
       this.initializeControls();
@@ -123,21 +100,37 @@ export abstract class BaseEffect<T> {
    * Start the animation loop
    */
   protected startAnimation(): void {
-    if (!this.webGLContext || !this.material) {
-      this.debug(
-        "error",
-        "Cannot start animation - context or material not initialized",
-      );
-      return;
-    }
-
     this.debug("info", "Starting animation loop");
+    this.animationId = requestAnimationFrame(this.animationFrame.bind(this));
 
-    this.animationId = startAnimationLoop(
-      this.webGLContext,
-      this.material,
-      (time) => this.onFrame(time),
-    );
+    // Store animation ID globally for easier management
+    window.currentAnimationFrame = this.animationId;
+
+    // Store effect instance globally for access by the engine
+    window.effectInstance = this;
+  }
+
+  /**
+   * Animation frame function
+   * @param timestamp Current timestamp from requestAnimationFrame
+   */
+  protected animationFrame(timestamp: number): void {
+    if (this.animationId === null) return;
+
+    // Convert to seconds for consistency
+    const time = timestamp / 1000;
+
+    // Call render method (implemented by subclasses)
+    this.render(time);
+
+    // Call onFrame for additional processing
+    this.onFrame(time);
+
+    // Request next frame
+    this.animationId = requestAnimationFrame(this.animationFrame.bind(this));
+
+    // Update global animation ID
+    window.currentAnimationFrame = this.animationId;
   }
 
   /**
@@ -147,6 +140,7 @@ export abstract class BaseEffect<T> {
     if (this.animationId !== null) {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
+      window.currentAnimationFrame = undefined;
       this.debug("info", "Animation stopped");
     }
   }
@@ -172,16 +166,11 @@ export abstract class BaseEffect<T> {
    * This is called by SignalRGB when controls change
    */
   public update(force: boolean = false): void {
-    if (!this.material) {
-      if (force) this.debug("warn", "Material not initialized yet in update()");
-      return;
-    }
-
     // Get current control values
     const controls = this.getControlValues();
 
-    // Update shader uniforms
-    this.updateUniforms(controls);
+    // Update parameters
+    this.updateParameters(controls);
 
     // Log control values occasionally
     if (force || Math.random() < 0.01) {
@@ -197,12 +186,11 @@ export abstract class BaseEffect<T> {
 
     // Try to display error message on canvas
     try {
-      const canvas = document.getElementById("exCanvas") as HTMLCanvasElement;
-      if (canvas) {
-        const ctx = canvas.getContext("2d");
+      if (this.canvas) {
+        const ctx = this.canvas.getContext("2d");
         if (ctx) {
           ctx.fillStyle = "black";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
           ctx.fillStyle = "red";
           ctx.font = "14px Arial";
           ctx.fillText(`Error initializing ${this.name}`, 20, 50);
@@ -219,6 +207,17 @@ export abstract class BaseEffect<T> {
    */
 
   /**
+   * Initialize renderer-specific context and resources
+   */
+  protected abstract initializeRenderer(): Promise<void>;
+
+  /**
+   * Render a frame
+   * @param time Current time in seconds
+   */
+  protected abstract render(time: number): void;
+
+  /**
    * Initialize controls specific to this effect
    */
   protected abstract initializeControls(): void;
@@ -229,12 +228,7 @@ export abstract class BaseEffect<T> {
   protected abstract getControlValues(): T;
 
   /**
-   * Create custom uniforms for this effect
+   * Update effect parameters with current control values
    */
-  protected abstract createUniforms(): Record<string, THREE.IUniform>;
-
-  /**
-   * Update shader uniforms with current control values
-   */
-  protected abstract updateUniforms(controls: T): void;
+  protected abstract updateParameters(controls: T): void;
 }

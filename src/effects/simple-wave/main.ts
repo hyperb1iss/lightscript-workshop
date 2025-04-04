@@ -1,7 +1,7 @@
 /**
  * SimpleWave - Wave-based RGB effect with minimal resource usage
  */
-import { BaseEffect } from "../../common/effect";
+import { WebGLEffect } from "../../common/webgl-effect";
 import {
   normalizeSpeed,
   normalizePercentage,
@@ -28,7 +28,7 @@ export interface SimpleWaveControls {
 /**
  * SimpleWave effect implementation
  */
-export class SimpleWaveEffect extends BaseEffect<SimpleWaveControls> {
+export class SimpleWaveEffect extends WebGLEffect<SimpleWaveControls> {
   // Define color mode options for conversion
   private readonly colorModes = ["Rainbow", "Ocean", "Fire", "Neon", "Mono"];
 

@@ -1,7 +1,7 @@
 /**
  * PuffStuff - Raymarched tunnel effect with dynamic colors and styles
  */
-import { BaseEffect } from "../../common/effect";
+import { WebGLEffect } from "../../common/webgl-effect";
 import {
   normalizeSpeed,
   normalizePercentage,
@@ -30,7 +30,7 @@ export interface PuffStuffControls {
 /**
  * PuffStuff tunnel effect implementation
  */
-export class PuffStuffEffect extends BaseEffect<PuffStuffControls> {
+export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
   // Color scheme options for conversion
   private readonly colorSchemes = [
     "Classic Blue",

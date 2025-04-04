@@ -15,8 +15,10 @@ export * from "./definitions";
 export * from "./parser";
 export * from "./registry";
 
-// Base effect class
+// Base effect classes
 export * from "./effect";
+export * from "./webgl-effect";
+export * from "./canvas-effect";
 
 // Development engine - Preact UI
 export * from "./preact-engine";

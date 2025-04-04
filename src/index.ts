@@ -21,4 +21,13 @@ export const effects = [
     entry: "./effects/simple-wave/main.ts",
     template: "./effects/simple-wave/template.html",
   },
+  {
+    id: "glow-particles",
+    name: "Glow Particles",
+    description:
+      "A colorful particle system with glowing effects using Canvas 2D",
+    author: "Bliss",
+    entry: "./effects/glow-particles/main.ts",
+    template: "./effects/glow-particles/template.html",
+  },
 ];

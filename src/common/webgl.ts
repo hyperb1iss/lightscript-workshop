@@ -11,6 +11,7 @@ const debug = createDebugLogger("WebGL");
  */
 export interface WebGLSetupOptions {
   canvasId?: string;
+  canvasElement?: HTMLCanvasElement;
   canvasWidth?: number;
   canvasHeight?: number;
   antialias?: boolean;
@@ -36,6 +37,7 @@ export interface WebGLContext {
 export function initializeWebGL(options: WebGLSetupOptions = {}): WebGLContext {
   const {
     canvasId = "exCanvas",
+    canvasElement,
     canvasWidth = 320,
     canvasHeight = 200,
     antialias = false,
@@ -45,14 +47,17 @@ export function initializeWebGL(options: WebGLSetupOptions = {}): WebGLContext {
   debug("info", "Initializing WebGL context");
 
   // Get or create the canvas element
-  let canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+  let canvas = canvasElement;
   if (!canvas) {
-    debug("warn", "Canvas not found! Creating one dynamically");
-    canvas = document.createElement("canvas");
-    canvas.id = canvasId;
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-    document.body.appendChild(canvas);
+    canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+    if (!canvas) {
+      debug("warn", "Canvas not found! Creating one dynamically");
+      canvas = document.createElement("canvas");
+      canvas.id = canvasId;
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+      document.body.appendChild(canvas);
+    }
   }
 
   debug("debug", "Canvas dimensions", {
