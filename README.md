@@ -24,6 +24,7 @@ LightScript Workshop is a modern TypeScript framework for creating beautiful RGB
 - **🕹️ Declarative Controls** - Define UI elements with simple HTML
 - **⚙️ Optimized Build Pipeline** - Production-ready effects
 - **🧪 Testing Framework** - Maintain quality with Vitest
+- **🤖 AI-Assisted Development** - Create effects with AI assistance
 
 ## 🌐 Quick Start
 
@@ -49,6 +50,7 @@ We've created comprehensive documentation to help you get the most out of LightS
 - [**API Reference**](/docs/api-reference.md) - Detailed technical documentation
 - [**Examples**](/docs/examples.md) - Ready-to-use effect examples with explanations
 - [**Advanced Guide**](/docs/advanced.md) - Deep dives into advanced techniques
+- [**AI-Assisted Development**](/docs/ai-assisted-development.md) - Create effects with AI assistance
 
 ## 🌈 Example Effects
 
@@ -122,7 +124,7 @@ Creating a new effect is easy with the LightScript framework:
 4. Implement TypeScript class extending BaseEffect
 5. Register your effect
 
-Check the [Developer Guide](/docs/developer-guide.md) for a complete walkthrough.
+Check the [Developer Guide](/docs/developer-guide.md) for a complete walkthrough or try the [AI-Assisted Development](/docs/ai-assisted-development.md) approach for faster results.
 
 ## ⚙️ Building & Deployment
 
