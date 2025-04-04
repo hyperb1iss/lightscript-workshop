@@ -10,6 +10,20 @@ import { parseControlsFromTemplate } from "./parser";
 import { effects } from "../index";
 import { App } from "../ui/App";
 
+// Extend Window interface to include our global variables
+declare global {
+  interface Window {
+    update?: (force?: boolean) => void;
+    showNotification: (message: string, isError?: boolean) => void;
+    effectInstance?: {
+      stop: () => void;
+    };
+    currentAnimationFrame?: number;
+    controlsCount: number;
+    [key: string]: unknown; // For dynamic control properties
+  }
+}
+
 const debug = createDebugLogger("PreactDevEngine");
 
 /**
@@ -167,6 +181,31 @@ export class PreactDevEngine {
       throw new Error(`Effect not found: ${effectId}`);
     }
 
+    // Stop the current effect's animation frames if possible
+    if (this.currentEffect) {
+      // First try the class-based stop method
+      if (typeof window.effectInstance?.stop === "function") {
+        debug(
+          "info",
+          `Stopping current effect instance: ${this.currentEffect.id}`,
+        );
+        try {
+          window.effectInstance.stop();
+        } catch (err) {
+          debug("warn", "Error stopping effect instance:", err);
+        }
+      }
+      // Then try to cancel any animation frames
+      if (window.currentAnimationFrame) {
+        debug(
+          "info",
+          `Cancelling animation frame: ${window.currentAnimationFrame}`,
+        );
+        cancelAnimationFrame(window.currentAnimationFrame);
+        window.currentAnimationFrame = undefined;
+      }
+    }
+
     this.currentEffect = effect;
 
     // Clear any global window variables from previous effects
@@ -175,6 +214,22 @@ export class PreactDevEngine {
     try {
       // In Vite, we can use a special import to get the template content
       const templatePath = effect.template.replace(/^\.\//, "/src/");
+
+      // Get the entry path for dynamic import
+      const entryPath = effect.entry.replace(/^\.\//, "/src/");
+
+      // Dynamically import the new effect module
+      debug("info", `Importing effect module: ${entryPath}`);
+      try {
+        // Add cache-busting parameter to ensure fresh module load
+        const cacheBuster = `?t=${Date.now()}`;
+        // Dynamic import for the effect module
+        await import(/* @vite-ignore */ `${entryPath}${cacheBuster}`);
+        debug("success", `Loaded effect module: ${effect.name}`);
+      } catch (importErr) {
+        debug("error", "Failed to import effect module:", importErr);
+        // Continue with UI setup even if module import fails
+      }
 
       // Parse the template for controls
       const templateResponse = await fetch(templatePath);
@@ -229,6 +284,9 @@ export class PreactDevEngine {
       // Update the UI
       this.renderUI();
 
+      // Trigger a resize to ensure the effect fills the canvas correctly
+      this.handleResize();
+
       debug("success", `Effect "${effect.name}" is now active and rendering`);
     } catch (error) {
       debug("error", "Failed to load effect:", error);
@@ -269,11 +327,21 @@ export class PreactDevEngine {
    * Clear global variables used by effects
    */
   private clearGlobalVariables(): void {
+    // Clear control variables
     if (this.controlDefinitions.length > 0) {
       for (const def of this.controlDefinitions) {
         delete window[def.id];
       }
     }
+
+    // Clear global effect instance and animation reference
+    // This is crucial for proper effect switching
+    window.effectInstance = undefined;
+    window.currentAnimationFrame = undefined;
+
+    // Delete the update function instead of replacing it
+    // This allows the new effect to set its own update function
+    delete window.update;
   }
 
   /**

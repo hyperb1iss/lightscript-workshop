@@ -59,9 +59,9 @@ export const WelcomeModal: FunctionComponent<WelcomeModalProps> = ({ onClose }) 
       
       <div className="welcome-footer">
         <span className="creator-label">Created by</span>
-        <SparklingName 
-          name="@hyperbliss" 
-          sparkleCount={15} 
+        <SparklingName
+          name="@hyperb1iss"
+          sparkleCount={15}
           gradient={true}
           className="creator-name"
           href="https://hyperbliss.tech"

@@ -8,11 +8,13 @@ import { createDebugLogger } from "./debug";
 // Extend Window interface with effect properties
 declare global {
   interface Window {
-    update: (force?: boolean) => void;
+    update?: (force?: boolean) => void;
+    showNotification: (message: string, isError?: boolean) => void;
     effectInstance?: {
       stop: () => void;
     };
     currentAnimationFrame?: number;
+    controlsCount: number;
     [key: string]: unknown;
   }
 }

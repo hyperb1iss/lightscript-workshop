@@ -25,22 +25,24 @@ async function initializeDevEnvironment() {
   console.log("🔧 Initializing environment...");
 
   try {
-    // Import effect dynamically
+    // Initialize PreactDevEngine for UI and controls first
+    const engine = new PreactDevEngine();
+
+    // Find effect data
     const effectData = effects.find((e) => e.id === effectId);
     if (!effectData) {
       throw new Error(`Effect not found: ${effectId}`);
     }
 
+    // Import effect dynamically after engine initialization
     const entryPath = effectData.entry.replace(/^\.\//, "/src/");
 
     // Dynamic import for the effect module
-    // We need to import this to trigger proper side effects, even if we don't use the module directly
-    await import(/* @vite-ignore */ entryPath);
+    // Add cache-busting to ensure we get a fresh module
+    const cacheBuster = `?t=${Date.now()}`;
+    await import(/* @vite-ignore */ `${entryPath}${cacheBuster}`);
 
     console.log(`✅ Loaded effect module: ${effectData.name}`);
-
-    // Initialize PreactDevEngine for UI and controls
-    const engine = new PreactDevEngine();
 
     try {
       await engine.initialize();
