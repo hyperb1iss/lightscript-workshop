@@ -1,0 +1,134 @@
+@keyframes sparkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    text-shadow:
+      0 0 4px var(--spark-color),
+      0 0 8px var(--spark-color);
+  }
+  50% {
+    text-shadow:
+      0 0 8px var(--spark-color),
+      0 0 15px var(--spark-color);
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.sparkle-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.sparkle {
+  position: absolute;
+  display: block;
+  background-color: var(--spark-color, var(--neon-pink));
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+  opacity: 0;
+  animation: sparkle 2.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.highlighted-name {
+  color: var(--spark-color, var(--neon-pink));
+  font-weight: bold;
+  text-shadow: 0 0 8px var(--spark-color, var(--neon-pink));
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: inline-block;
+  animation: pulse 3s infinite;
+}
+
+.highlighted-name.gradient-text {
+  color: transparent;
+  background-image: linear-gradient(
+    to right,
+    var(--neon-blue),
+    var(--neon-pink),
+    var(--neon-purple),
+    var(--neon-blue)
+  );
+  background-size: 300% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  text-shadow: none;
+  animation: gradient-shift 4s ease infinite;
+}
+
+.highlighted-name.gradient-text.hovered {
+  animation: gradient-shift 2s ease infinite;
+}
+
+.highlighted-name::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--spark-color, var(--neon-pink));
+  transform: scaleX(0);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: center;
+}
+
+.highlighted-name.gradient-text::after {
+  background-image: linear-gradient(
+    to right,
+    var(--neon-blue),
+    var(--neon-pink),
+    var(--neon-purple)
+  );
+}
+
+.highlighted-name.hovered {
+  transform: scale(1.05);
+}
+
+.highlighted-name.hovered::after {
+  transform: scaleX(1);
+}
+
+.sparkle-link {
+  text-decoration: none;
+  color: inherit;
+  display: inline-block;
+}
+
+.sparkle-link:focus {
+  outline: none;
+}

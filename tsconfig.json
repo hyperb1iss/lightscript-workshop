@@ -20,6 +20,10 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     
+    /* JSX for Preact */
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    
     /* GLSL shader imports */
     "types": [
       "vite-plugin-glsl/ext"

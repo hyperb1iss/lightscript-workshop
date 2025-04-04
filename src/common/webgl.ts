@@ -42,12 +42,12 @@ export function initializeWebGL(options: WebGLSetupOptions = {}): WebGLContext {
     forceFallback = false,
   } = options;
 
-  debug("Initializing WebGL");
+  debug("info", "Initializing WebGL context");
 
   // Get or create the canvas element
   let canvas = document.getElementById(canvasId) as HTMLCanvasElement;
   if (!canvas) {
-    debug("Canvas not found! Creating one dynamically");
+    debug("warn", "Canvas not found! Creating one dynamically");
     canvas = document.createElement("canvas");
     canvas.id = canvasId;
     canvas.width = canvasWidth;
@@ -55,10 +55,14 @@ export function initializeWebGL(options: WebGLSetupOptions = {}): WebGLContext {
     document.body.appendChild(canvas);
   }
 
-  debug("Canvas dimensions:", { width: canvas.width, height: canvas.height });
+  debug("debug", "Canvas dimensions", {
+    width: canvas.width,
+    height: canvas.height,
+  });
 
   // Check if we need to force software renderer
   if (forceFallback) {
+    debug("warn", "Forcing software renderer fallback");
     // Make WebGLRenderingContext unavailable to force software fallback
     // Need to use 'any' here because we're deliberately doing something unsafe
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -80,16 +84,16 @@ export function initializeWebGL(options: WebGLSetupOptions = {}): WebGLContext {
   // Create clock for animation timing
   const clock = new THREE.Clock();
 
-  debug("WebGL initialization complete");
+  debug("success", "WebGL initialization complete");
 
   return { canvas, renderer, scene, camera, clock };
 }
 
 /**
  * Create a full-screen shader quad for effects
- * @param vertexShader - Custom vertex shader or undefined for default
  * @param fragmentShader - Fragment shader source code
  * @param uniforms - Shader uniforms object
+ * @param vertexShader - Custom vertex shader or undefined for default
  * @returns The created mesh and material
  */
 export function createShaderQuad(
@@ -97,25 +101,26 @@ export function createShaderQuad(
   uniforms: Record<string, THREE.IUniform>,
   vertexShader?: string,
 ): { mesh: THREE.Mesh; material: THREE.ShaderMaterial } {
+  debug("info", "Creating shader quad");
+
   // Create a simple plane geometry that fills the view
   const geometry = new THREE.PlaneGeometry(2, 2);
 
-  // Use default vertex shader if none provided
-  // Three.js provides 'position' as a built-in attribute
-  const defaultVertexShader = `
-void main() {
-  gl_Position = vec4(position, 1.0);
-}`;
-
-  // Create shader material
+  // Simply use the default shader material setup, THREE.js will handle the attributes
   const material = new THREE.ShaderMaterial({
-    fragmentShader,
-    vertexShader: vertexShader || defaultVertexShader,
-    uniforms,
+    fragmentShader: fragmentShader,
+    vertexShader: vertexShader || THREE.ShaderLib.basic.vertexShader,
+    uniforms: uniforms,
   });
 
   // Create and return the mesh
   const mesh = new THREE.Mesh(geometry, material);
+
+  debug(
+    "debug",
+    "Shader material created with uniforms",
+    Object.keys(uniforms),
+  );
 
   return { mesh, material };
 }
@@ -132,6 +137,8 @@ export function startAnimationLoop(
   material: THREE.ShaderMaterial,
   updateCallback?: (time: number) => void,
 ): number {
+  debug("info", "Starting animation loop");
+
   const { renderer, scene, camera, clock } = context;
 
   // Track the current animation frame ID
@@ -169,6 +176,8 @@ export function startAnimationLoop(
 export function createStandardUniforms(
   canvas: HTMLCanvasElement,
 ): Record<string, THREE.IUniform> {
+  debug("debug", "Creating standard uniforms");
+
   return {
     iTime: { value: 0 },
     iResolution: { value: new THREE.Vector2(canvas.width, canvas.height) },

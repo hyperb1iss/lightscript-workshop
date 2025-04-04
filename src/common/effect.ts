@@ -61,7 +61,7 @@ export abstract class BaseEffect<T> {
     this.canvasHeight = config.canvasHeight ?? 200;
 
     // Log initialization
-    this.debug("Effect created", { id: this.id, name: this.name });
+    this.debug("info", "Effect created", { id: this.id, name: this.name });
   }
 
   /**
@@ -69,7 +69,7 @@ export abstract class BaseEffect<T> {
    * @returns Promise that resolves when initialization is complete
    */
   public async initialize(): Promise<void> {
-    this.debug("Initializing effect");
+    this.debug("info", "Initializing effect...");
 
     try {
       // Initialize WebGL context
@@ -112,9 +112,9 @@ export abstract class BaseEffect<T> {
       // Start animation loop
       this.startAnimation();
 
-      this.debug("Initialization complete");
+      this.debug("success", "Effect initialized successfully");
     } catch (error) {
-      this.debug("ERROR during initialization:", error);
+      this.debug("error", "Initialization failed", error);
       this.handleInitError(error);
     }
   }
@@ -125,12 +125,13 @@ export abstract class BaseEffect<T> {
   protected startAnimation(): void {
     if (!this.webGLContext || !this.material) {
       this.debug(
+        "error",
         "Cannot start animation - context or material not initialized",
       );
       return;
     }
 
-    this.debug("Starting animation loop");
+    this.debug("info", "Starting animation loop");
 
     this.animationId = startAnimationLoop(
       this.webGLContext,
@@ -146,7 +147,7 @@ export abstract class BaseEffect<T> {
     if (this.animationId !== null) {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
-      this.debug("Animation stopped");
+      this.debug("info", "Animation stopped");
     }
   }
 
@@ -162,7 +163,7 @@ export abstract class BaseEffect<T> {
 
     // Log occasionally
     if (time % 10 < 0.1) {
-      this.debug("Animation frame", { time: time.toFixed(2) });
+      this.debug("debug", "Animation frame", { time: time.toFixed(2) });
     }
   }
 
@@ -172,7 +173,7 @@ export abstract class BaseEffect<T> {
    */
   public update(force: boolean = false): void {
     if (!this.material) {
-      if (force) this.debug("Material not initialized yet in update()");
+      if (force) this.debug("warn", "Material not initialized yet in update()");
       return;
     }
 
@@ -184,7 +185,7 @@ export abstract class BaseEffect<T> {
 
     // Log control values occasionally
     if (force || Math.random() < 0.01) {
-      this.debug("Control values updated:", controls);
+      this.debug("debug", "Control values updated", controls);
     }
   }
 

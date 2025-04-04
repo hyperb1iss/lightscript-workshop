@@ -18,8 +18,8 @@ export * from "./registry";
 // Base effect class
 export * from "./effect";
 
-// Development engine
-export * from "./engine";
+// Development engine - Preact UI
+export * from "./preact-engine";
 
 // WebGL and Three.js utilities
 export * from "./webgl";
