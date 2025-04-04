@@ -149,10 +149,10 @@ NO_MINIFY=true EFFECT=effect-name npm run build:debug
 ## 🎮 SignalRGB Integration
 
 1. Build your effect using the commands above
-2. Open SignalRGB application
-3. Navigate to "Lighting Effects"
-4. Click "Import from File"
-5. Select your HTML file from the `dist/` directory
+2. Copy your HTML file(s) from the `dist/` directory to:
+   - Windows: `~/Documents/WhirlwindFX/Effects`
+3. Restart SignalRGB or click the refresh button in the app
+4. Your custom effect will now appear in the "Lighting Effects" section
 
 ## 🤝 Contributing
 
