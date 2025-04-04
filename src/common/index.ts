@@ -6,14 +6,13 @@
 // Debug utilities
 export * from "./debug";
 
-// Legacy control interfaces and helpers
-// Export directly to maintain backward compatibility with existing effects
+// Control system interfaces and definitions
 export * from "./controls";
-
-// New control system exports
 export * from "./definitions";
-export * from "./parser";
 export * from "./registry";
+
+// Decorator-based control system
+export * from "./control-decorators";
 
 // Base effect classes
 export * from "./effect";
@@ -21,7 +20,12 @@ export * from "./webgl-effect";
 export * from "./canvas-effect";
 
 // Development engine - Preact UI
-export * from "./preact-engine";
+// Export explicitly to avoid name conflicts with parser's EffectMetadata
+export { PreactDevEngine } from "./preact-engine";
+export type {
+  EffectMetadata as PreactEffectMetadata,
+  EffectWithMetadata,
+} from "./preact-engine";
 
 // WebGL and Three.js utilities
 export * from "./webgl";
@@ -31,6 +35,11 @@ export * from "./webgl";
  * @param initFunction - Function to call for initialization
  */
 export function initializeEffect(initFunction: () => void): void {
+  // Skip initialization if we're just preloading metadata
+  if (window.effectInstance?._preventInitialization) {
+    return;
+  }
+
   // Try immediate initialization
   if (
     document.readyState === "complete" ||
@@ -43,7 +52,10 @@ export function initializeEffect(initFunction: () => void): void {
 
     // Backup with timeout
     setTimeout(() => {
-      initFunction();
+      // Check again in case the flag was set during the timeout
+      if (!window.effectInstance?._preventInitialization) {
+        initFunction();
+      }
     }, 1000);
   }
 }

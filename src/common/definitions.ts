@@ -44,12 +44,41 @@ export interface ComboboxControlDefinition extends ControlDefinition {
 }
 
 /**
+ * Definition for hue picker controls
+ */
+export interface HueControlDefinition extends ControlDefinition {
+  type: "hue";
+  min: number;
+  max: number;
+  default: number;
+}
+
+/**
+ * Definition for color picker controls
+ */
+export interface ColorControlDefinition extends ControlDefinition {
+  type: "color";
+  default: string; // Hex color value
+}
+
+/**
+ * Definition for text field controls
+ */
+export interface TextFieldControlDefinition extends ControlDefinition {
+  type: "textfield";
+  default: string;
+}
+
+/**
  * Union type of all control definition types
  */
 export type ControlDefinitionType =
   | NumberControlDefinition
   | BooleanControlDefinition
-  | ComboboxControlDefinition;
+  | ComboboxControlDefinition
+  | HueControlDefinition
+  | ColorControlDefinition
+  | TextFieldControlDefinition;
 
 /**
  * Represents the runtime values for all controls in an effect

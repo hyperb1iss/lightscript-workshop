@@ -1,21 +1,38 @@
 /**
- * SimpleWave - Wave-based RGB effect with minimal resource usage
+ * SimpleWave - Decorator-based implementation
+ * Wave-based RGB effect with minimal resource usage
  */
 import { WebGLEffect } from "../../common/webgl-effect";
 import {
-  normalizeSpeed,
-  normalizePercentage,
-  boolToInt,
-  getControlValue,
-} from "../../common/controls";
+  Effect,
+  NumberControl,
+  BooleanControl,
+  ComboboxControl,
+} from "../../common/control-decorators";
+import { normalizeSpeed, boolToInt } from "../../common/controls";
 import { initializeEffect } from "../../common";
 import * as THREE from "three";
 
 // Import shaders
 import fragmentShader from "./fragment.glsl";
 
-// Define control interface
-export interface SimpleWaveControls {
+// Interface with window properties for type-safety
+declare global {
+  interface Window {
+    speed: number;
+    waveCount: number;
+    colorMode: string | number;
+    colorSpeed: number;
+    reverseDirection: boolean | number;
+    colorIntensity: number;
+    waveHeight: number;
+  }
+}
+
+/**
+ * SimpleWaveControls interface for TypeScript type checking
+ */
+export interface SimpleWaveDecoratorControls {
   speed: number;
   waveCount: number;
   colorMode: string | number;
@@ -26,16 +43,83 @@ export interface SimpleWaveControls {
 }
 
 /**
- * SimpleWave effect implementation
+ * Decorator-based SimpleWave effect implementation
  */
-export class SimpleWaveEffect extends WebGLEffect<SimpleWaveControls> {
+@Effect({
+  name: "Simple Wave",
+  description: "A simple wave-based RGB effect with minimal resource usage",
+  author: "hyperb1iss",
+})
+export class SimpleWaveDecoratorEffect extends WebGLEffect<SimpleWaveDecoratorControls> {
   // Define color mode options for conversion
   private readonly colorModes = ["Rainbow", "Ocean", "Fire", "Neon", "Mono"];
 
+  // Control properties with decorators
+  @NumberControl({
+    label: "Animation Speed",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Controls the speed of the wave animation (1=Slow, 10=Fast)",
+  })
+  speed!: number;
+
+  @NumberControl({
+    label: "Wave Count",
+    min: 1,
+    max: 20,
+    default: 5,
+    tooltip: "Number of waves displayed across the width",
+  })
+  waveCount!: number;
+
+  @ComboboxControl({
+    label: "Color Mode",
+    values: ["Rainbow", "Ocean", "Fire", "Neon", "Mono"],
+    default: "Rainbow",
+    tooltip: "Select the color palette for the waves",
+  })
+  colorMode!: string;
+
+  @NumberControl({
+    label: "Color Transition",
+    min: 1,
+    max: 10,
+    default: 3,
+    tooltip: "Controls how quickly colors transition (1=Slow, 10=Fast)",
+  })
+  colorSpeed!: number;
+
+  @BooleanControl({
+    label: "Reverse Direction",
+    default: false,
+    tooltip: "Reverse the direction of wave movement",
+  })
+  reverseDirection!: boolean;
+
+  @NumberControl({
+    label: "Color Intensity",
+    min: 1,
+    max: 200,
+    default: 100,
+    tooltip: "Adjust the intensity of colors (100=Normal, 200=Brighter)",
+  })
+  colorIntensity!: number;
+
+  @NumberControl({
+    label: "Wave Height",
+    min: 1,
+    max: 100,
+    default: 50,
+    tooltip:
+      "Controls how high the waves appear (percentage of display height)",
+  })
+  waveHeight!: number;
+
   constructor() {
     super({
-      id: "simple-wave",
-      name: "SimpleWave",
+      id: "simple-wave-decorator",
+      name: "Simple Wave (Decorator)",
       debug: true,
       fragmentShader,
     });
@@ -57,14 +141,11 @@ export class SimpleWaveEffect extends WebGLEffect<SimpleWaveControls> {
 
   /**
    * Get current control values from global scope
+   * We're reading from the global window object for compatibility
    */
-  protected getControlValues(): SimpleWaveControls {
+  protected getControlValues(): SimpleWaveDecoratorControls {
     // Handle colorMode string/number conversion
-    const rawColorMode = getControlValue<string | number>(
-      "colorMode",
-      "Rainbow",
-    );
-    let colorMode: number | string = rawColorMode;
+    let colorMode: number | string = window.colorMode;
 
     if (typeof colorMode === "string") {
       const modeIndex = this.colorModes.indexOf(colorMode);
@@ -74,17 +155,13 @@ export class SimpleWaveEffect extends WebGLEffect<SimpleWaveControls> {
     }
 
     return {
-      speed: normalizeSpeed(getControlValue<number>("speed", 5)),
-      waveCount: Number(getControlValue<number>("waveCount", 5)),
+      speed: normalizeSpeed(window.speed ?? 5),
+      waveCount: Number(window.waveCount ?? 5),
       colorMode,
-      colorSpeed: normalizeSpeed(getControlValue<number>("colorSpeed", 3)),
-      reverseDirection: boolToInt(
-        getControlValue<boolean | number>("reverseDirection", 0),
-      ),
-      colorIntensity: normalizePercentage(
-        getControlValue<number>("colorIntensity", 100),
-      ),
-      waveHeight: getControlValue<number>("waveHeight", 50) / 100,
+      colorSpeed: normalizeSpeed(window.colorSpeed ?? 3),
+      reverseDirection: boolToInt(window.reverseDirection ?? 0),
+      colorIntensity: Number(window.colorIntensity ?? 100) / 100,
+      waveHeight: (window.waveHeight ?? 50) / 100,
     };
   }
 
@@ -106,7 +183,7 @@ export class SimpleWaveEffect extends WebGLEffect<SimpleWaveControls> {
   /**
    * Update shader uniforms based on control values
    */
-  protected updateUniforms(controls: SimpleWaveControls): void {
+  protected updateUniforms(controls: SimpleWaveDecoratorControls): void {
     if (!this.material) return;
 
     this.material.uniforms.iSpeed.value = controls.speed;
@@ -121,11 +198,11 @@ export class SimpleWaveEffect extends WebGLEffect<SimpleWaveControls> {
 }
 
 // Create effect instance
-const effect = new SimpleWaveEffect();
+const effect = new SimpleWaveDecoratorEffect();
 
 // Initialize the effect using the common initializer for SignalRGB
 initializeEffect(() => {
-  console.log("[SimpleWave] Initializing through common initializer");
+  console.log("[SimpleWaveDecorator] Initializing through common initializer");
   effect.initialize();
 });
 

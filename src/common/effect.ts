@@ -12,6 +12,7 @@ declare global {
     showNotification: (message: string, isError?: boolean) => void;
     effectInstance?: {
       stop: () => void;
+      _preventInitialization?: boolean;
     };
     currentAnimationFrame?: number;
     controlsCount: number;

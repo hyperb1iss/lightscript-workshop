@@ -10,11 +10,10 @@ import { Loader } from './Loader';
 interface AppProps {
   effects: Array<{
     id: string;
-    name: string;
-    description: string;
-    author: string;
     entry: string;
-    template: string;
+    name?: string;
+    description?: string;
+    author?: string;
   }>;
   currentEffectId: string;
   fps: number;

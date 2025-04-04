@@ -98,7 +98,7 @@ const ControlItem: FunctionComponent<ControlItemProps> = ({
               }}
               onChange={(e) => {
                 const newValue = parseFloat((e.target as HTMLInputElement).value);
-                debug('success', `Slider set to: ${id}`, newValue);
+                debug('success', `Slider set to: ${id}=${newValue} (min: ${(definition as ControlDefinition & {min?: number}).min}, max: ${(definition as ControlDefinition & {max?: number}).max})`);
                 onChange(id, newValue);
               }}
             />

@@ -6,18 +6,138 @@ import { CanvasEffect } from "../../common/canvas-effect";
 import { Particle } from "./particle";
 import { GlowParticlesControls } from "./types";
 import {
-  getGlowParticlesControls,
-  initializeGlowParticlesControls,
-} from "./utils";
+  Effect,
+  NumberControl,
+  BooleanControl,
+  ComboboxControl,
+} from "../../common/control-decorators";
+import { normalizePercentage, boolToInt } from "../../common/controls";
+import { COLOR_MODES, FLOW_DIRECTIONS } from "./types";
+
+// Interface with window properties for type-safety
+declare global {
+  interface Window {
+    speed: number;
+    particleCount: number;
+    particleSize: number;
+    glowIntensity: number;
+    colorMode: string | number;
+    flowDirection: string | number;
+    connectParticles: boolean | number;
+    particleBounce: boolean | number;
+    colorSaturation: number;
+    colorIntensity: number;
+    connectorGlow: number;
+  }
+}
 
 /**
  * GlowParticles effect implementation using Canvas 2D
  */
+@Effect({
+  name: "Glow Particles",
+  description:
+    "A colorful particle system with glowing effects using Canvas 2D",
+  author: "hyperb1iss",
+})
 export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
   // Effect state
   private particles: Particle[] = [];
   private currentControls: GlowParticlesControls | null = null;
   private lastParticleSize: number = 0;
+
+  @NumberControl({
+    label: "Animation Speed",
+    min: 1,
+    max: 10,
+    default: 3,
+    tooltip: "Controls the speed of the particles (1=Slow, 10=Fast)",
+  })
+  speed!: number;
+
+  @NumberControl({
+    label: "Particle Count",
+    min: 10,
+    max: 300,
+    default: 100,
+    tooltip: "Number of particles to display",
+  })
+  particleCount!: number;
+
+  @NumberControl({
+    label: "Particle Size",
+    min: 1,
+    max: 40,
+    default: 20,
+    tooltip: "Size of particles",
+  })
+  particleSize!: number;
+
+  @NumberControl({
+    label: "Glow Intensity",
+    min: 1,
+    max: 200,
+    default: 100,
+    tooltip: "Controls the intensity of the glow effect",
+  })
+  glowIntensity!: number;
+
+  @ComboboxControl({
+    label: "Color Mode",
+    values: COLOR_MODES,
+    default: "Rainbow",
+    tooltip: "Color palette for particles",
+  })
+  colorMode!: string;
+
+  @ComboboxControl({
+    label: "Flow Direction",
+    values: FLOW_DIRECTIONS,
+    default: "Outward",
+    tooltip: "Primary direction of particle movement",
+  })
+  flowDirection!: string;
+
+  @BooleanControl({
+    label: "Connect Particles",
+    default: true,
+    tooltip: "Draw lines between nearby particles",
+  })
+  connectParticles!: boolean;
+
+  @NumberControl({
+    label: "Connector Intensity",
+    min: 1,
+    max: 200,
+    default: 100,
+    tooltip: "Controls the intensity and thickness of particle connections",
+  })
+  connectorGlow!: number;
+
+  @BooleanControl({
+    label: "Bounce Off Edges",
+    default: true,
+    tooltip: "Particles bounce off edges instead of wrapping around",
+  })
+  particleBounce!: boolean;
+
+  @NumberControl({
+    label: "Color Saturation",
+    min: 1,
+    max: 200,
+    default: 100,
+    tooltip: "Adjust color saturation level (100=Normal)",
+  })
+  colorSaturation!: number;
+
+  @NumberControl({
+    label: "Color Intensity",
+    min: 1,
+    max: 200,
+    default: 100,
+    tooltip: "Adjust color intensity/brightness (100=Normal)",
+  })
+  colorIntensity!: number;
 
   constructor() {
     super({
@@ -36,14 +156,60 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
    */
   protected initializeControls(): void {
     console.log("🎛️ Initializing controls");
-    initializeGlowParticlesControls();
+    // Set default values to make them available globally for SignalRGB
+    window.speed = 3;
+    window.particleCount = 100;
+    window.particleSize = 20;
+    window.glowIntensity = 100;
+    window.colorMode = "Rainbow";
+    window.flowDirection = "Outward";
+    window.connectParticles = 1;
+    window.particleBounce = 1;
+    window.colorSaturation = 100;
+    window.colorIntensity = 100;
+    window.connectorGlow = 100;
   }
 
   /**
    * Get current control values from global scope
    */
   protected getControlValues(): GlowParticlesControls {
-    return getGlowParticlesControls();
+    // Create a speed scale that varies from 0.5 to 3.0 based on control value (1-10)
+    // This gives a better range for visible speed differences
+    const rawSpeed = window.speed ?? 3;
+    const smoothSpeed = 0.5 + (rawSpeed - 1) * 0.28;
+
+    // Get colorMode as index for shader
+    let colorMode: number;
+    if (typeof window.colorMode === "string") {
+      const modeIndex = COLOR_MODES.indexOf(window.colorMode);
+      colorMode = modeIndex === -1 ? 9 : modeIndex; // Default to Rainbow (index 9)
+    } else {
+      colorMode = Number(window.colorMode || 9);
+    }
+
+    // Get flowDirection as index
+    let flowDirection: number;
+    if (typeof window.flowDirection === "string") {
+      const directionIndex = FLOW_DIRECTIONS.indexOf(window.flowDirection);
+      flowDirection = directionIndex === -1 ? 0 : directionIndex;
+    } else {
+      flowDirection = Number(window.flowDirection || 0);
+    }
+
+    return {
+      speed: smoothSpeed,
+      particleCount: Number(window.particleCount ?? 100),
+      particleSize: Number(window.particleSize ?? 20),
+      glowIntensity: normalizePercentage(window.glowIntensity ?? 100),
+      colorMode,
+      flowDirection,
+      connectParticles: Boolean(boolToInt(window.connectParticles ?? 1)),
+      particleBounce: Boolean(boolToInt(window.particleBounce ?? 1)),
+      colorSaturation: normalizePercentage(window.colorSaturation ?? 100) * 100,
+      colorIntensity: normalizePercentage(window.colorIntensity ?? 100) * 100,
+      connectorGlow: normalizePercentage(window.connectorGlow ?? 100) * 100,
+    };
   }
 
   /**

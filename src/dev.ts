@@ -42,7 +42,7 @@ async function initializeDevEnvironment() {
     const cacheBuster = `?t=${Date.now()}`;
     await import(/* @vite-ignore */ `${entryPath}${cacheBuster}`);
 
-    console.log(`✅ Loaded effect module: ${effectData.name}`);
+    console.log(`✅ Loaded effect module: ${effectData.id}`);
 
     try {
       await engine.initialize();

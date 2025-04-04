@@ -68,7 +68,12 @@ export function normalizePercentage(
   defaultValue = 100,
   minValue = 0.01,
 ): number {
-  const rawValue = typeof value === "number" ? value : defaultValue;
+  // Handle undefined or NaN values
+  const rawValue =
+    typeof value === "number" && !isNaN(value) ? value : defaultValue;
+
+  // Convert from percentage (0-200) to factor (0-2)
+  // with a minimum value to prevent division by zero issues
   return Math.max(minValue, rawValue / 100);
 }
 

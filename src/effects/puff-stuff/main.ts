@@ -2,17 +2,33 @@
  * PuffStuff - Raymarched tunnel effect with dynamic colors and styles
  */
 import { WebGLEffect } from "../../common/webgl-effect";
+import { normalizeSpeed, boolToInt } from "../../common/controls";
 import {
-  normalizeSpeed,
-  normalizePercentage,
-  boolToInt,
-  getControlValue,
-} from "../../common/controls";
+  Effect,
+  NumberControl,
+  BooleanControl,
+  ComboboxControl,
+} from "../../common/control-decorators";
 import { initializeEffect } from "../../common";
 import * as THREE from "three";
 
 // Import shaders
 import fragmentShader from "./fragment.glsl";
+
+// Interface with window properties for type-safety
+declare global {
+  interface Window {
+    speed: number;
+    colorShift: boolean | number;
+    colorScheme: string | number;
+    effectStyle: string | number;
+    colorIntensity: number;
+    colorPulse: number;
+    motionWave: number;
+    motionReverse: boolean | number;
+    colorSaturation: number;
+  }
+}
 
 // Define control interface
 export interface PuffStuffControls {
@@ -30,6 +46,12 @@ export interface PuffStuffControls {
 /**
  * PuffStuff tunnel effect implementation
  */
+@Effect({
+  name: "Puff Stuff Tunnel",
+  description:
+    "A WebGL ray marched tunnel effect with dynamic colors and styles",
+  author: "hyperb1iss",
+})
 export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
   // Color scheme options for conversion
   private readonly colorSchemes = [
@@ -59,6 +81,100 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
     "Hologram",
     "Film Noir",
   ];
+
+  @NumberControl({
+    label: "Animation Speed",
+    min: 1,
+    max: 10,
+    default: 5,
+    tooltip: "Controls the speed of the animation effect (1=Slow, 10=Fast)",
+  })
+  speed!: number;
+
+  @BooleanControl({
+    label: "Color Shift",
+    default: true,
+    tooltip: "Toggles additional color shifting effects",
+  })
+  colorShift!: boolean;
+
+  @ComboboxControl({
+    label: "Color Scheme",
+    values: [
+      "Classic Blue",
+      "Cyberpunk",
+      "Fire",
+      "Toxic",
+      "Ethereal",
+      "Monochrome",
+      "Rainbow",
+      "Electric",
+      "Amethyst",
+      "Coral Reef",
+      "Deep Sea",
+      "Emerald",
+      "Neon",
+      "Rose Gold",
+      "Sunset",
+      "Vapor Wave",
+    ],
+    default: "Classic Blue",
+    tooltip: "Select the color palette for the tunnel",
+  })
+  colorScheme!: string;
+
+  @ComboboxControl({
+    label: "Effect Style",
+    values: ["Standard", "Wireframe", "Glitch", "Hologram", "Film Noir"],
+    default: "Standard",
+    tooltip: "Choose the visual style of the effect",
+  })
+  effectStyle!: string;
+
+  @NumberControl({
+    label: "Color Intensity",
+    min: 1,
+    max: 200,
+    default: 100,
+    tooltip:
+      "Adjust the intensity of colors (0=Muted, 100=Normal, 200=Vibrant)",
+  })
+  colorIntensity!: number;
+
+  @NumberControl({
+    label: "Color Pulse",
+    min: 0,
+    max: 10,
+    default: 0,
+    tooltip: "Add rhythmic color pulsing (0=Off, 10=Intense)",
+  })
+  colorPulse!: number;
+
+  @NumberControl({
+    label: "Motion Wave",
+    min: 0,
+    max: 10,
+    default: 0,
+    tooltip: "Add wave distortion to the tunnel (0=None, 10=Maximum)",
+  })
+  motionWave!: number;
+
+  @BooleanControl({
+    label: "Reverse Direction",
+    default: false,
+    tooltip: "Reverse the direction of tunnel movement",
+  })
+  motionReverse!: boolean;
+
+  @NumberControl({
+    label: "Color Saturation",
+    min: 1,
+    max: 200,
+    default: 100,
+    tooltip:
+      "Adjust the saturation level of colors (100=Normal, 200=Super Saturated)",
+  })
+  colorSaturation!: number;
 
   constructor() {
     super({
@@ -90,11 +206,7 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
    */
   protected getControlValues(): PuffStuffControls {
     // Handle colorScheme string/number conversion
-    const rawColorScheme = getControlValue<string | number>(
-      "colorScheme",
-      "Classic Blue",
-    );
-    let colorScheme: number | string = rawColorScheme;
+    let colorScheme: number | string = window.colorScheme;
 
     if (typeof colorScheme === "string") {
       const schemeIndex = this.colorSchemes.indexOf(colorScheme);
@@ -104,11 +216,7 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
     }
 
     // Handle effectStyle string/number conversion
-    const rawEffectStyle = getControlValue<string | number>(
-      "effectStyle",
-      "Standard",
-    );
-    let effectStyle: number | string = rawEffectStyle;
+    let effectStyle: number | string = window.effectStyle;
 
     if (typeof effectStyle === "string") {
       const styleIndex = this.effectStyles.indexOf(effectStyle);
@@ -118,21 +226,15 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
     }
 
     return {
-      speed: normalizeSpeed(getControlValue<number>("speed", 5)),
-      colorShift: boolToInt(getControlValue<boolean | number>("colorShift", 1)),
+      speed: normalizeSpeed(window.speed ?? 5),
+      colorShift: boolToInt(window.colorShift ?? 1),
       colorScheme,
       effectStyle,
-      colorIntensity: normalizePercentage(
-        getControlValue<number>("colorIntensity", 100),
-      ),
-      colorPulse: Number(getControlValue<number>("colorPulse", 0)) / 10,
-      motionWave: Number(getControlValue<number>("motionWave", 0)) / 10,
-      motionReverse: boolToInt(
-        getControlValue<boolean | number>("motionReverse", 0),
-      ),
-      colorSaturation: normalizePercentage(
-        getControlValue<number>("colorSaturation", 100),
-      ),
+      colorIntensity: Number(window.colorIntensity ?? 100) / 100,
+      colorPulse: Number(window.colorPulse ?? 0) / 10,
+      motionWave: Number(window.motionWave ?? 0) / 10,
+      motionReverse: boolToInt(window.motionReverse ?? 0),
+      colorSaturation: Number(window.colorSaturation ?? 100) / 100,
     };
   }
 

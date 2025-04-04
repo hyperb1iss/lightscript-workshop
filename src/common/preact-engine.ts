@@ -1,22 +1,59 @@
 /**
- * PreactDevEngine - Development engine for SignalRGB effects using Preact components
- * Manages effect loading, control state, and UI generation with a component-based architecture
+ * PreactDevEngine - Development framework for effects
+ * Provides a UI for controlling and testing effects
  */
 
 import { h, render } from "preact";
 import { createDebugLogger, printStartupBanner } from "./debug";
 import { ControlDefinition, ControlValues } from "./definitions";
-import { parseControlsFromTemplate } from "./parser";
 import { effects } from "../index";
 import { App } from "../ui/App";
 
-// Extend Window interface to include our global variables
+// Debug helper
+const debug = createDebugLogger("PreactEngine");
+
+/**
+ * Effect definition with required paths
+ */
+interface EffectDefinition {
+  id: string;
+  entry: string;
+}
+
+/**
+ * Effect metadata extracted from decorators
+ */
+export interface EffectMetadata {
+  name: string;
+  description: string;
+  author: string;
+}
+
+/**
+ * Full effect type including optional metadata
+ */
+export type EffectWithMetadata = EffectDefinition & Partial<EffectMetadata>;
+
+/**
+ * Type that matches exactly what the App component expects for effects
+ * This is also what we store in the effects array
+ */
+type AppEffect = {
+  id: string;
+  entry: string;
+  name?: string;
+  description?: string;
+  author?: string;
+};
+
+// Add the global window properties
 declare global {
   interface Window {
     update?: (force?: boolean) => void;
     showNotification: (message: string, isError?: boolean) => void;
     effectInstance?: {
       stop: () => void;
+      _preventInitialization?: boolean; // Flag to prevent automatic initialization
     };
     currentAnimationFrame?: number;
     controlsCount: number;
@@ -24,14 +61,13 @@ declare global {
   }
 }
 
-const debug = createDebugLogger("PreactDevEngine");
-
 /**
- * PreactDevEngine class for managing effects with Preact UI components
+ * Development engine for running and controlling effects
+ * using a preact-based UI
  */
 export class PreactDevEngine {
   // Current effect data
-  private currentEffect: (typeof effects)[0] | null = null;
+  private currentEffect: AppEffect | null = null;
   private controlDefinitions: ControlDefinition[] = [];
   private controlValues: ControlValues = {};
 
@@ -65,6 +101,9 @@ export class PreactDevEngine {
       this.isLoading = false;
       this.renderUI();
     }, 1500);
+
+    // Make the showNotification function available globally
+    window.showNotification = this.showNotification.bind(this);
   }
 
   /**
@@ -85,6 +124,16 @@ export class PreactDevEngine {
     const urlParams = new URLSearchParams(window.location.search);
     const effectId = urlParams.get("effect") || effects[0].id;
 
+    // Set basic names for effects to ensure they're visible in UI
+    for (const effect of effects as AppEffect[]) {
+      if (!effect.name) {
+        effect.name = effect.id;
+      }
+    }
+
+    // Update UI immediately with effect names
+    this.renderUI();
+
     // Load the effect
     await this.loadEffect(effectId);
 
@@ -100,31 +149,21 @@ export class PreactDevEngine {
 
   /**
    * Show a notification
-   * This method delegates to the global window.showNotification function
    */
   public showNotification(message: string, isError: boolean = false): void {
-    if (typeof window.showNotification === "function") {
-      window.showNotification(message, isError);
-    } else {
-      debug(isError ? "error" : "info", `Notification: ${message}`);
-    }
+    debug(isError ? "error" : "info", `Notification: ${message}`);
+    // In the future we can add UI notifications
   }
 
   /**
-   * Render the Preact UI components
+   * Render the UI using Preact
    */
   private renderUI(): void {
     if (!this.rootElement) return;
 
-    debug("debug", "Rendering UI components", {
-      effectsCount: effects.length,
-      currentEffect: this.currentEffect?.id,
-      controlsCount: this.controlDefinitions.length,
-    });
-
     render(
       h(App, {
-        effects: effects,
+        effects: effects as AppEffect[],
         currentEffectId: this.currentEffect?.id || "",
         fps: this.fpsValue,
         controlDefinitions: this.controlDefinitions,
@@ -169,128 +208,243 @@ export class PreactDevEngine {
   }
 
   /**
-   * Load an effect and its controls
+   * Load an effect by its ID
    */
   public async loadEffect(effectId: string): Promise<void> {
     debug("info", `Loading effect: ${effectId}`);
 
-    // Find the effect definition
-    const effect = effects.find((e) => e.id === effectId);
+    // Find the effect in the effects array
+    const effect = effects.find((e) => e.id === effectId) as AppEffect;
     if (!effect) {
       debug("error", `Effect not found: ${effectId}`);
-      throw new Error(`Effect not found: ${effectId}`);
+      return;
     }
 
-    // Stop the current effect's animation frames if possible
-    if (this.currentEffect) {
-      // First try the class-based stop method
-      if (typeof window.effectInstance?.stop === "function") {
-        debug(
-          "info",
-          `Stopping current effect instance: ${this.currentEffect.id}`,
-        );
-        try {
-          window.effectInstance.stop();
-        } catch (err) {
-          debug("warn", "Error stopping effect instance:", err);
-        }
-      }
-      // Then try to cancel any animation frames
-      if (window.currentAnimationFrame) {
-        debug(
-          "info",
-          `Cancelling animation frame: ${window.currentAnimationFrame}`,
-        );
-        cancelAnimationFrame(window.currentAnimationFrame);
-        window.currentAnimationFrame = undefined;
-      }
-    }
-
+    // Update current effect reference
     this.currentEffect = effect;
 
-    // Clear any global window variables from previous effects
-    this.clearGlobalVariables();
+    // Stop any existing animation and clean up
+    this.cleanupCurrentEffect();
+
+    // Reset controls
+    this.controlDefinitions = [];
+    this.controlValues = {};
 
     try {
-      // In Vite, we can use a special import to get the template content
-      const templatePath = effect.template.replace(/^\.\//, "/src/");
-
-      // Get the entry path for dynamic import
+      // Use the same approach as dev.ts for loading the effect
       const entryPath = effect.entry.replace(/^\.\//, "/src/");
+      const cacheBuster = `?t=${Date.now()}`;
 
-      // Dynamically import the new effect module
-      debug("info", `Importing effect module: ${entryPath}`);
-      try {
-        // Add cache-busting parameter to ensure fresh module load
-        const cacheBuster = `?t=${Date.now()}`;
-        // Dynamic import for the effect module
-        await import(/* @vite-ignore */ `${entryPath}${cacheBuster}`);
-        debug("success", `Loaded effect module: ${effect.name}`);
-      } catch (importErr) {
-        debug("error", "Failed to import effect module:", importErr);
-        // Continue with UI setup even if module import fails
-      }
+      debug("info", `Importing effect from ${entryPath}`);
 
-      // Parse the template for controls
-      const templateResponse = await fetch(templatePath);
-      if (!templateResponse.ok) {
-        debug("error", `Failed to load template from ${templatePath}`);
-        throw new Error(`Failed to load template: ${templatePath}`);
-      }
-
-      const templateHtml = await templateResponse.text();
-      this.controlDefinitions = parseControlsFromTemplate(templateHtml);
-
-      debug(
-        "success",
-        `Loaded ${this.controlDefinitions.length} controls for ${effect.name}`,
+      // Import the effect module
+      const effectModule = await import(
+        /* @vite-ignore */ `${entryPath}${cacheBuster}`
       );
 
-      // Make controls count available globally
-      window.controlsCount = this.controlDefinitions.length;
-
-      // Initialize control values with defaults
-      this.controlValues = {};
-      for (const def of this.controlDefinitions) {
-        debug("debug", `Setting control: ${def.id} = ${def.default}`);
-        this.controlValues[def.id] = def.default;
-
-        // Set global variables for backwards compatibility
-        window[def.id] = def.default;
+      if (!effectModule || !effectModule.default) {
+        throw new Error(`Effect module ${effectId} has no default export`);
       }
 
-      // Log all control values for debugging
-      const globalControls: Record<string, unknown> = {};
-      for (const def of this.controlDefinitions) {
-        globalControls[def.id] = window[def.id];
-      }
-      debug("debug", "Control values initialized", globalControls);
+      // Extract metadata from the effect class using the decorator system
+      this.extractMetadata(effect, effectModule.default);
 
-      // Set page title to include effect name
-      document.title = `${effect.name} | LightScript Workshop`;
+      // Extract controls from the effect class using the decorator system
+      this.extractControls(effectModule.default);
 
-      // Force update the effect if the update function exists
-      if (typeof window.update === "function") {
-        debug("info", "Forcing initial update of effect");
-        try {
-          window.update(true);
-        } catch (err) {
-          debug("error", "Error updating effect:", err);
-        }
-      } else {
-        debug("warn", "No global update function found");
-      }
-
-      // Update the UI
+      // Update UI with the current effect and controls
       this.renderUI();
 
-      // Trigger a resize to ensure the effect fills the canvas correctly
-      this.handleResize();
-
-      debug("success", `Effect "${effect.name}" is now active and rendering`);
+      debug("success", `Effect ${effectId} loaded and ready`);
     } catch (error) {
-      debug("error", "Failed to load effect:", error);
-      throw error;
+      debug("error", `Failed to load effect ${effectId}:`, error);
+      this.showNotification(`Failed to load effect: ${error}`, true);
+    }
+  }
+
+  /**
+   * Extract metadata from an effect class
+   */
+  private extractMetadata(effect: AppEffect, effectClass: any): void {
+    try {
+      // First try to use the decorator system
+      import("./control-decorators").then((decorators) => {
+        try {
+          const metadata = decorators.extractEffectMetadata(effectClass);
+          if (metadata) {
+            debug(
+              "success",
+              `Found metadata for ${effect.id}: ${metadata.name}`,
+            );
+            effect.name = metadata.name;
+            effect.description = metadata.description;
+            effect.author = metadata.author;
+
+            // Update the UI with the new metadata
+            this.renderUI();
+          }
+        } catch (err) {
+          debug("warn", `Error extracting metadata: ${err}`);
+        }
+      });
+    } catch (err) {
+      debug("warn", `Error importing control-decorators: ${err}`);
+    }
+  }
+
+  /**
+   * Extract controls from an effect class
+   */
+  private extractControls(effectClassOrInstance: any): void {
+    debug("info", "Extracting controls from effect");
+
+    try {
+      // Only use the decorator system
+      import("./control-decorators")
+        .then((decorators) => {
+          try {
+            const controls = decorators.extractControlsFromClass(
+              effectClassOrInstance,
+            );
+
+            if (controls && controls.length > 0) {
+              debug(
+                "success",
+                `Found ${controls.length} controls using decorators`,
+              );
+
+              // Filter out any huge string values that might be shader code
+              const filteredControls = controls.filter((control) => {
+                // Skip controls with huge string values (like shader code)
+                if (control.type === "textfield") {
+                  const defaultValue = String(control.default || "");
+                  // If the string is very long, it's probably not a real control
+                  if (defaultValue.length > 500) {
+                    debug(
+                      "warn",
+                      `Skipping likely shader code control: ${control.id}`,
+                    );
+                    return false;
+                  }
+                }
+                return true;
+              });
+
+              // Log all controls for debugging
+              debug("info", "Control definitions:", filteredControls);
+
+              this.controlDefinitions = filteredControls;
+
+              // Initialize control values
+              this.controlValues = {};
+              for (const control of filteredControls) {
+                // Make sure we're using the correct default values
+                if (control.type === "number" || control.type === "hue") {
+                  // Make sure number value is within defined range
+                  const min = (control as any).min ?? 0;
+                  const max = (control as any).max ?? 100;
+                  const defaultValue = Number(control.default);
+                  // Ensure the value is within the allowed range
+                  const safeValue = Math.max(min, Math.min(max, defaultValue));
+                  this.controlValues[control.id] = safeValue;
+                  window[control.id] = safeValue;
+                } else if (control.type === "boolean") {
+                  // Convert possible 0/1 values to actual booleans
+                  const defaultValue =
+                    control.default === 1 ? true : Boolean(control.default);
+                  this.controlValues[control.id] = defaultValue;
+                  window[control.id] = defaultValue;
+                } else {
+                  this.controlValues[control.id] = control.default;
+                  window[control.id] = control.default;
+                }
+
+                debug(
+                  "info",
+                  `Initialized control: ${control.id} = ${window[control.id]}`,
+                );
+              }
+
+              // Update the UI with the controls
+              this.renderUI();
+            } else {
+              debug("warn", "No controls found using decorators");
+              this.controlDefinitions = [];
+              this.controlValues = {};
+              this.renderUI();
+            }
+          } catch (err) {
+            debug("error", "Error extracting controls:", err);
+            this.controlDefinitions = [];
+            this.controlValues = {};
+            this.renderUI();
+          }
+        })
+        .catch((err) => {
+          debug("error", "Error importing control-decorators:", err);
+          this.controlDefinitions = [];
+          this.controlValues = {};
+          this.renderUI();
+        });
+    } catch (err) {
+      debug("error", "Error in extractControls:", err);
+      this.controlDefinitions = [];
+      this.controlValues = {};
+      this.renderUI();
+    }
+  }
+
+  /**
+   * Clean up the current effect and its resources
+   */
+  private cleanupCurrentEffect(): void {
+    // Stop the effect's animation if it has a stop method
+    if (
+      window.effectInstance &&
+      typeof window.effectInstance.stop === "function"
+    ) {
+      debug("info", "Stopping current effect");
+      try {
+        window.effectInstance.stop();
+      } catch (err) {
+        debug("warn", "Error stopping effect:", err);
+      }
+    }
+
+    // Cancel any animation frames
+    if (window.currentAnimationFrame) {
+      debug("info", "Cancelling animation frame");
+      cancelAnimationFrame(window.currentAnimationFrame);
+      window.currentAnimationFrame = undefined;
+    }
+
+    // Clear global variables to prevent conflicts
+    this.clearGlobalVariables();
+
+    // Clear current effect instance
+    window.effectInstance = undefined;
+
+    // Need to recreate canvas to ensure clean WebGL context
+    if (this.canvas) {
+      const parent = this.canvas.parentElement;
+      const canvasId = this.canvas.id;
+      const width = this.canvas.width;
+      const height = this.canvas.height;
+
+      // Remove old canvas
+      if (parent) {
+        parent.removeChild(this.canvas);
+
+        // Create new canvas
+        const newCanvas = document.createElement("canvas");
+        newCanvas.id = canvasId;
+        newCanvas.width = width;
+        newCanvas.height = height;
+        parent.appendChild(newCanvas);
+
+        // Update reference
+        this.canvas = newCanvas;
+      }
     }
   }
 
@@ -303,7 +457,7 @@ export class PreactDevEngine {
     // Update internal state
     this.controlValues[id] = value;
 
-    // Update global variable for backward compatibility
+    // Update global variable
     window[id] = value;
 
     // Update the UI
@@ -312,14 +466,10 @@ export class PreactDevEngine {
     // Try to call the global update function if it exists
     if (typeof window.update === "function") {
       try {
-        debug("debug", "Calling global update function");
         window.update();
-        debug("success", "Effect updated successfully");
       } catch (error) {
-        debug("error", "Error calling global update:", error);
+        debug("error", "Error calling update:", error);
       }
-    } else {
-      debug("warn", "Global update function not found");
     }
   }
 
@@ -335,12 +485,10 @@ export class PreactDevEngine {
     }
 
     // Clear global effect instance and animation reference
-    // This is crucial for proper effect switching
     window.effectInstance = undefined;
     window.currentAnimationFrame = undefined;
 
-    // Delete the update function instead of replacing it
-    // This allows the new effect to set its own update function
+    // Delete the update function
     delete window.update;
   }
 
@@ -348,10 +496,16 @@ export class PreactDevEngine {
    * Start monitoring FPS
    */
   public startFPSMonitor(): void {
-    this.lastTime = performance.now();
+    const performanceNow =
+      typeof performance !== "undefined" &&
+      typeof performance.now === "function"
+        ? () => performance.now()
+        : () => Date.now();
+
+    this.lastTime = performanceNow();
 
     const updateFPS = () => {
-      const now = performance.now();
+      const now = performanceNow();
       this.frameCount++;
 
       // Update every second
@@ -409,18 +563,10 @@ export class PreactDevEngine {
       document.body.removeChild(link);
 
       debug("success", "Screenshot captured and saved");
-
-      // Show success notification if the function exists
-      if (typeof window.showNotification === "function") {
-        window.showNotification("Screenshot saved!");
-      }
+      this.showNotification("Screenshot saved!");
     } catch (err) {
       debug("error", "Failed to capture screenshot:", err);
-
-      // Show error notification if the function exists
-      if (typeof window.showNotification === "function") {
-        window.showNotification("Failed to take screenshot!", true);
-      }
+      this.showNotification("Failed to take screenshot!", true);
     }
   }
 
@@ -452,11 +598,7 @@ export class PreactDevEngine {
     }
 
     debug("success", "All controls reset to default values");
-
-    // Show success notification if the function exists
-    if (typeof window.showNotification === "function") {
-      window.showNotification("Controls reset to default values");
-    }
+    this.showNotification("Controls reset to default values");
   }
 
   /**
@@ -468,6 +610,9 @@ export class PreactDevEngine {
     // Remove event listeners
     window.removeEventListener("resize", this.handleResize.bind(this));
 
+    // Clean up current effect
+    this.cleanupCurrentEffect();
+
     // Clear UI
     if (this.rootElement) {
       render(null, this.rootElement);
@@ -475,9 +620,6 @@ export class PreactDevEngine {
         this.rootElement.parentNode.removeChild(this.rootElement);
       }
     }
-
-    // Clear global variables
-    this.clearGlobalVariables();
 
     debug("success", "Engine shut down successfully");
   }

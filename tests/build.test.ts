@@ -45,10 +45,7 @@ describe("build process", () => {
     it("should have valid structure for each effect", () => {
       for (const effect of effects) {
         expect(effect).toHaveProperty("id");
-        expect(effect).toHaveProperty("name");
-        expect(effect).toHaveProperty("description");
         expect(effect).toHaveProperty("entry");
-        expect(effect).toHaveProperty("template");
       }
     });
 
@@ -58,7 +55,7 @@ describe("build process", () => {
       expect(uniqueIds.length).toBe(effects.length);
     });
 
-    it("should point to existing files", () => {
+    it("should point to existing entry files", () => {
       // Set mock for existsSync to return true for this test
       vi.mocked(fs.existsSync).mockReturnValue(true);
 
@@ -69,14 +66,8 @@ describe("build process", () => {
           "src",
           effect.entry.replace(/^\.\//, ""),
         );
-        const templatePath = path.resolve(
-          process.cwd(),
-          "src",
-          effect.template.replace(/^\.\//, ""),
-        );
 
         expect(fs.existsSync(entryPath)).toBe(true);
-        expect(fs.existsSync(templatePath)).toBe(true);
       }
     });
   });

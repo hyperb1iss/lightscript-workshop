@@ -4,11 +4,10 @@ import { useEffect, useState } from 'preact/hooks';
 interface EffectsPanelProps {
   effects: Array<{
     id: string;
-    name: string;
-    description: string;
-    author: string;
     entry: string;
-    template: string;
+    name?: string;
+    description?: string;
+    author?: string;
   }>;
   currentEffectId: string;
   fps: number;
@@ -56,7 +55,7 @@ export const EffectsPanel: FunctionComponent<EffectsPanelProps> = ({
           ) : (
             effects.map(effect => (
               <option key={effect.id} value={effect.id}>
-                {effect.name}
+                {effect.name || effect.id}
               </option>
             ))
           )}
@@ -88,24 +87,28 @@ export const EffectsPanel: FunctionComponent<EffectsPanelProps> = ({
           <div className="metadata-content">
             <div className="metadata-item">
               <span className="metadata-label">Name</span>
-              <span className="metadata-value highlight">{currentEffect.name}</span>
+              <span className="metadata-value highlight">{currentEffect.name || currentEffect.id}</span>
             </div>
             <div className="metadata-item">
               <span className="metadata-label">ID</span>
               <span className="metadata-value">{currentEffect.id}</span>
             </div>
-            <div className="metadata-item">
-              <span className="metadata-label">Author</span>
-              <span className="metadata-value highlight">{currentEffect.author}</span>
-            </div>
-            <div className="metadata-item">
-              <span className="metadata-label">Description</span>
-              <span className="metadata-value">
-                {currentEffect.description && currentEffect.description.length > 60 
-                  ? `${currentEffect.description.substring(0, 57)}...` 
-                  : currentEffect.description || 'No description'}
-              </span>
-            </div>
+            {currentEffect.author && (
+              <div className="metadata-item">
+                <span className="metadata-label">Author</span>
+                <span className="metadata-value highlight">{currentEffect.author}</span>
+              </div>
+            )}
+            {currentEffect.description && (
+              <div className="metadata-item">
+                <span className="metadata-label">Description</span>
+                <span className="metadata-value">
+                  {currentEffect.description && currentEffect.description.length > 60 
+                    ? `${currentEffect.description.substring(0, 57)}...` 
+                    : currentEffect.description}
+                </span>
+              </div>
+            )}
             <div className="metadata-item">
               <span className="metadata-label">Controls</span>
               <span className="metadata-value highlight">🔌 {window.controlsCount || '0'}</span>

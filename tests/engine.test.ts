@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as indexModule from "../src/index";
-import { parseControlsFromTemplate } from "../src/common/parser";
+import { extractControlsFromClass } from "../src/common/control-decorators";
 import { generateControlUI } from "../src/common/registry";
 
 // Mock the effects array
@@ -9,27 +9,19 @@ vi.mock("../src/index", () => {
     effects: [
       {
         id: "simple-wave",
-        name: "Simple Wave",
-        description: "A simple wave effect",
-        author: "Test Author",
         entry: "./effects/simple-wave/main.ts",
-        template: "./effects/simple-wave/template.html",
       },
       {
         id: "puff-stuff",
-        name: "Puff Stuff",
-        description: "Another test effect",
-        author: "Test Author",
         entry: "./effects/puff-stuff/main.ts",
-        template: "./effects/puff-stuff/template.html",
       },
     ],
   };
 });
 
-// Mock the parser module with inline controls definition (no variable reference)
-vi.mock("../src/common/parser", () => ({
-  parseControlsFromTemplate: vi.fn().mockReturnValue([
+// Mock the control-decorators module with inline controls definition
+vi.mock("../src/common/control-decorators", () => ({
+  extractControlsFromClass: vi.fn().mockReturnValue([
     {
       id: "speed",
       type: "number",
@@ -46,6 +38,11 @@ vi.mock("../src/common/parser", () => ({
       default: "Rainbow",
     },
   ]),
+  extractEffectMetadata: vi.fn().mockReturnValue({
+    name: "Test Effect",
+    description: "Effect for testing",
+    author: "Test Author",
+  }),
 }));
 
 // Mock the registry module
@@ -105,7 +102,7 @@ describe("DevEngine", () => {
         document.getElementById("container")?.appendChild(controlsContainer);
 
         // Call parseControlsFromTemplate directly for the test
-        parseControlsFromTemplate("<dummy>");
+        extractControlsFromClass("<dummy>");
 
         // If multiple effects, we need to load the effect from URL param
         if (indexModule.effects.length > 1) {
@@ -126,7 +123,7 @@ describe("DevEngine", () => {
         }
 
         // Call parseControlsFromTemplate to update the mock call count
-        parseControlsFromTemplate("<dummy>");
+        extractControlsFromClass("<dummy>");
 
         // Set global variables based on control definitions
         for (const ctrl of mockControls) {
@@ -174,7 +171,7 @@ describe("DevEngine", () => {
       await engine.initialize();
 
       // Check if effect was loaded properly
-      expect(parseControlsFromTemplate).toHaveBeenCalled();
+      expect(extractControlsFromClass).toHaveBeenCalled();
     });
 
     it("should load the first effect when only one effect exists", async () => {
@@ -182,11 +179,7 @@ describe("DevEngine", () => {
       vi.mocked(indexModule.effects).splice(0);
       vi.mocked(indexModule.effects).push({
         id: "simple-wave",
-        name: "Simple Wave",
-        description: "A simple wave effect",
-        author: "Test Author",
         entry: "./effects/simple-wave/main.ts",
-        template: "./effects/simple-wave/template.html",
       });
 
       await engine.initialize();
@@ -200,7 +193,7 @@ describe("DevEngine", () => {
     it("should parse controls when loading an effect", async () => {
       await engine.loadEffect("simple-wave");
 
-      expect(parseControlsFromTemplate).toHaveBeenCalled();
+      expect(extractControlsFromClass).toHaveBeenCalled();
       expect(generateControlUI).toHaveBeenCalled();
     });
 
