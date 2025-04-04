@@ -30,4 +30,12 @@ export const effects = [
     entry: "./effects/glow-particles/main.ts",
     template: "./effects/glow-particles/template.html",
   },
+  {
+    id: "cyber-descent",
+    name: "Cyber Descent",
+    description: "A cyberpunk city flying effect inspired by classic demos",
+    author: "Bliss",
+    entry: "./effects/cyber-descent/main.ts",
+    template: "./effects/cyber-descent/template.html",
+  },
 ];
