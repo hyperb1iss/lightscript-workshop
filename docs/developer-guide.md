@@ -255,19 +255,22 @@ vec3 getColor(float pos, int mode) {
   // Rainbow colors
   if (mode == 0) {
     return hsv2rgb(vec3(pos, 0.8, 1.0));
-  }
-  // Ocean colors
-  else if (mode == 1) {
-    return mix(vec3(0.0, 0.3, 0.8), vec3(0.0, 0.8, 1.0),
-               sin(pos * 6.28) * 0.5 + 0.5);
-  }
-  // Fire colors
-  else if (mode == 2) {
-    return mix(vec3(1.0, 0.5, 0.0), vec3(1.0, 0.2, 0.0),
-               sin(pos * 6.28) * 0.5 + 0.5);
-  }
-  // Neon colors
-  else if (mode == 3) {
+  } else // Ocean colors
+  if (mode == 1) {
+    return mix(
+      vec3(0.0, 0.3, 0.8),
+      vec3(0.0, 0.8, 1.0),
+      sin(pos * 6.28) * 0.5 + 0.5
+    );
+  } else // Fire colors
+  if (mode == 2) {
+    return mix(
+      vec3(1.0, 0.5, 0.0),
+      vec3(1.0, 0.2, 0.0),
+      sin(pos * 6.28) * 0.5 + 0.5
+    );
+  } else // Neon colors
+  if (mode == 3) {
     float segment = floor(pos * 4.0) / 4.0;
     float t = fract(pos * 4.0);
 
@@ -286,7 +289,7 @@ vec3 getColor(float pos, int mode) {
   return hsv2rgb(vec3(pos, 0.8, 1.0));
 }
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
   // Normalized coordinates
   vec2 uv = fragCoord / iResolution.xy;
 

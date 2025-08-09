@@ -6,6 +6,7 @@ precision highp float;
 uniform float iTime;
 uniform vec2 iResolution;
 
+// prettier-ignore
 // Controls
 uniform float iDensity;          // 0.0 - 2.0
 uniform float iFluctuationSpeed; // 0.0 - 1.0
@@ -84,7 +85,7 @@ float ridged(vec3 p) {
 
 // HSV -> RGB
 vec3 hsv2rgb(vec3 c) {
-  vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
   vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
   return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
@@ -114,7 +115,7 @@ float collapseFlash(vec2 uv, float t) {
   return trigger * pulse * mask;
 }
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
   vec2 uv = fragCoord / iResolution.xy;
   vec2 p = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
 
@@ -150,7 +151,11 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 
   // Additional micro detail
   float micro = fbm(q * 2.5 + vec3(0.0, 0.0, time));
-  foam = mix(foam, foam * (0.7 + 0.6 * micro), clamp(iTurbulence, 0.0, 2.0) * 0.5);
+  foam = mix(
+    foam,
+    foam * (0.7 + 0.6 * micro),
+    clamp(iTurbulence, 0.0, 2.0) * 0.5
+  );
 
   // Events
   float pairs = particlePairs(uv, time);
@@ -180,5 +185,4 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 void main() {
   mainImage(gl_FragColor, gl_FragCoord.xy);
 }
-
 

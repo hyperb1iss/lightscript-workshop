@@ -5,16 +5,16 @@ uniform float iTime;
 uniform vec2 iResolution;
 
 // Controls (normalized to sensible ranges in TS)
-uniform float iFocusRadius;      // 0.0 - 1.0 (radius of sharp center)
-uniform float iFocusStrength;    // 0.0 - 2.0 (center boost)
-uniform float iPeripheralBlur;   // 0.0 - 2.0 (blur intensity grows with radius)
-uniform float iSaturation;       // 0.0 - 2.0
-uniform float iEnergy;           // 0.0 - 2.0 (brightness)
-uniform float iSparkDensity;     // 0.0 - 2.0
-uniform float iTunnelSpeed;      // 0.0 - 2.0
-uniform float iParalysis;        // 0.0 - 1.0 (reduces motion)
-uniform float iNoise;            // 0.0 - 2.0
-uniform int   iColorMode;        // 0=Dopamine,1=Neon,2=Mono
+uniform float iFocusRadius; // 0.0 - 1.0 (radius of sharp center)
+uniform float iFocusStrength; // 0.0 - 2.0 (center boost)
+uniform float iPeripheralBlur; // 0.0 - 2.0 (blur intensity grows with radius)
+uniform float iSaturation; // 0.0 - 2.0
+uniform float iEnergy; // 0.0 - 2.0 (brightness)
+uniform float iSparkDensity; // 0.0 - 2.0
+uniform float iTunnelSpeed; // 0.0 - 2.0
+uniform float iParalysis; // 0.0 - 1.0 (reduces motion)
+uniform float iNoise; // 0.0 - 2.0
+uniform int iColorMode; // 0=Dopamine,1=Neon,2=Mono
 
 // Helpers
 float hash11(float p) {
@@ -43,17 +43,20 @@ float vnoise(vec2 x) {
 }
 
 vec3 hsv2rgb(vec3 c) {
-  vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
   vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
   return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
 vec3 palette(float t, int mode) {
-  if (mode == 1) { // Neon
-    return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.00, 0.33, 0.67)));
-  } else if (mode == 2) { // Mono
+  if (mode == 1) {
+    // Neon
+    return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.0, 0.33, 0.67)));
+  } else if (mode == 2) {
+    // Mono
     return vec3(t);
-  } else { // Dopamine (hot/cool cycling)
+  } else {
+    // Dopamine (hot/cool cycling)
     float h = fract(t);
     vec3 c = hsv2rgb(vec3(h, 0.9, 1.0));
     return c;
@@ -66,7 +69,8 @@ float sparks(vec2 uv, vec2 center, float time, float density, float paralysis) {
   float grid = mix(10.0, 28.0, clamp(density * 0.5, 0.0, 1.0));
   vec2 gid = floor(uv * grid);
   float h = hash21(gid);
-  vec2 cellCenter = (gid + 0.5 + 0.25 * vec2(hash11(h), hash11(h + 1.7))) / grid;
+  vec2 cellCenter =
+    (gid + 0.5 + 0.25 * vec2(hash11(h), hash11(h + 1.7))) / grid;
 
   // Direction toward focus
   vec2 dir = normalize(center - cellCenter + 1e-4);
@@ -86,7 +90,7 @@ float sparks(vec2 uv, vec2 center, float time, float density, float paralysis) {
   return glow * activeMask;
 }
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
   vec2 uv = fragCoord / iResolution.xy;
   vec2 center = vec2(0.5);
   vec2 p = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
@@ -119,7 +123,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   base = mix(vec3(l), base, clamp(sat, 0.0, 2.0));
 
   // Procedural film/noise (more at the edges)
-  float n = (vnoise(uv * 800.0 + t * 6.0) - 0.5) * iNoise * (0.4 + 0.6 * periphFactor);
+  float n =
+    (vnoise(uv * 800.0 + t * 6.0) - 0.5) * iNoise * (0.4 + 0.6 * periphFactor);
   base += n;
 
   // Dopamine sparks
@@ -134,5 +139,4 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 void main() {
   mainImage(gl_FragColor, gl_FragCoord.xy);
 }
-
 

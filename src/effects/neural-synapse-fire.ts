@@ -23,6 +23,10 @@ export interface NeuralSynapseFireControls {
     lossLandscape: boolean // visualize loss surface
     synapticPlasticity: number // 0-1 - connection adaptation
     neuralOscillation: number // 0-2 - brain wave patterns
+    masterIntensity: number // 0-2 - global brightness control
+    quality: number // 0.5-2 - trades detail for speed
+    connSamples: number // 0-2 - how many connection samples per layer (scaled)
+    gridIntensity: number // 0-1 - background grid strength
 }
 
 const fragmentShader = `
@@ -42,6 +46,10 @@ uniform float iGradientFlow;
 uniform float iLossLandscape;
 uniform float iSynapticPlasticity;
 uniform float iNeuralOscillation;
+uniform float iMaster;
+uniform float iQuality;
+uniform float iConnSamples;
+uniform float iGridIntensity;
 
 // Neural network constants
 #define MAX_LAYERS 8
@@ -145,13 +153,13 @@ float forwardPass(vec2 uv, float time) {
     int currentLayer = int(clamp(layerProgress * iNetworkDepth, 0.0, iNetworkDepth - 1.0));
     
     // Neurons per layer based on density
-    int neuronsInLayer = int(5.0 + iNeuronDensity * 15.0);
+    int neuronsInLayer = int(clamp(3.0 + iNeuronDensity * 12.0 * iQuality, 3.0, 12.0));
     
     float activation = 0.0;
     float minDist = 1000.0;
     
     // Find closest neuron in current layer
-    for (int n = 0; n < 20; n++) {
+    for (int n = 0; n < 12; n++) {
         if (n >= neuronsInLayer) break;
         
         vec2 neuronPos = getNeuronPosition(currentLayer, n, neuronsInLayer);
@@ -161,11 +169,11 @@ float forwardPass(vec2 uv, float time) {
             minDist = dist;
             
             // Compute activation for this neuron
-            float input = 0.0;
+            float netInput = 0.0;
             
             if (currentLayer == 0) {
-                // Input layer - use position as input
-                input = sin(time * 2.0 + pos.y * 5.0) * 2.0;
+                // Input layer - use position as driver
+                netInput = sin(time * 2.0 + pos.y * 5.0) * 2.0;
             } else {
                 // Hidden/output layers - sum weighted inputs from previous layer
                 int prevNeurons = int(5.0 + iNeuronDensity * 15.0);
@@ -174,38 +182,38 @@ float forwardPass(vec2 uv, float time) {
                     
                     float weight = getWeight(currentLayer - 1, pn, currentLayer, n, time);
                     float prevActivation = sin(time * 3.0 + float(pn) * 0.5) + 0.5;
-                    input += weight * prevActivation;
+                    netInput += weight * prevActivation;
                 }
                 
                 // Add bias
-                input += hash21(vec2(float(currentLayer), float(n))) - 0.5;
+                netInput += hash21(vec2(float(currentLayer), float(n))) - 0.5;
             }
             
             // Apply activation function
-            activation = activate(input, int(iActivationFunction));
+            activation = activate(netInput, int(iActivationFunction));
             
             // Batch normalization effect
             if (iBatchNormalization > 0.5) {
                 activation = (activation - 0.5) * 0.8 + 0.5; // Normalize
             }
             
-            // Dropout during training
-            vec2 dropoutSeed = vec2(float(currentLayer * 100 + n), time * 10.0);
-            bool isDropped = hash21(dropoutSeed) < iDropoutRate && iTrainingMode > 0.5;
-            if (isDropped) {
-                activation *= 0.1; // Dim dropped neurons
-            }
+            // Soft dropout during training to avoid hard blocks
+            vec2 dropoutSeed = vec2(float(currentLayer * 100 + n), time * 3.0);
+            float dropHash = hash21(dropoutSeed);
+            float dropMask = mix(0.4, 1.0, smoothstep(iDropoutRate, iDropoutRate + 0.2, dropHash));
+            activation *= mix(1.0, dropMask, step(0.5, iTrainingMode));
         }
     }
     
     // Neuron glow based on activation
-    float neuronGlow = exp(-minDist * 20.0) * activation;
+    // Ensure a faint baseline glow so the network is visible even at low activation
+    float neuronGlow = exp(-minDist * 10.0) * (activation + 0.20);
     
     return neuronGlow;
 }
 
 // Backpropagation visualization
-float backwardPass(vec2 uv, float time) {
+    float backwardPass(vec2 uv, float time) {
     vec2 pos = uv;
     
     // Gradient flows from output to input (right to left)
@@ -223,12 +231,11 @@ float backwardPass(vec2 uv, float time) {
     int currentLayer = int(clamp(layerProgress * iNetworkDepth, 0.0, iNetworkDepth - 1.0));
     
     // Compute gradient magnitude (simplified chain rule)
-    float gradient = 1.0;
-    for (int l = int(iNetworkDepth) - 1; l > currentLayer; l--) {
-        // Apply derivative of activation function
-        float layerInput = sin(gradientTime + float(l) * 2.0);
-        gradient *= activateDerivative(layerInput, int(iActivationFunction));
-    }
+    // Lightweight approximation instead of per-layer accumulation
+    float depthSpan = float(int(iNetworkDepth) - currentLayer);
+    float layerInput = sin(gradientTime + depthSpan * 1.5);
+    float gradient = activateDerivative(layerInput, int(iActivationFunction));
+    gradient = pow(abs(gradient), 0.6);
     
     gradient = abs(gradient) * iLearningRate;
     
@@ -236,50 +243,42 @@ float backwardPass(vec2 uv, float time) {
 }
 
 // Synaptic connection visualization
-float synapticConnections(vec2 uv, float time) {
+    float synapticConnections(vec2 uv, float time) {
     float connectionIntensity = 0.0;
-    
     int layerCount = int(iNetworkDepth);
-    
+    int neurons = int(clamp(3.0 + iNeuronDensity * 12.0 * iQuality, 3.0, 12.0));
+
     for (int layer = 0; layer < MAX_LAYERS - 1; layer++) {
         if (layer >= layerCount - 1) break;
-        
-        int neuronsA = int(5.0 + iNeuronDensity * 15.0);
-        int neuronsB = int(5.0 + iNeuronDensity * 15.0);
-        
-        // Check connections between layers
-        for (int na = 0; na < 20; na++) {
-            if (na >= neuronsA) break;
-            
-            for (int nb = 0; nb < 20; nb++) {
-                if (nb >= neuronsB) break;
-                
-                vec2 posA = getNeuronPosition(layer, na, neuronsA);
-                vec2 posB = getNeuronPosition(layer + 1, nb, neuronsB);
-                
-                // Distance from point to line segment
-                vec2 ap = uv - posA;
-                vec2 ab = posB - posA;
-                float h = clamp(dot(ap, ab) / dot(ab, ab), 0.0, 1.0);
-                vec2 closest = posA + h * ab;
-                float dist = length(uv - closest);
-                
-                // Connection weight affects visual intensity
-                float weight = abs(getWeight(layer, na, layer + 1, nb, time));
-                
-                // Connection visualization
-                float connectionViz = exp(-dist * 50.0) * weight;
-                
-                // Information flow animation
-                float flowTime = time * 4.0 + hash21(vec2(float(na), float(nb))) * TAU;
-                float flowPulse = 0.5 + 0.5 * sin(flowTime + h * 10.0);
-                
-                connectionIntensity += connectionViz * flowPulse;
-            }
+
+        // Sample only a few random connections per layer based on iConnSamples
+        int maxSamples = 8;
+        for (int s = 0; s < 8; s++) {
+            if (s >= int(clamp(iConnSamples * 4.0, 1.0, 8.0))) break;
+
+            // Pseudo-random neuron indices
+            float sh = hash21(vec2(float(layer * 31 + s), time * 0.5));
+            int na = int(floor(sh * float(neurons)));
+            int nb = int(floor(fract(sh * 13.7) * float(neurons)));
+
+            vec2 posA = getNeuronPosition(layer, na, neurons);
+            vec2 posB = getNeuronPosition(layer + 1, nb, neurons);
+
+            vec2 ap = uv - posA;
+            vec2 ab = posB - posA;
+            float h = clamp(dot(ap, ab) / dot(ab, ab), 0.0, 1.0);
+            vec2 closest = posA + h * ab;
+            float dist = length(uv - closest);
+
+            float weight = abs(getWeight(layer, na, layer + 1, nb, time));
+            float connectionViz = exp(-dist * 40.0) * weight;
+            float flowTime = time * 3.0 + sh * TAU;
+            float flowPulse = 0.6 + 0.4 * sin(flowTime + h * 8.0);
+            connectionIntensity += connectionViz * flowPulse;
         }
     }
-    
-    return connectionIntensity * 0.1;
+
+    return connectionIntensity * 0.12;
 }
 
 // Loss landscape visualization
@@ -346,13 +345,17 @@ vec3 neuralActivityColor(float activity, float gradient, float time) {
         } else {
             baseColor = vec3(0.6, 0.2, 1.0); // Purple for Tanh
         }
-        baseColor *= activity;
+        // Apply activity with a soft floor so it's never fully dark
+        float activityGain = max(0.15, activity);
+        baseColor *= activityGain;
     }
     
     // Add some temporal variation
     float timeVar = 0.8 + 0.2 * sin(time * 3.0);
     baseColor *= timeVar;
     
+    // Subtle hue breathing
+    baseColor *= (0.9 + 0.1 * sin(time * 0.8)) * 1.5;
     return baseColor;
 }
 
@@ -400,8 +403,21 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 gridUV = uv * 10.0;
     grid += abs(fract(gridUV.x) - 0.5) < 0.05 ? 0.1 : 0.0;
     grid += abs(fract(gridUV.y) - 0.5) < 0.05 ? 0.1 : 0.0;
-    color += vec3(0.05, 0.1, 0.15) * grid * (1.0 - totalActivity);
+    color += vec3(0.05, 0.1, 0.15) * grid * iGridIntensity;
+
+    // Fallback: if everything is too dark, add a faint ambient
+    float luminance = dot(color, vec3(0.299, 0.587, 0.114));
+    color += vec3(0.03) * step(luminance, 0.02);
     
+    // Fallback visual if activity is extremely low (safety net)
+    if (length(color) < 0.003) {
+        vec2 u = uv * 3.0;
+        float v = 0.5 + 0.25 * sin(time + u.x) + 0.25 * sin(time * 1.3 + u.y);
+        color += mix(vec3(0.18, 0.34, 0.8), vec3(0.9, 0.3, 0.65), v) * 0.6;
+    }
+
+    // Boost and apply master intensity
+    color *= 2.0 * iMaster;
     fragColor = vec4(color, 1.0);
 }
 
@@ -522,6 +538,42 @@ export class NeuralSynapseFireEffect extends WebGLEffect<NeuralSynapseFireContro
     })
     neuralOscillation!: number
 
+    @NumberControl({
+        default: 120,
+        label: 'Master Intensity',
+        max: 200,
+        min: 10,
+        tooltip: 'Global brightness scaling for the effect',
+    })
+    masterIntensity!: number
+
+    @NumberControl({
+        default: 80,
+        label: 'Quality',
+        max: 200,
+        min: 50,
+        tooltip: 'Rendering quality vs performance (50=fast, 200=high detail)',
+    })
+    quality!: number
+
+    @NumberControl({
+        default: 100,
+        label: 'Connection Samples',
+        max: 200,
+        min: 0,
+        tooltip: 'How many connections to sample per layer (lower = faster)',
+    })
+    connSamples!: number
+
+    @NumberControl({
+        default: 60,
+        label: 'Grid Intensity',
+        max: 100,
+        min: 0,
+        tooltip: 'Background grid visibility',
+    })
+    gridIntensity!: number
+
     constructor() {
         super({
             debug: true,
@@ -545,6 +597,10 @@ export class NeuralSynapseFireEffect extends WebGLEffect<NeuralSynapseFireContro
         w.lossLandscape = false
         w.synapticPlasticity = 40
         w.neuralOscillation = 50
+        w.masterIntensity = 120
+        w.quality = 80
+        w.connSamples = 100
+        w.gridIntensity = 60
     }
 
     protected getControlValues(): NeuralSynapseFireControls {
@@ -560,13 +616,17 @@ export class NeuralSynapseFireEffect extends WebGLEffect<NeuralSynapseFireContro
             activationFunction: activationIndex,
             batchNormalization: Boolean(boolToInt((w.batchNormalization as number | boolean | undefined) ?? true)),
             connectionStrength: normalizePercentage((w.connectionStrength as number) ?? 100, 100, 0.1) * 2.0,
+            connSamples: normalizePercentage((w.connSamples as number) ?? 100, 100, 0.0) * 2.0,
             dropoutRate: normalizePercentage((w.dropoutRate as number) ?? 20, 100, 0.0) * 0.8,
             gradientFlow: normalizePercentage((w.gradientFlow as number) ?? 60, 100, 0.0) * 2.0,
+            gridIntensity: normalizePercentage((w.gridIntensity as number) ?? 60, 100, 0.0),
             learningRate: normalizePercentage((w.learningRate as number) ?? 30, 100, 0.01),
             lossLandscape: Boolean(boolToInt((w.lossLandscape as number | boolean | undefined) ?? false)),
+            masterIntensity: normalizePercentage((w.masterIntensity as number) ?? 120, 100, 0.1) * 2.0,
             networkDepth: Math.round(2 + ((((w.networkDepth as number) ?? 4) - 2) / 6) * 6), // 2-8 range
             neuralOscillation: normalizePercentage((w.neuralOscillation as number) ?? 50, 100, 0.0) * 2.0,
             neuronDensity: normalizePercentage((w.neuronDensity as number) ?? 80, 100, 0.2) * 2.0,
+            quality: normalizePercentage((w.quality as number) ?? 80, 100, 0.5) * 2.0,
             synapticPlasticity: normalizePercentage((w.synapticPlasticity as number) ?? 40, 100, 0.0),
             trainingMode: Boolean(boolToInt((w.trainingMode as number | boolean | undefined) ?? false)),
         }
@@ -577,13 +637,17 @@ export class NeuralSynapseFireEffect extends WebGLEffect<NeuralSynapseFireContro
             iActivationFunction: { value: 0.0 },
             iBatchNormalization: { value: 1.0 },
             iConnectionStrength: { value: 2.0 },
+            iConnSamples: { value: 1.0 },
             iDropoutRate: { value: 0.16 },
             iGradientFlow: { value: 1.2 },
+            iGridIntensity: { value: 0.6 },
             iLearningRate: { value: 0.3 },
             iLossLandscape: { value: 0.0 },
+            iMaster: { value: 1.2 },
             iNetworkDepth: { value: 4.0 },
             iNeuralOscillation: { value: 1.0 },
             iNeuronDensity: { value: 1.6 },
+            iQuality: { value: 0.8 },
             iSynapticPlasticity: { value: 0.4 },
             iTrainingMode: { value: 0.0 },
         }
@@ -604,6 +668,10 @@ export class NeuralSynapseFireEffect extends WebGLEffect<NeuralSynapseFireContro
         this.material.uniforms.iLossLandscape.value = controls.lossLandscape ? 1.0 : 0.0
         this.material.uniforms.iSynapticPlasticity.value = controls.synapticPlasticity
         this.material.uniforms.iNeuralOscillation.value = controls.neuralOscillation
+        this.material.uniforms.iMaster.value = controls.masterIntensity
+        this.material.uniforms.iQuality.value = controls.quality
+        this.material.uniforms.iConnSamples.value = controls.connSamples
+        this.material.uniforms.iGridIntensity.value = controls.gridIntensity
     }
 }
 

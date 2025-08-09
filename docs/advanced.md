@@ -623,15 +623,17 @@ vec3 getNormal(vec3 p) {
   const float eps = 0.001;
   vec2 e = vec2(eps, 0.0);
 
-  return normalize(vec3(
-    map(p + e.xyy) - map(p - e.xyy),
-    map(p + e.yxy) - map(p - e.yxy),
-    map(p + e.yyx) - map(p - e.yyx)
-  ));
+  return normalize(
+    vec3(
+      map(p + e.xyy) - map(p - e.xyy),
+      map(p + e.yxy) - map(p - e.yxy),
+      map(p + e.yyx) - map(p - e.yyx)
+    )
+  );
 }
 
 // Usage in mainImage
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
   vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
 
   // Camera setup
@@ -916,12 +918,12 @@ Create effects that adapt to different types of RGB devices.
 ### Responsive Layouts
 
 ```glsl
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
   vec2 uv = fragCoord / iResolution.xy;
   float aspectRatio = iResolution.x / iResolution.y;
 
   // Adjust for different aspect ratios
-  if (aspectRatio > 16.0/9.0) {
+  if (aspectRatio > 16.0 / 9.0) {
     // Ultrawide monitor or LED strip
     // Create horizontal effect
     float horizontalGradient = fract(uv.x * 5.0 - iTime * 0.1);
@@ -1095,7 +1097,7 @@ Use color output to visualize values:
 uniform bool iDebugMode;
 uniform int iDebugView; // 0: normal, 1: uv, 2: distance, 3: normals...
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
   vec2 uv = fragCoord / iResolution.xy;
 
   // Normal effect calculation

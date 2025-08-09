@@ -41,7 +41,24 @@ export interface VoronoiFlowControls {
     name: 'Voronoi Flow',
 })
 export class VoronoiFlowEffect extends WebGLEffect<VoronoiFlowControls> {
-    private readonly palettes = ['Rainbow','Neon','Mono','Ocean','Fire','Aurora','Cyberpunk','Sunset','Candy','Pastel','Forest','Heatmap','Viridis','Inferno','Plasma','Magma']
+    private readonly palettes = [
+        'Rainbow',
+        'Neon',
+        'Mono',
+        'Ocean',
+        'Fire',
+        'Aurora',
+        'Cyberpunk',
+        'Sunset',
+        'Candy',
+        'Pastel',
+        'Forest',
+        'Heatmap',
+        'Viridis',
+        'Inferno',
+        'Plasma',
+        'Magma',
+    ]
 
     @NumberControl({ default: 120, label: 'Scale', max: 400, min: 30, tooltip: 'Cell size' })
     scale!: number
@@ -62,7 +79,24 @@ export class VoronoiFlowEffect extends WebGLEffect<VoronoiFlowControls> {
         default: 'Rainbow',
         label: 'Palette',
         tooltip: 'Color palette',
-        values: ['Rainbow','Neon','Mono','Ocean','Fire','Aurora','Cyberpunk','Sunset','Candy','Pastel','Forest','Heatmap','Viridis','Inferno','Plasma','Magma'],
+        values: [
+            'Rainbow',
+            'Neon',
+            'Mono',
+            'Ocean',
+            'Fire',
+            'Aurora',
+            'Cyberpunk',
+            'Sunset',
+            'Candy',
+            'Pastel',
+            'Forest',
+            'Heatmap',
+            'Viridis',
+            'Inferno',
+            'Plasma',
+            'Magma',
+        ],
     })
     palette!: string
 

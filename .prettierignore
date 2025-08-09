@@ -1,0 +1,20 @@
+# Build output
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# Test coverage
+coverage/
+
+# IDE
+.vscode/
+.idea/
+
+# If you want to exclude specific GLSL files from formatting:
+# src/effects/*/fragment.glsl
+# src/effects/*/vertex.glsl
+
+# Or exclude all GLSL files (uncomment if you prefer manual formatting):
+# *.glsl

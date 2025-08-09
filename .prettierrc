@@ -1,3 +1,13 @@
 {
-  "plugins": ["prettier-plugin-uppercase-doctype", "prettier-plugin-glsl"]
+  "plugins": ["prettier-plugin-uppercase-doctype", "prettier-plugin-glsl"],
+  "overrides": [
+    {
+      "files": "*.glsl",
+      "options": {
+        "printWidth": 120,
+        "tabWidth": 2,
+        "useTabs": false
+      }
+    }
+  ]
 }

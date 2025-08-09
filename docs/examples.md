@@ -74,7 +74,7 @@ vec3 getColor(float t, int mode) {
   }
 }
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
   // Normalized pixel coordinates
   vec2 uv = fragCoord / iResolution.xy;
 
@@ -301,7 +301,7 @@ vec3 hsv2rgb(vec3 c) {
   return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
   // Center coordinates
   vec2 uv = fragCoord / iResolution.xy;
   vec2 center = uv - 0.5;
@@ -315,7 +315,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 
   // Color based on angle and time
   float angle = atan(center.y, center.x);
-  float hue = fract((angle / 6.28) + iTime * iColorShift);
+  float hue = fract(angle / 6.28 + iTime * iColorShift);
 
   // Final color
   vec3 color = hsv2rgb(vec3(hue, 0.8, brightness));

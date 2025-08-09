@@ -147,9 +147,11 @@ float noise(vec2 p) {
   vec2 i = floor(p);
   vec2 f = fract(p);
   vec2 u = f * f * (3.0 - 2.0 * f);
-  return mix(mix(hash1(i + vec2(0.0, 0.0)), hash1(i + vec2(1.0, 0.0)), u.x),
-             mix(hash1(i + vec2(0.0, 1.0)), hash1(i + vec2(1.0, 1.0)), u.x),
-             u.y);
+  return mix(
+    mix(hash1(i + vec2(0.0, 0.0)), hash1(i + vec2(1.0, 0.0)), u.x),
+    mix(hash1(i + vec2(0.0, 1.0)), hash1(i + vec2(1.0, 1.0)), u.x),
+    u.y
+  );
 }
 
 vec4 castRay(vec3 eye, vec3 ray, vec2 center) {
@@ -245,15 +247,18 @@ vec3 window(float z, vec2 pos, vec2 id) {
   vec3 colorA = mix(windowColorA, windowColorB, hash3(id));
   vec3 colorB = mix(windowColorA, windowColorB, hash3(id + 0.1));
   vec3 color = mix(colorA, colorB, hash1(id, level));
-  color *= 0.3 +
-           0.7 * smoothstep(0.1, 0.5, noise(20.0 * pos + 100.0 * hash1(level)));
   color *=
-      smoothstep(windowProb - 0.2, windowProb + 0.2, hash1(id, level + 0.1));
+    0.3 + 0.7 * smoothstep(0.1, 0.5, noise(20.0 * pos + 100.0 * hash1(level)));
+  color *= smoothstep(
+    windowProb - 0.2,
+    windowProb + 0.2,
+    hash1(id, level + 0.1)
+  );
   return color * (0.5 - 0.5 * cos(tau * depth));
 }
 
 vec3 addLight(vec3 eye, vec3 ray, float res, float time, float height) {
-  vec2 q = eye.xy + ((height - eye.z) / ray.z) * ray.xy;
+  vec2 q = eye.xy + (height - eye.z) / ray.z * ray.xy;
 
   float row = floor(q.x + 0.5);
   time += hash1(row);
@@ -278,8 +283,10 @@ vec3 addLight(vec3 eye, vec3 ray, float res, float time, float height) {
   float dist = distance(eye + s * ray, lightPos + t * lightDir);
 
   float mask = smoothstep(res + 0.1, res, s);
-  float light =
-      min(1.0 / pow(200.0 * dist * dist / t + 20.0 * t * t, 0.8), 2.0);
+  float light = min(
+    1.0 / pow(200.0 * dist * dist / t + 20.0 * t * t, 0.8),
+    2.0
+  );
   float fog = exp(-fogDensity * max(s - fogOffset, 0.0));
   vec3 color = mix(lightColorA, lightColorB, hash3(vec2(row, col)));
   return mask * light * fog * color;
@@ -288,8 +295,7 @@ vec3 addLight(vec3 eye, vec3 ray, float res, float time, float height) {
 vec3 addSign(vec3 color, vec3 pos, float side, vec2 id) {
   vec4 signHash = hash4(id);
   float s = step(0.5, signHash.z);
-  if ((s - 0.5) * side < 0.1)
-    return color;
+  if ((s - 0.5) * side < 0.1) return color;
 
   vec2 center = vec2(0.2, -0.4) + vec2(0.6, -0.8) * signHash.xy;
   vec2 p = mix(pos.xz, pos.yz, s);
@@ -323,14 +329,17 @@ vec3 addSign(vec3 color, vec3 pos, float side, vec2 id) {
   charPos = fract(charPos);
   char *= smoothstep(0.0, 0.4, charPos.x) * smoothstep(1.0, 0.6, charPos.x);
   char *= smoothstep(0.0, 0.4, charPos.y) * smoothstep(1.0, 0.6, charPos.y);
-  color = mix(color, signColor,
-              flash * flicker * step(outline, 0.01) * clamp(char, 0.0, 1.0));
+  color = mix(
+    color,
+    signColor,
+    flash * flicker * step(outline, 0.01) * clamp(char, 0.0, 1.0)
+  );
 
   outline = smoothstep(0.0, 0.2, outline) * smoothstep(0.5, 0.3, outline);
   return mix(color, outlineColor, flash * outline);
 }
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
   // Initialize settings based on cyberpunk mode
   initializeSettings();
 
@@ -347,8 +356,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   vec3 right = normalize(cross(forward, vec3(0.0, 0.0, 1.0)));
   vec3 up = cross(right, forward);
   vec2 xy = 2.0 * fragCoord - iResolution.xy;
-  vec3 ray =
-      normalize(xy.x * right + xy.y * up + zoom * forward * iResolution.y);
+  vec3 ray = normalize(
+    xy.x * right + xy.y * up + zoom * forward * iResolution.y
+  );
 
   vec4 res = castRay(eye, ray, center);
   vec3 p = eye + res.x * ray;
@@ -365,10 +375,20 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   float time = lightSpeed * iTime;
   color += addLight(eye.xyz, ray.xyz, res.x, time, lightHeight - 0.6);
   color += addLight(eye.yxz, ray.yxz, res.x, time, lightHeight - 0.4);
-  color += addLight(vec3(-eye.xy, eye.z), vec3(-ray.xy, ray.z), res.x, time,
-                    lightHeight - 0.2);
-  color += addLight(vec3(-eye.yx, eye.z), vec3(-ray.yx, ray.z), res.x, time,
-                    lightHeight);
+  color += addLight(
+    vec3(-eye.xy, eye.z),
+    vec3(-ray.xy, ray.z),
+    res.x,
+    time,
+    lightHeight - 0.2
+  );
+  color += addLight(
+    vec3(-eye.yx, eye.z),
+    vec3(-ray.yx, ray.z),
+    res.x,
+    time,
+    lightHeight
+  );
 
   // Optional black and white mode when colorSaturation is very low
   if (iColorSaturation < 0.1) {
@@ -380,4 +400,6 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   fragColor = vec4(color, 1.0);
 }
 
-void main() { mainImage(gl_FragColor, gl_FragCoord.xy); }
+void main() {
+  mainImage(gl_FragColor, gl_FragCoord.xy);
+}

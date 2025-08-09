@@ -6,34 +6,35 @@ precision highp float;
 uniform vec2 iResolution;
 uniform float iTime;
 
+// prettier-ignore
 // Controls
-uniform float iSpeed;             // 0.2 - ~3.0 (normalized)
-uniform float iColorIntensity;    // 0.0 - 2.0
-uniform float iColorSaturation;   // 0.0 - 2.0
-uniform int   iSegments;          // 3 - 12
-uniform float iTwist;             // 0.0 - 1.0
+uniform float iSpeed;            // 0.2 - ~3.0 (normalized)
+uniform float iColorIntensity;   // 0.0 - 2.0
+uniform float iColorSaturation;  // 0.0 - 2.0
+uniform int   iSegments;         // 3 - 12
+uniform float iTwist;            // 0.0 - 1.0
 // Removed depth falloff – always render full pattern
-uniform int   iColorMode;         // 0: Rainbow, 1: Neon, 2: Mono
-uniform float iColorShift;        // 0.0 - 2.0
-uniform float iAberration;        // 0.0 - 1.0
-uniform float iWarp;              // 0.0 - 1.0
-uniform float iPulse;             // 0.0 - 1.0
-uniform int   iStyle;             // 0: Standard, 1: Glitch, 2: Holo, 3: Grain
-uniform float iMultiHue;          // 0.0 - 1.0
-uniform float iPaletteDrift;      // 0.0 - 1.0
-uniform float iSpectrumSpread;    // 0.0 - 2.0
+uniform int   iColorMode;        // 0: Rainbow, 1: Neon, 2: Mono
+uniform float iColorShift;       // 0.0 - 2.0
+uniform float iAberration;       // 0.0 - 1.0
+uniform float iWarp;             // 0.0 - 1.0
+uniform float iPulse;            // 0.0 - 1.0
+uniform int   iStyle;            // 0: Standard, 1: Glitch, 2: Holo, 3: Grain
+uniform float iMultiHue;         // 0.0 - 1.0
+uniform float iPaletteDrift;     // 0.0 - 1.0
+uniform float iSpectrumSpread;   // 0.0 - 2.0
 
 const float TAU = 6.28318530718;
 
 // HSV to RGB
-vec3 hsv2rgb(vec3 c){
-  vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+vec3 hsv2rgb(vec3 c) {
+  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
   vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
   return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
 // Multi-hue palette mixing
-vec3 palette(float t, int mode, float sat){
+vec3 palette(float t, int mode, float sat) {
   t = fract(t);
   float s = clamp(sat, 0.0, 1.0);
   // Secondary hue sources for richer color
@@ -45,9 +46,12 @@ vec3 palette(float t, int mode, float sat){
   if (mode == 1) {
     // Neon – punchy triad
     float sector = floor(t * 3.0);
-    vec3 c = sector < 1.0 ? vec3(1.0, 0.1, 0.8)
-             : (sector < 2.0 ? vec3(0.1, 1.0, 0.9)
-                              : vec3(1.0, 1.0, 0.1));
+    vec3 c =
+      sector < 1.0
+        ? vec3(1.0, 0.1, 0.8)
+        : sector < 2.0
+          ? vec3(0.1, 1.0, 0.9)
+          : vec3(1.0, 1.0, 0.1);
     // Add slight shift over time for living color
     float shift = sin(t * TAU * 3.0 + iTime * 0.6) * 0.08;
     vec3 hsv = vec3(fract(t + shift), s, 1.0);
@@ -57,26 +61,40 @@ vec3 palette(float t, int mode, float sat){
     // Monochrome
     return vec3(t * 0.8 + 0.2);
   }
-  if (mode == 3) { // Electric
+  if (mode == 3) {
+    // Electric
     float flash = pow(sin(iTime * 10.0) * 0.5 + 0.5, 4.0);
     base = vec3(0.2, 0.7, 1.6) + flash * 0.2;
   }
-  if (mode == 4) { // Amethyst
-    base = vec3(0.9, 0.3 + 0.1*sin(iTime*0.5), 1.2);
+  if (mode == 4) {
+    // Amethyst
+    base = vec3(0.9, 0.3 + 0.1 * sin(iTime * 0.5), 1.2);
   }
-  if (mode == 5) { // Sunset
+  if (mode == 5) {
+    // Sunset
     base = mix(vec3(1.4, 0.6, 0.2), vec3(0.2, 0.2, 0.8), t);
   }
-  if (mode == 6) { // Toxic
+  if (mode == 6) {
+    // Toxic
     base = vec3(0.3, 1.6, 0.4);
   }
-  if (mode == 7) { // Vaporwave
+  if (mode == 7) {
+    // Vaporwave
     base = vec3(0.95, 0.4, 0.9);
   }
-  if (mode == 8) { // Deep Sea
+  if (mode == 8) {
+    // Deep Sea
     base = vec3(0.05, 0.3, 0.6);
   }
-  if (mode == 1 || mode == 3 || mode == 4 || mode == 5 || mode == 6 || mode == 7 || mode == 8) {
+  if (
+    mode == 1 ||
+    mode == 3 ||
+    mode == 4 ||
+    mode == 5 ||
+    mode == 6 ||
+    mode == 7 ||
+    mode == 8
+  ) {
     // Multi-hue blend
     vec3 c2 = hsv2rgb(vec3(t2, s, 1.0));
     vec3 c3 = hsv2rgb(vec3(t3, s, 1.0));
@@ -93,7 +111,7 @@ vec3 palette(float t, int mode, float sat){
   return rr;
 }
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord){
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
   // Normalized, centered coordinates with aspect correction
   vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
 
@@ -102,8 +120,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord){
   // Pre-warp UV for psychedelic distortion
   float w = iWarp * 0.6;
   uv += vec2(
-    sin((uv.y + time*0.5) * 6.0) * w * 0.08,
-    cos((uv.x - time*0.4) * 6.0) * w * 0.08
+    sin((uv.y + time * 0.5) * 6.0) * w * 0.08,
+    cos((uv.x - time * 0.4) * 6.0) * w * 0.08
   );
   // Polar coordinates
   float r = length(uv) + 1e-6;
@@ -144,14 +162,19 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord){
   color *= vign;
 
   // Post styles
-  if (iStyle == 1) { // Glitch
+  if (iStyle == 1) {
+    // Glitch
     float line = step(0.98, fract(gl_FragCoord.y * 0.03 + sin(time) * 0.1));
     color.rb += line * 0.2;
-  } else if (iStyle == 2) { // Holo
+  } else if (iStyle == 2) {
+    // Holo
     float scan = 0.7 + 0.3 * sin(gl_FragCoord.y * 0.6 + time * 10.0);
     color *= vec3(0.8, 1.0, 1.1) * scan;
-  } else if (iStyle == 3) { // Grain
-    float grain = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898,78.233))) * 43758.5453);
+  } else if (iStyle == 3) {
+    // Grain
+    float grain = fract(
+      sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453
+    );
     color += (grain - 0.5) * 0.06;
   }
 
@@ -169,8 +192,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord){
   fragColor = vec4(color, 1.0);
 }
 
-void main(){
+void main() {
   mainImage(gl_FragColor, gl_FragCoord.xy);
 }
-
 

@@ -16,16 +16,24 @@ vec3 hsv2rgb(vec3 c) {
 }
 
 // Color mode functions
-vec3 getRainbow(float pos) { return hsv2rgb(vec3(pos, 0.8, 1.0)); }
+vec3 getRainbow(float pos) {
+  return hsv2rgb(vec3(pos, 0.8, 1.0));
+}
 
 vec3 getOcean(float pos) {
-  return mix(vec3(0.0, 0.3, 0.8), vec3(0.0, 0.8, 1.0),
-             sin(pos * 6.28) * 0.5 + 0.5);
+  return mix(
+    vec3(0.0, 0.3, 0.8),
+    vec3(0.0, 0.8, 1.0),
+    sin(pos * 6.28) * 0.5 + 0.5
+  );
 }
 
 vec3 getFire(float pos) {
-  return mix(vec3(1.0, 0.5, 0.0), vec3(1.0, 0.2, 0.0),
-             sin(pos * 6.28) * 0.5 + 0.5);
+  return mix(
+    vec3(1.0, 0.5, 0.0),
+    vec3(1.0, 0.2, 0.0),
+    sin(pos * 6.28) * 0.5 + 0.5
+  );
 }
 
 vec3 getNeon(float pos) {
@@ -43,21 +51,19 @@ vec3 getNeon(float pos) {
   }
 }
 
-vec3 getMono(float pos) { return vec3(0.7 + 0.3 * sin(pos * 6.28)); }
+vec3 getMono(float pos) {
+  return vec3(0.7 + 0.3 * sin(pos * 6.28));
+}
 
 vec3 getColorForMode(float pos, int mode) {
-  if (mode == 1)
-    return getOcean(pos);
-  if (mode == 2)
-    return getFire(pos);
-  if (mode == 3)
-    return getNeon(pos);
-  if (mode == 4)
-    return getMono(pos);
+  if (mode == 1) return getOcean(pos);
+  if (mode == 2) return getFire(pos);
+  if (mode == 3) return getNeon(pos);
+  if (mode == 4) return getMono(pos);
   return getRainbow(pos); // default
 }
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
   // Normalized coordinates
   vec2 uv = fragCoord / iResolution.xy;
 
@@ -82,8 +88,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   vec3 color = getColorForMode(colorPos, iColorMode);
 
   // Apply wave and intensity
-  float intensity =
-      mix(0.1, 1.0, iColorIntensity); // Ensure some color even at low intensity
+  float intensity = mix(0.1, 1.0, iColorIntensity); // Ensure some color even at low intensity
 
   // Calculate the threshold based on wave and y position
   float threshold = wave;
@@ -97,4 +102,6 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   }
 }
 
-void main() { mainImage(gl_FragColor, gl_FragCoord.xy); }
+void main() {
+  mainImage(gl_FragColor, gl_FragCoord.xy);
+}
