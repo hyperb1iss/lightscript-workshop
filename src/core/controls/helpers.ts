@@ -7,9 +7,9 @@
  * Contains properties common to most lightscripts
  */
 export interface BaseControls {
-  speed: number;
-  colorIntensity: number;
-  colorSaturation: number;
+    speed: number
+    colorIntensity: number
+    colorSaturation: number
 }
 
 /**
@@ -19,7 +19,7 @@ export interface BaseControls {
  * @returns The control value from the window object
  */
 export function getControlValue<T>(propertyName: string, defaultValue: T): T {
-  return (window[propertyName] as T) ?? defaultValue;
+    return (window[propertyName] as T) ?? defaultValue
 }
 
 /**
@@ -28,12 +28,12 @@ export function getControlValue<T>(propertyName: string, defaultValue: T): T {
  * @returns Normalized speed value (0.2-3.0)
  */
 export function normalizeSpeed(speed: number): number {
-  if (typeof speed !== "number" || isNaN(speed)) {
-    return 1.0; // Default value
-  }
+    if (typeof speed !== 'number' || isNaN(speed)) {
+        return 1.0 // Default value
+    }
 
-  // Use a non-linear curve for better control at lower speeds
-  return Math.max(0.2, Math.pow(speed / 5, 1.5));
+    // Use a non-linear curve for better control at lower speeds
+    return Math.max(0.2, (speed / 5) ** 1.5)
 }
 
 /**
@@ -43,17 +43,13 @@ export function normalizeSpeed(speed: number): number {
  * @param defaultIndex - Default index if not found
  * @returns Numeric index of the value in the options array
  */
-export function comboboxValueToIndex(
-  value: string | number,
-  options: string[],
-  defaultIndex = 0,
-): number {
-  if (typeof value === "number") {
-    return value;
-  }
+export function comboboxValueToIndex(value: string | number, options: string[], defaultIndex = 0): number {
+    if (typeof value === 'number') {
+        return value
+    }
 
-  const index = options.indexOf(value);
-  return index === -1 ? defaultIndex : index;
+    const index = options.indexOf(value)
+    return index === -1 ? defaultIndex : index
 }
 
 /**
@@ -63,18 +59,13 @@ export function comboboxValueToIndex(
  * @param minValue - Minimum allowed output value
  * @returns Normalized factor value
  */
-export function normalizePercentage(
-  value: number,
-  defaultValue = 100,
-  minValue = 0.01,
-): number {
-  // Handle undefined or NaN values
-  const rawValue =
-    typeof value === "number" && !isNaN(value) ? value : defaultValue;
+export function normalizePercentage(value: number, defaultValue = 100, minValue = 0.01): number {
+    // Handle undefined or NaN values
+    const rawValue = typeof value === 'number' && !isNaN(value) ? value : defaultValue
 
-  // Convert from percentage (0-200) to factor (0-2)
-  // with a minimum value to prevent division by zero issues
-  return Math.max(minValue, rawValue / 100);
+    // Convert from percentage (0-200) to factor (0-2)
+    // with a minimum value to prevent division by zero issues
+    return Math.max(minValue, rawValue / 100)
 }
 
 /**
@@ -83,10 +74,10 @@ export function normalizePercentage(
  * @returns 1 if true, 0 if false
  */
 export function boolToInt(value: boolean | number): number {
-  if (typeof value === "number") {
-    return value === 0 ? 0 : 1;
-  }
-  return value ? 1 : 0;
+    if (typeof value === 'number') {
+        return value === 0 ? 0 : 1
+    }
+    return value ? 1 : 0
 }
 
 /**
@@ -94,14 +85,12 @@ export function boolToInt(value: boolean | number): number {
  * @param controls - Dictionary of control names and default values
  * @returns Object with all control values
  */
-export function getAllControls<T extends Record<string, unknown>>(
-  controls: T,
-): T {
-  const result: Record<string, unknown> = {};
+export function getAllControls<T extends Record<string, unknown>>(controls: T): T {
+    const result: Record<string, unknown> = {}
 
-  for (const [key, defaultValue] of Object.entries(controls)) {
-    result[key] = getControlValue(key, defaultValue);
-  }
+    for (const [key, defaultValue] of Object.entries(controls)) {
+        result[key] = getControlValue(key, defaultValue)
+    }
 
-  return result as T;
+    return result as T
 }

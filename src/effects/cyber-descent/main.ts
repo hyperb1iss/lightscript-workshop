@@ -5,15 +5,15 @@
  * https://www.shadertoy.com/view/wdfGW4
  */
 
-import { initializeEffect } from "../../core";
-import { CyberDescentEffect } from "./cyber-descent-effect";
+import { initializeEffect } from '../../core'
+import { CyberDescentEffect } from './cyber-descent-effect'
 
 // Create and export the effect instance
-const effect = new CyberDescentEffect();
+const effect = new CyberDescentEffect()
 
 // Initialize the effect
 initializeEffect(() => {
-  effect.initialize();
-});
+    effect.initialize()
+})
 
-export default effect;
+export default effect

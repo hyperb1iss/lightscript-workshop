@@ -4,7 +4,7 @@
  */
 
 export type {
-  ControlDefinition,
-  ControlValues,
-  BaseControls,
-} from "../core/controls/definitions";
+    BaseControls,
+    ControlDefinition,
+    ControlValues,
+} from '../core/controls/definitions'

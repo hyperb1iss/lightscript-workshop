@@ -4,7 +4,7 @@
  */
 
 export {
-  createDebugLogger,
-  printStartupBanner,
-  debug,
-} from "../core/utils/debug";
+    createDebugLogger,
+    debug,
+    printStartupBanner,
+} from '../core/utils/debug'

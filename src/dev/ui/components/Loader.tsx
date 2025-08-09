@@ -1,16 +1,14 @@
-import { h, FunctionComponent } from 'preact';
+import { FunctionComponent, h } from 'preact'
 
 interface LoaderProps {
-  message?: string;
+    message?: string
 }
 
-export const Loader: FunctionComponent<LoaderProps> = ({ 
-  message = 'LOADING LIGHTSCRIPT' 
-}) => {
-  return (
-    <div className="loader">
-      <div className="loader-text">{message}</div>
-      <div className="spinner"></div>
-    </div>
-  );
-}; 
+export const Loader: FunctionComponent<LoaderProps> = ({ message = 'LOADING LIGHTSCRIPT' }) => {
+    return (
+        <div className="loader">
+            <div className="loader-text">{message}</div>
+            <div className="spinner" />
+        </div>
+    )
+}

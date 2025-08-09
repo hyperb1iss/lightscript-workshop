@@ -19,19 +19,17 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    
+
     /* Decorators */
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    
+
     /* JSX for Preact */
     "jsx": "react",
     "jsxFactory": "h",
-    
+
     /* GLSL shader imports */
-    "types": [
-      "vite-plugin-glsl/ext"
-    ]
+    "types": ["vite-plugin-glsl/ext"]
   },
   "include": ["src", "tests", "plugins"]
 }

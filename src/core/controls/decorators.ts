@@ -3,75 +3,74 @@
  * Provides type-safe decorators for defining controls directly in TypeScript classes
  */
 
-import "reflect-metadata";
-import { ControlDefinitionType } from "./definitions";
+import 'reflect-metadata'
+import { ControlDefinitionType } from './definitions'
 
 /**
  * Metadata keys for our reflection system
  */
 export const METADATA_KEYS = {
-  controls: Symbol.for("lightscript:controls"),
-  effect: Symbol.for("lightscript:effect"),
-};
+    controls: Symbol.for('lightscript:controls'),
+    effect: Symbol.for('lightscript:effect'),
+}
 
 // Property-specific metadata key generator
-const propertyMetadataKey = (propertyName: string) =>
-  Symbol.for(`lightscript:control:${propertyName}`);
+const propertyMetadataKey = (propertyName: string) => Symbol.for(`lightscript:control:${propertyName}`)
 
 /**
  * Base interface for control decorator options
  */
 export interface ControlDecoratorOptions {
-  label: string;
-  tooltip?: string;
+    label: string
+    tooltip?: string
 }
 
 /**
  * Options for number control decorators (sliders)
  */
 export interface NumberControlOptions extends ControlDecoratorOptions {
-  min: number;
-  max: number;
-  default: number;
-  step?: number;
+    min: number
+    max: number
+    default: number
+    step?: number
 }
 
 /**
  * Options for boolean control decorators (checkboxes)
  */
 export interface BooleanControlOptions extends ControlDecoratorOptions {
-  default: boolean;
+    default: boolean
 }
 
 /**
  * Options for combobox control decorators (dropdowns)
  */
 export interface ComboboxControlOptions extends ControlDecoratorOptions {
-  values: string[];
-  default: string;
+    values: string[]
+    default: string
 }
 
 /**
  * Options for hue control decorators (color wheel)
  */
 export interface HueControlOptions extends ControlDecoratorOptions {
-  min: number;
-  max: number;
-  default: number;
+    min: number
+    max: number
+    default: number
 }
 
 /**
  * Options for color control decorators (color picker)
  */
 export interface ColorControlOptions extends ControlDecoratorOptions {
-  default: string;
+    default: string
 }
 
 /**
  * Options for text field control decorators
  */
 export interface TextFieldControlOptions extends ControlDecoratorOptions {
-  default: string;
+    default: string
 }
 
 /**
@@ -80,38 +79,28 @@ export interface TextFieldControlOptions extends ControlDecoratorOptions {
  * @returns A property decorator factory
  */
 function createControlDecorator<T extends ControlDecoratorOptions>(
-  createDefinition: (propertyKey: string, options: T) => ControlDefinitionType,
+    createDefinition: (propertyKey: string, options: T) => ControlDefinitionType,
 ) {
-  return function (options: T): PropertyDecorator {
-    return function (target: object, propertyKey: string | symbol) {
-      if (typeof propertyKey !== "string") {
-        throw new Error(
-          "Control decorators can only be used on string properties",
-        );
-      }
+    return (options: T): PropertyDecorator =>
+        (target: object, propertyKey: string | symbol) => {
+            if (typeof propertyKey !== 'string') {
+                throw new Error('Control decorators can only be used on string properties')
+            }
 
-      // Get or create the controls metadata array on the class prototype
-      const constructor = target.constructor;
-      if (!Reflect.hasMetadata(METADATA_KEYS.controls, constructor)) {
-        Reflect.defineMetadata(METADATA_KEYS.controls, [], constructor);
-      }
-      const controlsMetadata = Reflect.getMetadata(
-        METADATA_KEYS.controls,
-        constructor,
-      );
+            // Get or create the controls metadata array on the class prototype
+            const constructor = target.constructor
+            if (!Reflect.hasMetadata(METADATA_KEYS.controls, constructor)) {
+                Reflect.defineMetadata(METADATA_KEYS.controls, [], constructor)
+            }
+            const controlsMetadata = Reflect.getMetadata(METADATA_KEYS.controls, constructor)
 
-      // Create and store the control definition
-      const controlDefinition = createDefinition(propertyKey, options);
-      controlsMetadata.push(controlDefinition);
+            // Create and store the control definition
+            const controlDefinition = createDefinition(propertyKey, options)
+            controlsMetadata.push(controlDefinition)
 
-      // Store the control definition for this specific property with a unique symbol
-      Reflect.defineMetadata(
-        propertyMetadataKey(propertyKey),
-        controlDefinition,
-        constructor,
-      );
-    };
-  };
+            // Store the control definition for this specific property with a unique symbol
+            Reflect.defineMetadata(propertyMetadataKey(propertyKey), controlDefinition, constructor)
+        }
 }
 
 /**
@@ -129,18 +118,16 @@ function createControlDecorator<T extends ControlDecoratorOptions>(
  * speed: number;
  * ```
  */
-export const NumberControl = createControlDecorator<NumberControlOptions>(
-  (propertyKey, options) => ({
-    id: propertyKey,
-    type: "number",
-    label: options.label,
-    min: options.min,
-    max: options.max,
+export const NumberControl = createControlDecorator<NumberControlOptions>((propertyKey, options) => ({
     default: options.default,
+    id: propertyKey,
+    label: options.label,
+    max: options.max,
+    min: options.min,
     step: options.step,
     tooltip: options.tooltip,
-  }),
-);
+    type: 'number',
+}))
 
 /**
  * Decorator for boolean controls
@@ -155,15 +142,13 @@ export const NumberControl = createControlDecorator<NumberControlOptions>(
  * enableGlow: boolean;
  * ```
  */
-export const BooleanControl = createControlDecorator<BooleanControlOptions>(
-  (propertyKey, options) => ({
-    id: propertyKey,
-    type: "boolean",
-    label: options.label,
+export const BooleanControl = createControlDecorator<BooleanControlOptions>((propertyKey, options) => ({
     default: options.default,
+    id: propertyKey,
+    label: options.label,
     tooltip: options.tooltip,
-  }),
-);
+    type: 'boolean',
+}))
 
 /**
  * Decorator for combobox (dropdown) controls
@@ -179,16 +164,14 @@ export const BooleanControl = createControlDecorator<BooleanControlOptions>(
  * effectStyle: string;
  * ```
  */
-export const ComboboxControl = createControlDecorator<ComboboxControlOptions>(
-  (propertyKey, options) => ({
-    id: propertyKey,
-    type: "combobox",
-    label: options.label,
-    values: options.values,
+export const ComboboxControl = createControlDecorator<ComboboxControlOptions>((propertyKey, options) => ({
     default: options.default,
+    id: propertyKey,
+    label: options.label,
     tooltip: options.tooltip,
-  }),
-);
+    type: 'combobox',
+    values: options.values,
+}))
 
 /**
  * Decorator for hue controls
@@ -205,17 +188,15 @@ export const ComboboxControl = createControlDecorator<ComboboxControlOptions>(
  * baseHue: number;
  * ```
  */
-export const HueControl = createControlDecorator<HueControlOptions>(
-  (propertyKey, options) => ({
-    id: propertyKey,
-    type: "hue",
-    label: options.label,
-    min: options.min,
-    max: options.max,
+export const HueControl = createControlDecorator<HueControlOptions>((propertyKey, options) => ({
     default: options.default,
+    id: propertyKey,
+    label: options.label,
+    max: options.max,
+    min: options.min,
     tooltip: options.tooltip,
-  }),
-);
+    type: 'hue',
+}))
 
 /**
  * Decorator for color picker controls
@@ -230,15 +211,13 @@ export const HueControl = createControlDecorator<HueControlOptions>(
  * primaryColor: string;
  * ```
  */
-export const ColorControl = createControlDecorator<ColorControlOptions>(
-  (propertyKey, options) => ({
-    id: propertyKey,
-    type: "color",
-    label: options.label,
+export const ColorControl = createControlDecorator<ColorControlOptions>((propertyKey, options) => ({
     default: options.default,
+    id: propertyKey,
+    label: options.label,
     tooltip: options.tooltip,
-  }),
-);
+    type: 'color',
+}))
 
 /**
  * Decorator for text field controls
@@ -253,23 +232,21 @@ export const ColorControl = createControlDecorator<ColorControlOptions>(
  * customText: string;
  * ```
  */
-export const TextFieldControl = createControlDecorator<TextFieldControlOptions>(
-  (propertyKey, options) => ({
-    id: propertyKey,
-    type: "textfield",
-    label: options.label,
+export const TextFieldControl = createControlDecorator<TextFieldControlOptions>((propertyKey, options) => ({
     default: options.default,
+    id: propertyKey,
+    label: options.label,
     tooltip: options.tooltip,
-  }),
-);
+    type: 'textfield',
+}))
 
 /**
  * Class decorator to mark a class as an effect with metadata
  */
 export interface EffectOptions {
-  name: string;
-  description: string;
-  author: string;
+    name: string
+    description: string
+    author: string
 }
 
 /**
@@ -287,13 +264,13 @@ export interface EffectOptions {
  * ```
  */
 export function Effect(options: EffectOptions): ClassDecorator {
-  return function (target: { prototype: Record<string, unknown> }) {
-    // Store effect metadata using reflection
-    Reflect.defineMetadata(METADATA_KEYS.effect, options, target.prototype);
+    return (target: { prototype: Record<string, unknown> }) => {
+        // Store effect metadata using reflection
+        Reflect.defineMetadata(METADATA_KEYS.effect, options, target.prototype)
 
-    // Also store on the prototype for easier access
-    target.prototype.effectMetadata = options;
-  };
+        // Also store on the prototype for easier access
+        target.prototype.effectMetadata = options
+    }
 }
 
 /**
@@ -301,21 +278,16 @@ export function Effect(options: EffectOptions): ClassDecorator {
  * @param targetClass The class to extract controls from
  * @returns Array of control definitions
  */
-export function extractControlsFromClass(
-  targetClass: unknown,
-): ControlDefinitionType[] {
-  const constructor =
-    typeof targetClass === "function"
-      ? targetClass
-      : (targetClass as object).constructor;
+export function extractControlsFromClass(targetClass: unknown): ControlDefinitionType[] {
+    const constructor = typeof targetClass === 'function' ? targetClass : (targetClass as object).constructor
 
-  // Use Reflect to get the metadata array
-  if (Reflect.hasMetadata(METADATA_KEYS.controls, constructor)) {
-    return Reflect.getMetadata(METADATA_KEYS.controls, constructor);
-  }
+    // Use Reflect to get the metadata array
+    if (Reflect.hasMetadata(METADATA_KEYS.controls, constructor)) {
+        return Reflect.getMetadata(METADATA_KEYS.controls, constructor)
+    }
 
-  // Return empty array if nothing found
-  return [];
+    // Return empty array if nothing found
+    return []
 }
 
 /**
@@ -324,31 +296,29 @@ export function extractControlsFromClass(
  * @returns The effect metadata or default values
  */
 export function extractEffectMetadata(targetClass: unknown): EffectOptions {
-  // Default values if no metadata is found
-  const defaultMetadata = {
-    name: "Unnamed Effect",
-    description: "",
-    author: "",
-  };
+    // Default values if no metadata is found
+    const defaultMetadata = {
+        author: '',
+        description: '',
+        name: 'Unnamed Effect',
+    }
 
-  // Get proper prototype
-  const prototype =
-    typeof targetClass === "function"
-      ? targetClass.prototype
-      : Object.getPrototypeOf(targetClass as object);
+    // Get proper prototype
+    const prototype =
+        typeof targetClass === 'function' ? targetClass.prototype : Object.getPrototypeOf(targetClass as object)
 
-  // Try to get metadata from prototype
-  if (Reflect.hasMetadata(METADATA_KEYS.effect, prototype)) {
-    return Reflect.getMetadata(METADATA_KEYS.effect, prototype);
-  }
+    // Try to get metadata from prototype
+    if (Reflect.hasMetadata(METADATA_KEYS.effect, prototype)) {
+        return Reflect.getMetadata(METADATA_KEYS.effect, prototype)
+    }
 
-  // Check for effectMetadata property directly
-  if (prototype && "effectMetadata" in prototype) {
-    return prototype.effectMetadata as EffectOptions;
-  }
+    // Check for effectMetadata property directly
+    if (prototype && 'effectMetadata' in prototype) {
+        return prototype.effectMetadata as EffectOptions
+    }
 
-  // Return default values
-  return defaultMetadata;
+    // Return default values
+    return defaultMetadata
 }
 
 /**
@@ -356,12 +326,6 @@ export function extractEffectMetadata(targetClass: unknown): EffectOptions {
  * @param targetClass The class to extract control from
  * @param propertyName The property name to get control for
  */
-export function getControlForProperty(
-  targetClass: unknown,
-  propertyName: string,
-): ControlDefinitionType | undefined {
-  return Reflect.getMetadata(
-    propertyMetadataKey(propertyName),
-    targetClass as object,
-  );
+export function getControlForProperty(targetClass: unknown, propertyName: string): ControlDefinitionType | undefined {
+    return Reflect.getMetadata(propertyMetadataKey(propertyName), targetClass as object)
 }

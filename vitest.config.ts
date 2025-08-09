@@ -1,19 +1,19 @@
-import { defineConfig } from 'vitest/config';
-import { resolve } from 'path';
+import { resolve } from 'path'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    include: ['tests/**/*.test.ts'],
-    coverage: {
-      reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules/', 'dist/', 'scripts/']
-    }
-  },
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src')
-    }
-  }
-}); 
+    resolve: {
+        alias: {
+            '@': resolve(__dirname, 'src'),
+        },
+    },
+    test: {
+        coverage: {
+            exclude: ['node_modules/', 'dist/', 'scripts/'],
+            reporter: ['text', 'json', 'html'],
+        },
+        environment: 'jsdom',
+        globals: true,
+        include: ['tests/**/*.test.ts'],
+    },
+})

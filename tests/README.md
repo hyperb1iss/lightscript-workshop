@@ -49,4 +49,4 @@ Many tests use mocks to isolate the component being tested:
 
 ## Continuous Integration
 
-These tests run automatically in CI when changes are pushed to the repository. All tests must pass before the pull request can be merged. 
+These tests run automatically in CI when changes are pushed to the repository. All tests must pass before the pull request can be merged.
