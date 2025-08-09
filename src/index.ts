@@ -24,4 +24,8 @@ export const effects = [
     id: "cyber-descent",
     entry: "./effects/cyber-descent/main.ts",
   },
+  {
+    id: "kaleido-tunnel",
+    entry: "./effects/kaleido-tunnel/main.ts",
+  },
 ];
