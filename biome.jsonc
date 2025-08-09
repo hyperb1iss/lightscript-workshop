@@ -1,0 +1,227 @@
+{
+    "$schema": "https://biomejs.dev/schemas/2.1.4/schema.json",
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ◆ VCS INTEGRATION
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    "vcs": {
+        "enabled": true,
+        "clientKind": "git",
+        "useIgnoreFile": true // Respect .gitignore patterns
+    },
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ◆ FILE HANDLING
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    "files": {
+        "ignoreUnknown": true // Don't error on unknown file types
+    },
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ◆ FORMATTER CONFIGURATION
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    "formatter": {
+        "enabled": true,
+        "indentStyle": "space",
+        "indentWidth": 4, // Bliss's preference: 4 spaces
+        "lineWidth": 120 // Bliss's preference: 120 characters
+    },
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ◆ JAVASCRIPT/TYPESCRIPT FORMATTING
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "single", // JS: 'single quotes'
+            "jsxQuoteStyle": "double", // JSX: "double quotes"
+            "trailingCommas": "all", // Add trailing commas everywhere
+            "semicolons": "asNeeded", // Only when required
+            "arrowParentheses": "always" // (param) => {}
+        }
+    },
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ◆ LINTER CONFIGURATION
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "recommended": true,
+
+            // ────────────────────────────────────────────────────────────────────
+            // → Accessibility Rules (React/JSX)
+            // ────────────────────────────────────────────────────────────────────
+            "a11y": {
+                "noAccessKey": "error",
+                "noAriaUnsupportedElements": "error",
+                "noAutofocus": "warn",
+                "noDistractingElements": "error",
+                "noHeaderScope": "error",
+                "noInteractiveElementToNoninteractiveRole": "error",
+                "noNoninteractiveElementToInteractiveRole": "error",
+                "noNoninteractiveTabindex": "error",
+                "noPositiveTabindex": "error",
+                "noRedundantAlt": "error",
+                "noRedundantRoles": "error",
+                "noStaticElementInteractions": "warn",
+                "useFocusableInteractive": "error",
+                "useSemanticElements": "off",
+                "useKeyWithClickEvents": "error",
+                "useKeyWithMouseEvents": "error",
+                "useValidAnchor": "error"
+            },
+
+            // ────────────────────────────────────────────────────────────────────
+            // → Complexity Rules
+            // ────────────────────────────────────────────────────────────────────
+            "complexity": {
+                "useLiteralKeys": "off", // Allow computed object keys
+                "noStaticOnlyClass": "off" // Allow static-only classes for namespace pattern
+            },
+
+            // ────────────────────────────────────────────────────────────────────
+            // → Correctness Rules
+            // ────────────────────────────────────────────────────────────────────
+            "correctness": {
+                "noChildrenProp": "error",
+                "noRenderReturnValue": "error",
+                "noVoidElementsWithChildren": "error",
+                "useHookAtTopLevel": "error",
+                "useJsxKeyInIterable": "error",
+                "noUnusedVariables": "warn", // Warn for flexibility
+                "useExhaustiveDependencies": "warn" // Warn for React hooks
+            },
+
+            // ────────────────────────────────────────────────────────────────────
+            // → Performance Rules
+            // ────────────────────────────────────────────────────────────────────
+            "performance": {
+                "noImgElement": "off" // Next.js Image component handles optimization
+            },
+
+            // ────────────────────────────────────────────────────────────────────
+            // → Security Rules
+            // ────────────────────────────────────────────────────────────────────
+            "security": {
+                "noDangerouslySetInnerHtml": "off" // Allow for trusted content
+            },
+
+            // ────────────────────────────────────────────────────────────────────
+            // → Style Rules
+            // ────────────────────────────────────────────────────────────────────
+            "style": {
+                "noInferrableTypes": "error",
+                "noNonNullAssertion": "warn",
+                "noParameterAssign": "error",
+                "noUnusedTemplateLiteral": "error",
+                "noUselessElse": "error",
+                "useAsConstAssertion": "error",
+                "useConst": "error",
+                "useDefaultParameterLast": "error",
+                "useEnumInitializers": "error",
+                "useImportType": "off", // Allow value imports
+                "useNumberNamespace": "error",
+                "useSelfClosingElements": "error",
+                "useShorthandFunctionType": "error",
+                "useSingleVarDeclarator": "error",
+                "noImplicitBoolean": "error",
+                "useTemplate": "error"
+            },
+
+            // ────────────────────────────────────────────────────────────────────
+            // → Suspicious Code Patterns
+            // ────────────────────────────────────────────────────────────────────
+            "suspicious": {
+                "noArrayIndexKey": "off", // Allow array indices as React keys
+                "noCommentText": "error",
+                "noDuplicateJsxProps": "error",
+                "noExplicitAny": "off", // Allow 'any' type for flexibility
+                "noConsole": "off", // Allow console.log for debugging
+                "noVar": "error" // Enforce const/let over var
+            }
+        }
+    },
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ◆ CODE ASSIST FEATURES
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    "assist": {
+        "enabled": true,
+        "actions": {
+            "source": {
+                "useSortedAttributes": "on", // Auto-sort JSX attributes
+                "useSortedKeys": "on" // Auto-sort object keys
+            }
+        }
+    },
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ◆ FILE-SPECIFIC OVERRIDES
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    "overrides": [
+        {
+            // Prefer Prettier for content files; disable Biome format/lint
+            "includes": ["**/*.md", "**/*.mdx", "**/*.markdown", "**/*.yml", "**/*.yaml", "**/*.json"],
+            "formatter": { "enabled": false },
+            "linter": { "enabled": false },
+            "assist": { "enabled": false }
+        },
+        {
+            // ────────────────────────────────────────────────────────────────
+            // → JSON Configuration Files
+            // ────────────────────────────────────────────────────────────────
+            "includes": ["**/.vscode/*.json", "**/tsconfig*.json"],
+            "json": {
+                "parser": {
+                    "allowComments": true, // Allow // comments in JSON
+                    "allowTrailingCommas": true // Allow trailing commas
+                }
+            }
+        },
+        {
+            // ────────────────────────────────────────────────────────────────
+            // → Next.js App Directory & Pages
+            // ────────────────────────────────────────────────────────────────
+            "includes": ["src/app/**/*.tsx", "src/app/**/*.ts", "src/pages/**/*.tsx"],
+            "linter": {
+                "rules": {
+                    "style": {
+                        "noDefaultExport": "off" // Next.js requires default exports
+                    }
+                }
+            }
+        },
+        {
+            // ────────────────────────────────────────────────────────────────
+            // → Configuration Files
+            // ────────────────────────────────────────────────────────────────
+            "includes": ["**/next.config.*", "**/middleware.*", "**/tailwind.config.*", "**/postcss.config.*"],
+            "linter": {
+                "rules": {
+                    "correctness": {
+                        "noNodejsModules": "off" // Allow Node.js modules
+                    },
+                    "style": {
+                        "noDefaultExport": "off" // Config files use default export
+                    },
+                    "suspicious": {
+                        "noExplicitAny": "off" // Allow 'any' in config files
+                    }
+                }
+            }
+        },
+        {
+            // ────────────────────────────────────────────────────────────────
+            // → Package.json Files & Biome Config (preserve manual organization)
+            // ────────────────────────────────────────────────────────────────
+            "includes": ["**/package.json", "**/biome.jsonc"],
+            "assist": {
+                "actions": {
+                    "source": {
+                        "useSortedKeys": "off" // Preserve manual key ordering
+                    }
+                }
+            }
+        }
+    ]
+}
