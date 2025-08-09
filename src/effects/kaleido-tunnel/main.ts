@@ -8,11 +8,7 @@ import {
   NumberControl,
   ComboboxControl,
 } from "../../core/controls/decorators";
-import {
-  normalizeSpeed,
-  normalizePercentage,
-  comboboxValueToIndex,
-} from "../../core/controls/helpers";
+import { normalizePercentage, comboboxValueToIndex } from "../../core/controls/helpers";
 import { initializeEffect } from "../../core";
 import type * as THREE from "three";
 
@@ -240,8 +236,15 @@ export class KaleidoTunnelEffect extends WebGLEffect<KaleidoTunnelControls> {
       0,
     );
 
+    // Softer speed curve for fine low-end control (1-10 -> ~0.05..0.55)
+    const rawSpeed = Number(window.speed ?? 5);
+    const clamped = Math.min(10, Math.max(1, rawSpeed));
+    const tNorm = (clamped - 1) / 9; // 0..1
+    const eased = Math.pow(tNorm, 1.2);
+    const mappedSpeed = 0.05 + eased * 0.5; // 0.05..0.55
+
     return {
-      speed: normalizeSpeed(window.speed ?? 5),
+      speed: mappedSpeed,
       colorIntensity:
         normalizePercentage(window.colorIntensity ?? 120, 120, 0.0) * 2.0,
       colorSaturation:
