@@ -1,0 +1,15 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "biomejs.biome",
+    "bradlc.vscode-tailwindcss",
+    "ms-vscode.vscode-typescript-next",
+    "slevesque.shader",
+    "circledev.glsl-canvas",
+    "raczzalan.webgl-glsl-editor",
+    "dtoplak.vscode-glsllint"
+  ],
+  "unwantedRecommendations": [
+    "ms-vscode.vscode-eslint"
+  ]
+}

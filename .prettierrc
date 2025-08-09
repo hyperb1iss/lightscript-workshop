@@ -1,3 +1,3 @@
 {
-  "plugins": ["prettier-plugin-uppercase-doctype"]
+  "plugins": ["prettier-plugin-uppercase-doctype", "prettier-plugin-glsl"]
 }
