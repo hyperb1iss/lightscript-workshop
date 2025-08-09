@@ -88,18 +88,18 @@ function createControlDecorator<T extends ControlDecoratorOptions>(
             }
 
             // Get or create the controls metadata array on the class prototype
-            const constructor = target.constructor
-            if (!Reflect.hasMetadata(METADATA_KEYS.controls, constructor)) {
-                Reflect.defineMetadata(METADATA_KEYS.controls, [], constructor)
+            const targetConstructor = target.constructor
+            if (!Reflect.hasMetadata(METADATA_KEYS.controls, targetConstructor)) {
+                Reflect.defineMetadata(METADATA_KEYS.controls, [], targetConstructor)
             }
-            const controlsMetadata = Reflect.getMetadata(METADATA_KEYS.controls, constructor)
+            const controlsMetadata = Reflect.getMetadata(METADATA_KEYS.controls, targetConstructor)
 
             // Create and store the control definition
             const controlDefinition = createDefinition(propertyKey, options)
             controlsMetadata.push(controlDefinition)
 
             // Store the control definition for this specific property with a unique symbol
-            Reflect.defineMetadata(propertyMetadataKey(propertyKey), controlDefinition, constructor)
+            Reflect.defineMetadata(propertyMetadataKey(propertyKey), controlDefinition, targetConstructor)
         }
 }
 
@@ -279,11 +279,14 @@ export function Effect(options: EffectOptions): ClassDecorator {
  * @returns Array of control definitions
  */
 export function extractControlsFromClass(targetClass: unknown): ControlDefinitionType[] {
-    const constructor = typeof targetClass === 'function' ? targetClass : (targetClass as object).constructor
+    const targetConstructor =
+        typeof targetClass === 'function'
+            ? (targetClass as { new (...args: unknown[]): unknown })
+            : (targetClass as object).constructor
 
     // Use Reflect to get the metadata array
-    if (Reflect.hasMetadata(METADATA_KEYS.controls, constructor)) {
-        return Reflect.getMetadata(METADATA_KEYS.controls, constructor)
+    if (Reflect.hasMetadata(METADATA_KEYS.controls, targetConstructor)) {
+        return Reflect.getMetadata(METADATA_KEYS.controls, targetConstructor)
     }
 
     // Return empty array if nothing found

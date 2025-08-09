@@ -6,7 +6,7 @@
  */
 
 import { execSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const NEON_PINK = '\x1b[38;2;255;97;216m'
@@ -18,7 +18,7 @@ const NEON_PURPLE = '\x1b[38;2;190;110;255m'
 const GLITCH = '\x1b[31m\x1b[1m' // Bold red for "glitchy" text
 const RESET = '\x1b[0m'
 const BOLD = '\x1b[1m'
-const BLINK = '\x1b[5m'
+const _BLINK = '\x1b[5m'
 const DIM = '\x1b[2m'
 
 console.log(`\n${NEON_CYAN}
@@ -54,10 +54,18 @@ function getEffectsList() {
             throw new Error('Could not find effects array in src/index.ts')
         }
 
-        // Evaluate the array (safe since we control the source)
-        // Replace TypeScript-specific syntax with JS equivalents if needed
-        const effectsStr = effectsMatch[1].replace(/\/\/.*$/gm, '')
-        const effects = eval(`(${effectsStr})`)
+        // Parse the array without using eval: convert TS literal to JSON-like and JSON.parse
+        const arrayLiteral = effectsMatch[1]
+        // Remove trailing commas and comments
+        const sanitized = arrayLiteral
+            .replace(/\/\/.*$/gm, '')
+            .replace(/,\s*([\]}])/g, '$1')
+            .replace(/(['"])entry\1\s*:\s*(['"])([^'"]+)\2/g, '"entry":"$3"')
+            .replace(/(['"])id\1\s*:\s*(['"])([^'"]+)\2/g, '"id":"$3"')
+        // Wrap keys to ensure valid JSON
+        const jsonReady = sanitized.replace(/(\{|,)\s*(entry|id)\s*:/g, '$1 "$2":')
+        /** @type {{id:string,entry:string}[]} */
+        const effects = JSON.parse(jsonReady)
 
         console.log(`${NEON_GREEN}[✓]${RESET} ${BOLD}Effects manifest loaded${RESET}`)
         return effects
@@ -86,24 +94,73 @@ console.log(`${NEON_PURPLE}[⟁]${RESET} ${BOLD}Transmuting${RESET} TypeScript t
 execSync('tsc', { stdio: 'inherit' })
 console.log(`${NEON_GREEN}[✓]${RESET} ${BOLD}TypeScript${RESET} compilation ${NEON_CYAN}successful${RESET}\n`)
 
-// Build each effect one at a time
-let counter = 0
+// Build all effects in parallel for faster builds
 const total = effects.length
+const maxConcurrency = Math.min(4, total) // Limit to 4 parallel builds
 
-for (const effect of effects) {
+console.log(
+    `${NEON_PURPLE}[⚡]${RESET} ${BOLD}Building ${total} effects${RESET} with ${maxConcurrency} parallel workers...\n`,
+)
+
+const buildEffect = async (effect, index) => {
     const effectId = effect.id
-    counter++
+    const counter = index + 1
 
     try {
-        // Set the EFFECT environment variable and run vite build
         console.log(`${NEON_YELLOW}[⚡]${RESET} Processing effect ${counter}/${total}: ${BOLD}${effectId}${RESET}...`)
-        execSync(`EFFECT=${effectId} vite build`, {
-            env: { ...process.env, EFFECT: effectId },
-            stdio: 'inherit',
+
+        // Use spawn for better parallel execution
+        const { spawn } = await import('node:child_process')
+
+        return new Promise((resolve, reject) => {
+            const child = spawn('npx', ['vite', 'build'], {
+                env: { ...process.env, EFFECT: effectId },
+                stdio: ['inherit', 'inherit', 'inherit'],
+            })
+
+            child.on('close', (code) => {
+                if (code === 0) {
+                    console.log(
+                        `${NEON_GREEN}[✓]${RESET} ${BOLD}${effectId}${RESET} ${NEON_GREEN}successfully encoded${RESET}`,
+                    )
+                    resolve(effectId)
+                } else {
+                    reject(new Error(`Build failed with code ${code}`))
+                }
+            })
         })
-        console.log(`${NEON_GREEN}[✓]${RESET} ${BOLD}${effectId}${RESET} ${NEON_GREEN}successfully encoded${RESET}\n`)
     } catch (error) {
         console.error(`${GLITCH}[✘] BUILD FAILED FOR ${effectId.toUpperCase()}${RESET}`)
         console.error(`${DIM}Error details: ${RESET}`, error)
+        throw error
     }
 }
+
+// Process effects in batches
+const buildInBatches = async () => {
+    const results = []
+    for (let i = 0; i < effects.length; i += maxConcurrency) {
+        const batch = effects.slice(i, i + maxConcurrency)
+        const batchPromises = batch.map((effect, idx) => buildEffect(effect, i + idx))
+
+        try {
+            const batchResults = await Promise.allSettled(batchPromises)
+            results.push(...batchResults)
+        } catch (error) {
+            console.error(`${GLITCH}[✘] Batch failed:${RESET}`, error)
+        }
+    }
+
+    const successful = results.filter((r) => r.status === 'fulfilled').length
+    const failed = results.filter((r) => r.status === 'rejected').length
+
+    console.log(`\n${NEON_CYAN}[📊] Build Summary:${RESET}`)
+    console.log(`${NEON_GREEN}  ✓ Successful: ${successful}${RESET}`)
+    if (failed > 0) {
+        console.log(`${GLITCH}  ✘ Failed: ${failed}${RESET}`)
+    }
+
+    return results
+}
+
+await buildInBatches()

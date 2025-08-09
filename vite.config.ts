@@ -12,6 +12,13 @@ export default defineConfig(({ command }: ConfigEnv) => {
     return {
         // Build configuration specifically for effects
         build: getEffectBuildConfig(),
+        // Enhance development experience
+        define: {
+            ...(isDevelopment && {
+                __DEV__: true,
+                __EFFECT_ID__: JSON.stringify(process.env.EFFECT || 'default'),
+            }),
+        },
         plugins: [
             // React SWC with Preact compatibility - enabling decorator support
             swcPlugin({
@@ -35,7 +42,16 @@ export default defineConfig(({ command }: ConfigEnv) => {
             },
         },
         server: {
+            hmr: {
+                // Enable fast refresh for shaders and effects
+                overlay: true,
+            },
             open: true,
+            // Optimize deps for faster cold starts
+            optimizeDeps: {
+                exclude: ['@vite/client', '@vite/env'],
+                include: ['preact', 'preact/compat', 'three'],
+            },
             port: 4096,
         },
     }

@@ -61,9 +61,11 @@ export const SparklingName: FunctionComponent<SparklingNameProps> = ({
 
     const content = (
         <span
+            aria-live="polite"
             className={`highlighted-name ${isHovered ? 'hovered' : ''} ${gradient ? 'gradient-text' : ''}`}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            role="img"
         >
             {name}
         </span>

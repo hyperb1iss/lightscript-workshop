@@ -92,7 +92,6 @@ export class Particle {
                 this.speedY = -baseSpeed
                 break
 
-            case 6: // Random
             default: {
                 const randomAngle = Math.random() * Math.PI * 2
                 this.speedX = Math.cos(randomAngle) * baseSpeed

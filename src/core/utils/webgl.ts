@@ -143,7 +143,7 @@ export function startAnimationLoop(
     const { renderer, scene, camera, clock } = context
 
     // Track the current animation frame ID
-    let frameId: number
+    let frameId = 0
 
     // Animation function
     function animate(): void {
@@ -166,7 +166,7 @@ export function startAnimationLoop(
 
     // Start animation loop
     animate()
-    return frameId!
+    return typeof frameId === 'number' ? frameId : 0
 }
 
 /**

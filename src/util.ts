@@ -8,9 +8,9 @@
  * @param url Optional URL string (default: window.location.href)
  * @returns The parameter value or null if not found
  */
-export function getParameterByName(name: string, url = window.location.href): string | null {
-    name = name.replace(/[[\]]/g, '\\$&')
-    const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)')
+export function getParameterByName(paramName: string, url = window.location.href): string | null {
+    const safeName = paramName.replace(/[[\]]/g, '\\$&')
+    const regex = new RegExp(`[?&]${safeName}(=([^&#]*)|&|#|$)`)
     const results = regex.exec(url)
     if (!results) return null
     if (!results[2]) return ''

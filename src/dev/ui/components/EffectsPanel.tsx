@@ -1,4 +1,4 @@
-import { FunctionComponent, h } from 'preact'
+import { FunctionComponent } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 
 interface EffectsPanelProps {
@@ -45,7 +45,7 @@ export const EffectsPanel: FunctionComponent<EffectsPanelProps> = ({
             <div className="effects-selector">
                 <select
                     disabled={!effects || effects.length === 0}
-                    onChange={(e) => onEffectChange((e.target as HTMLSelectElement).value)}
+                    onChange={(e: Event) => onEffectChange((e.target as HTMLSelectElement).value)}
                     value={currentEffectId}
                 >
                     {!effects || effects.length === 0 ? (
@@ -122,6 +122,7 @@ export const EffectsPanel: FunctionComponent<EffectsPanelProps> = ({
                     className="screenshot-button"
                     onClick={onTakeScreenshot}
                     title="Take a screenshot of the current effect"
+                    type="button"
                 >
                     💾 Take Screenshot
                 </button>

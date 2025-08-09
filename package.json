@@ -7,6 +7,7 @@
     "dev": "vite",
     "dev:with-effect": "EFFECT=your-effect-id vite",
     "build": "node scripts/build.js",
+    "build:analyze": "ANALYZE_BUNDLE=true node scripts/build.js",
     "build:debug": "NO_MINIFY=true node scripts/build.js",
     "build:single": "tsc && vite build",
     "preview": "vite preview",
@@ -22,7 +23,10 @@
     "prepare-release": "npm run format && npm run lint:fix && npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "bundle:size": "node scripts/analyze-bundle.js",
+    "dev:tools": "node scripts/dev-tools.js",
+    "dev:fast": "vite --host 0.0.0.0 --port 4096"
   },
   "keywords": [
     "webgl",
@@ -52,6 +56,8 @@
     "@types/three": "^0.175.0",
     "@vitejs/plugin-react-swc": "4.0.0",
     "@vitest/coverage-v8": "^3.2.4",
+    "rollup-plugin-analyzer": "^4.0.0",
+    "vite-bundle-analyzer": "^0.11.1",
     "canvas": "^3.1.0",
     "jsdom": "^26.0.0",
     "prettier": "^3.5.3",

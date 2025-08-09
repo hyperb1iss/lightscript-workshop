@@ -97,10 +97,18 @@ export class PreactDevEngine {
 
         this.renderUI()
 
-        // Hide the loader after a delay
-        setTimeout(() => {
+        // Ensure the loader doesn't get stuck: hide on next frame, with timeout as fallback
+        requestAnimationFrame(() => {
             this.isLoading = false
             this.renderUI()
+        })
+
+        // Fallback: hide the loader after a delay in case the first frame was delayed
+        setTimeout(() => {
+            if (this.isLoading) {
+                this.isLoading = false
+                this.renderUI()
+            }
         }, 1500)
 
         // Make the showNotification function available globally
@@ -191,7 +199,8 @@ export class PreactDevEngine {
                 const maxHeight = window.innerHeight - 40
                 const aspectRatio = this.canvas.width / this.canvas.height
 
-                let width, height
+                let width: number
+                let height: number
 
                 if (maxWidth / aspectRatio <= maxHeight) {
                     width = maxWidth

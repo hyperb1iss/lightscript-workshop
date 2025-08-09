@@ -1,4 +1,4 @@
-import { FunctionComponent, h } from 'preact'
+import { FunctionComponent } from 'preact'
 import { useEffect, useRef, useState } from 'preact/hooks'
 import { ControlDefinition, ControlValues } from '../../../core/controls/definitions'
 import { debug } from '../../../core/utils/debug'
@@ -25,6 +25,7 @@ export const ControlsPanel: FunctionComponent<ControlsPanelProps> = ({
                         className="reset-button"
                         onClick={onResetControls}
                         title="Reset all controls to default values"
+                        type="button"
                     >
                         ↺ Reset
                     </button>
@@ -78,12 +79,13 @@ const ControlItem: FunctionComponent<ControlItemProps> = ({ definition, value, o
                 return (
                     <div className="number-control">
                         <div className="control-header">
-                            <label title={tooltip}>
+                            <label htmlFor={`control-${id}`} title={tooltip}>
                                 <span className="control-emoji">{getControlEmoji()}</span> {label}
                             </label>
                             <span className="control-value">{String(value)}</span>
                         </div>
                         <input
+                            id={`control-${id}`}
                             max={(definition as ControlDefinition & { max?: number }).max ?? 100}
                             min={(definition as ControlDefinition & { min?: number }).min ?? 0}
                             onChange={(e) => {
@@ -110,11 +112,12 @@ const ControlItem: FunctionComponent<ControlItemProps> = ({ definition, value, o
                 return (
                     <div className="boolean-control">
                         <div className="control-header">
-                            <label title={tooltip}>
+                            <label htmlFor={`control-${id}`} title={tooltip}>
                                 <span className="control-emoji">{getControlEmoji()}</span> {label}
                             </label>
                             <input
                                 checked={value === true || value === 1}
+                                id={`control-${id}`}
                                 onChange={(e) => {
                                     const newValue = (e.target as HTMLInputElement).checked ? 1 : 0
                                     debug('success', `Toggle changed: ${id}`, newValue ? 'ON' : 'OFF')
@@ -129,7 +132,7 @@ const ControlItem: FunctionComponent<ControlItemProps> = ({ definition, value, o
             case 'combobox':
                 return (
                     <div className="combobox-control">
-                        <label title={tooltip}>
+                        <label htmlFor={`control-${id}`} title={tooltip}>
                             <span className="control-emoji">{getControlEmoji()}</span> {label}
                         </label>
                         <CyberDropdown
@@ -202,19 +205,46 @@ const CyberDropdown: FunctionComponent<CyberDropdownProps> = ({ id: _id, options
 
     const dropdownPosition = flipDirection ? 'flip' : ''
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setIsOpen(!isOpen)
+        } else if (e.key === 'Escape' && isOpen) {
+            setIsOpen(false)
+        }
+    }
+
     return (
-        <div className="cyber-dropdown" ref={dropdownRef}>
-            <div className="cyber-dropdown-selected" onClick={() => setIsOpen(!isOpen)} ref={selectedRef}>
+        <div className="cyber-dropdown" id={`control-${_id}`} ref={dropdownRef}>
+            <div
+                aria-expanded={isOpen}
+                aria-haspopup="listbox"
+                className="cyber-dropdown-selected"
+                onClick={() => setIsOpen(!isOpen)}
+                onKeyDown={handleKeyDown}
+                ref={selectedRef}
+                role="button"
+                tabIndex={0}
+            >
                 <span>{value}</span>
                 <span className="cyber-dropdown-arrow">{isOpen ? (flipDirection ? '▼' : '▲') : '▼'}</span>
             </div>
 
-            <div className={`cyber-dropdown-options ${isOpen ? 'open' : ''} ${dropdownPosition}`}>
+            <div className={`cyber-dropdown-options ${isOpen ? 'open' : ''} ${dropdownPosition}`} role="listbox">
                 {options.map((option) => (
                     <div
+                        aria-selected={option === value}
                         className={`cyber-dropdown-option ${option === value ? 'selected' : ''}`}
                         key={option}
                         onClick={() => handleSelect(option)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                handleSelect(option)
+                            }
+                        }}
+                        role="option"
+                        tabIndex={0}
                     >
                         {option}
                     </div>

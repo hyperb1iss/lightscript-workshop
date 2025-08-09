@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-import { resolve } from 'path'
+import { resolve } from 'node:path'
 import type { Plugin } from 'vite'
 import { effects } from '../src'
 
@@ -45,8 +45,12 @@ function extractAllDecorators(fileContent: string, decoratorName: string): Decor
         'g',
     )
 
-    let match
-    while ((match = decoratorRegex.exec(fileContent)) !== null) {
+    let match: RegExpExecArray | null
+    // Avoid assigning inside the while condition to satisfy linter rules
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        match = decoratorRegex.exec(fileContent)
+        if (match === null) break
         try {
             let options: DecoratorOption = {}
             const propertyName = match[3] // The property/field name
@@ -78,7 +82,7 @@ function extractAllDecorators(fileContent: string, decoratorName: string): Decor
                         } else if (/^(true|false)$/i.test(value)) {
                             // Handle boolean values
                             options[key] = value.toLowerCase() === 'true'
-                        } else if (!isNaN(Number.parseFloat(value))) {
+                        } else if (!Number.isNaN(Number.parseFloat(value))) {
                             // Handle numeric values
                             options[key] = Number.parseFloat(value)
                         } else {
@@ -115,7 +119,7 @@ function processEffect(effect: (typeof effects)[0]) {
     try {
         // Read the compiled output JavaScript
         const jsOutputPath = resolve(process.cwd(), `dist/${effect.id}.js`)
-        let jsContent
+        let jsContent = ''
 
         if (fs.existsSync(jsOutputPath)) {
             jsContent = fs.readFileSync(jsOutputPath, 'utf-8')
@@ -143,10 +147,14 @@ function processEffect(effect: (typeof effects)[0]) {
 
                 // Find all import statements that might contain effect implementation classes
                 const importRegex = /import\s+(?:{[^}]*}|\*\s+as\s+[^;]+)\s+from\s+['"]([^'"]+)['"]/g
-                let importMatch
+                let importMatch: RegExpExecArray | null
                 const mainFileDir = resolve(process.cwd(), 'src', sourcePath.substring(0, sourcePath.lastIndexOf('/')))
 
-                while ((importMatch = importRegex.exec(sourceContent)) !== null) {
+                // Avoid assigning inside the while condition to satisfy linter rules
+                // eslint-disable-next-line no-constant-condition
+                while (true) {
+                    importMatch = importRegex.exec(sourceContent)
+                    if (importMatch === null) break
                     const importPath = importMatch[1]
                     // Skip node_modules imports
                     if (importPath.startsWith('.')) {
@@ -156,9 +164,9 @@ function processEffect(effect: (typeof effects)[0]) {
                         // Try both .ts and .tsx extensions
                         if (!importPathResolved.endsWith('.ts') && !importPathResolved.endsWith('.tsx')) {
                             // Try with .ts first, then .tsx
-                            if (fs.existsSync(importPathResolved + '.ts')) {
+                            if (fs.existsSync(`${importPathResolved}.ts`)) {
                                 importPathResolved += '.ts'
-                            } else if (fs.existsSync(importPathResolved + '.tsx')) {
+                            } else if (fs.existsSync(`${importPathResolved}.tsx`)) {
                                 importPathResolved += '.tsx'
                             } else {
                                 // Try as a directory with index.ts

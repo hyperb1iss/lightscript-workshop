@@ -28,7 +28,7 @@ export function getControlValue<T>(propertyName: string, defaultValue: T): T {
  * @returns Normalized speed value (0.2-3.0)
  */
 export function normalizeSpeed(speed: number): number {
-    if (typeof speed !== 'number' || isNaN(speed)) {
+    if (typeof speed !== 'number' || Number.isNaN(speed)) {
         return 1.0 // Default value
     }
 
@@ -61,7 +61,7 @@ export function comboboxValueToIndex(value: string | number, options: string[], 
  */
 export function normalizePercentage(value: number, defaultValue = 100, minValue = 0.01): number {
     // Handle undefined or NaN values
-    const rawValue = typeof value === 'number' && !isNaN(value) ? value : defaultValue
+    const rawValue = typeof value === 'number' && !Number.isNaN(value) ? value : defaultValue
 
     // Convert from percentage (0-200) to factor (0-2)
     // with a minimum value to prevent division by zero issues
