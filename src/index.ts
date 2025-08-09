@@ -28,4 +28,32 @@ export const effects = [
         entry: './effects/kaleido-tunnel/main.ts',
         id: 'kaleido-tunnel',
     },
+    {
+        entry: './effects/black-hole/main.ts',
+        id: 'black-hole',
+    },
+    {
+        entry: './effects/voronoi-flow/main.ts',
+        id: 'voronoi-flow',
+    },
+    {
+        entry: './effects/quantum-foam/main.ts',
+        id: 'quantum-foam',
+    },
+    {
+        entry: './effects/adhd-hyperfocus/main.ts',
+        id: 'adhd-hyperfocus',
+    },
+    {
+        entry: './effects/neural-synapse-fire.ts',
+        id: 'neural-synapse-fire',
+    },
+    {
+        entry: './effects/reality-exe-error/main.ts',
+        id: 'reality-exe-error',
+    },
+    {
+        entry: './effects/cellular-automaton.ts',
+        id: 'cellular-automaton',
+    },
 ]
