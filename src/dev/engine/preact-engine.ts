@@ -129,9 +129,11 @@ export class PreactDevEngine {
             throw new Error('Canvas element with ID "exCanvas" not found')
         }
 
-        // Get the effect ID from URL or use the first effect
+        // Get the effect ID from URL, localStorage, or use the first effect
         const urlParams = new URLSearchParams(window.location.search)
-        const effectId = urlParams.get('effect') || effects[0].id
+        const urlEffect = urlParams.get('effect')
+        const savedEffect = localStorage.getItem('lastSelectedEffect')
+        const effectId = urlEffect || savedEffect || effects[0].id
 
         // Set basic names for effects to ensure they're visible in UI
         for (const effect of effects as AppEffect[]) {
@@ -228,6 +230,9 @@ export class PreactDevEngine {
             debug('error', `Effect not found: ${effectId}`)
             return
         }
+
+        // Save the selected effect to localStorage
+        localStorage.setItem('lastSelectedEffect', effectId)
 
         // Update current effect reference
         this.currentEffect = effect
