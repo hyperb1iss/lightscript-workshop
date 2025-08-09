@@ -37,7 +37,7 @@ export default defineConfig(({ command }: ConfigEnv) => {
       }
     },
     server: {
-      port: 3000,
+      port: 4096,
       open: true
     },
     // Build configuration specifically for effects
