@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-import { resolve } from 'node:path'
+import { extname, resolve } from 'node:path'
 import type { Plugin } from 'vite'
 import { effects } from '../src'
 
@@ -219,6 +219,30 @@ function processEffect(effect: (typeof effects)[0]) {
                         if (effectData.author && typeof effectData.author === 'string') {
                             effectAuthor = effectData.author
                         }
+                        // If the Effect decorator explicitly provides an image, handle that first
+                        if (typeof effectData.image === 'string' && effectData.image.length > 0) {
+                            const imageValue = String(effectData.image)
+                            if (imageValue.startsWith('http://') || imageValue.startsWith('https://') || imageValue.startsWith('data:')) {
+                                // Remote or data URI – just reference directly
+                                metaTags += `<meta property="image" content="${imageValue}">\n`
+                            } else {
+                                // Treat as a local path relative to the main file directory
+                                const explicitLocalPath = resolve(mainFileDir, imageValue)
+                                if (fs.existsSync(explicitLocalPath)) {
+                                    const ext = extname(explicitLocalPath) || '.png'
+                                    const outPath = resolve(process.cwd(), 'dist', `${effect.id}${ext}`)
+                                    try {
+                                        fs.copyFileSync(explicitLocalPath, outPath)
+                                        metaTags += `<meta property="image" content="${effect.id}${ext}">\n`
+                                        logger.effect(effect.id, `Preview image attached from decorator: ${effect.id}${ext}`)
+                                    } catch (_copyErr) {
+                                        logger.error(`Failed to copy decorator-provided image for ${effect.id}`)
+                                    }
+                                } else {
+                                    logger.error(`Decorator-provided image not found for ${effect.id}: ${explicitLocalPath}`)
+                                }
+                            }
+                        }
                     }
 
                     // Add effect metadata tags
@@ -284,6 +308,56 @@ function processEffect(effect: (typeof effects)[0]) {
                     if (controlCount > 0) {
                         // If we found controls, we can stop checking other files
                         break
+                    }
+                }
+
+                // If no image meta was added yet, try to auto-discover preview asset
+                if (!/property="image"/.test(metaTags)) {
+                    const candidateNames = [
+                        'preview.png',
+                        'preview.jpg',
+                        'preview.jpeg',
+                        'cover.png',
+                        'cover.jpg',
+                        'cover.jpeg',
+                        'thumbnail.png',
+                        'thumbnail.jpg',
+                        'thumbnail.jpeg',
+                        `${effect.id}.png`,
+                        `${effect.id}.jpg`,
+                        `${effect.id}.jpeg`,
+                    ]
+
+                    const searchDirs = [
+                        // Primary: alongside the effect implementation
+                        resolve(process.cwd(), 'src', sourcePath.substring(0, sourcePath.lastIndexOf('/'))),
+                        // Common public asset locations
+                        resolve(process.cwd(), 'public', 'assets', 'effects'),
+                        resolve(process.cwd(), 'public', 'assets'),
+                    ]
+
+                    let discoveredPath: string | undefined
+                    for (const dir of searchDirs) {
+                        for (const name of candidateNames) {
+                            const candidate = resolve(dir, name)
+                            if (fs.existsSync(candidate)) {
+                                discoveredPath = candidate
+                                break
+                            }
+                        }
+                        if (discoveredPath) break
+                    }
+
+                    if (discoveredPath) {
+                        const ext = extname(discoveredPath) || '.png'
+                        const outPath = resolve(process.cwd(), 'dist', `${effect.id}${ext}`)
+                        try {
+                            fs.copyFileSync(discoveredPath, outPath)
+                            metaTags += `<meta property="image" content="${effect.id}${ext}">\n`
+                            logger.effect(effect.id, `Preview image attached: ${effect.id}${ext}`)
+                        } catch (_copyErr) {
+                            logger.error(`Failed to copy discovered preview image for ${effect.id}`)
+                        }
                     }
                 }
             }
