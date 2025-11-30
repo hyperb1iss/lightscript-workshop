@@ -3,7 +3,7 @@
  * Extends BaseEffect with Canvas-specific implementation
  */
 
-import { BaseEffect, EffectConfig } from './effect'
+import { BaseEffect, EffectConfig } from './base-effect'
 
 /**
  * Configuration for CanvasEffect
