@@ -1,5 +1,6 @@
 import { FunctionComponent } from 'preact'
 import type { FPS_CAP_OPTIONS, RESOLUTION_PRESETS, ResolutionPreset } from '../../engine/preact-engine'
+import { AudioSourcePanel } from './AudioSourcePanel'
 
 interface EffectsPanelProps {
     effects: Array<{
@@ -55,11 +56,13 @@ export const EffectsPanel: FunctionComponent<EffectsPanelProps> = ({
                     {!effects || effects.length === 0 ? (
                         <option value="">No effects available</option>
                     ) : (
-                        effects.map((effect) => (
-                            <option key={effect.id} value={effect.id}>
-                                {effect.name || effect.id}
-                            </option>
-                        ))
+                        [...effects]
+                            .sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id))
+                            .map((effect) => (
+                                <option key={effect.id} value={effect.id}>
+                                    {effect.name || effect.id}
+                                </option>
+                            ))
                     )}
                 </select>
             </div>
@@ -107,6 +110,14 @@ export const EffectsPanel: FunctionComponent<EffectsPanelProps> = ({
                     </div>
                 </div>
             </div>
+
+            <AudioSourcePanel
+                onNotification={(message, isError) => {
+                    if (window.showNotification) {
+                        window.showNotification(message, isError)
+                    }
+                }}
+            />
 
             {currentEffect && (
                 <div className="metadata-panel">

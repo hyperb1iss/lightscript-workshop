@@ -197,14 +197,99 @@ export function initializeEffect(initFunction: () => void, options: InitOptions 
 }
 
 // ─────────────────────────────────────────────────────────────
+// Audio & Reactive Utilities
+// ─────────────────────────────────────────────────────────────
+
+export type { AudioData, ScreenZoneData } from './utils/audio'
+export {
+    createAudioUniforms,
+    getAudioData,
+    getBassLevel,
+    getFrequencyRange,
+    getMidLevel,
+    getScreenZoneData,
+    getTrebleLevel,
+    normalizeAudioLevel,
+    normalizeFrequencyBin,
+    smoothValue,
+    updateAudioUniforms,
+} from './utils/audio'
+
+// ─────────────────────────────────────────────────────────────
 // SignalRGB Window Contract (Type Declarations)
 // ─────────────────────────────────────────────────────────────
+
+/**
+ * SignalRGB Audio API
+ * Provides real-time audio analysis data
+ */
+interface SignalRGBAudio {
+    /** Audio level in decibels (-100 to 0, where 0 is loudest) */
+    level: number
+    /** Tone density (0-1, 0=pure tone, 1=white noise) */
+    density: number
+    /** Stereo width (0-1) */
+    width: number
+    /** FFT frequency data (200 elements) */
+    freq: ArrayLike<number>
+}
+
+/**
+ * SignalRGB Vision/Meter API
+ * Provides screen analysis data from configured meters
+ */
+interface SignalRGBVision {
+    /** Access meters by name: engine.vision.meterName */
+    [meterName: string]: number
+}
+
+/**
+ * SignalRGB Screen Zone API
+ * Provides screen color sampling from a 28x20 grid (560 points)
+ */
+interface SignalRGBZone {
+    /** Hue values (0-360) for each screen sample point */
+    hue: ArrayLike<number>
+    /** Saturation values (0-100) for each screen sample point */
+    saturation: ArrayLike<number>
+    /** Lightness values (0-100) for each screen sample point */
+    lightness: ArrayLike<number>
+}
+
+/**
+ * SignalRGB Engine API
+ * Central access point for all SignalRGB data
+ */
+interface SignalRGBEngine {
+    /** Audio analysis data */
+    audio: SignalRGBAudio
+    /** Vision/meter data */
+    vision: SignalRGBVision
+    /** Screen zone color data */
+    zone: SignalRGBZone
+}
+
+/**
+ * Canvas API Event for game/app integrations
+ */
+interface CanvasApiEvent {
+    /** Sender identifier (app/game name) */
+    sender: string
+    /** Event data/name */
+    event: string
+}
 
 /**
  * SignalRGB communicates with effects through window properties.
  * This interface documents the contract between effects and SignalRGB.
  */
 declare global {
+    /** SignalRGB Engine - provides audio, vision, and screen data */
+    var engine: SignalRGBEngine
+
+    /** Canvas API event handler for game/app integrations */
+    function onCanvasApiEvent(event: CanvasApiEvent): void
+
     interface Window {
         /** Called by SignalRGB when any control value changes */
         update?: (force?: boolean) => void

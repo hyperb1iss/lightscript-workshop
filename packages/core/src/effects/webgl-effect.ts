@@ -4,6 +4,7 @@
  */
 
 import * as THREE from 'three'
+import { AudioData, createAudioUniforms, getAudioData, updateAudioUniforms } from '../utils/audio'
 import { createShaderQuad, createStandardUniforms, initializeWebGL, WebGLContext } from '../utils/webgl'
 import { BaseEffect, EffectConfig } from './base-effect'
 
@@ -13,6 +14,11 @@ import { BaseEffect, EffectConfig } from './base-effect'
 export interface WebGLEffectConfig extends EffectConfig {
     fragmentShader: string
     vertexShader?: string
+    /**
+     * Enable audio reactive uniforms (iAudioLevel, iAudioBass, etc.)
+     * When true, audio uniforms are automatically created and updated each frame
+     */
+    audioReactive?: boolean
 }
 
 /**
@@ -27,6 +33,11 @@ export abstract class WebGLEffect<T> extends BaseEffect<T> {
     protected fragmentShader: string
     protected vertexShader?: string
 
+    // Audio reactive properties
+    protected audioReactive: boolean
+    protected audioUniforms: Record<string, THREE.IUniform> = {}
+    protected currentAudioData: AudioData | null = null
+
     /**
      * Create a new WebGLEffect
      */
@@ -36,8 +47,11 @@ export abstract class WebGLEffect<T> extends BaseEffect<T> {
         // Store shaders
         this.fragmentShader = config.fragmentShader
         this.vertexShader = config.vertexShader
+        this.audioReactive = config.audioReactive ?? false
 
-        this.debug('info', 'WebGLEffect created with shaders')
+        this.debug('info', 'WebGLEffect created', {
+            audioReactive: this.audioReactive,
+        })
     }
 
     /**
@@ -63,9 +77,16 @@ export abstract class WebGLEffect<T> extends BaseEffect<T> {
         const standardUniforms = createStandardUniforms(this.canvas)
         this.customUniforms = this.createUniforms()
 
+        // Create audio uniforms if audio reactive
+        if (this.audioReactive) {
+            this.audioUniforms = createAudioUniforms()
+            this.debug('info', 'Audio uniforms created')
+        }
+
         const uniforms = {
             ...standardUniforms,
             ...this.customUniforms,
+            ...this.audioUniforms,
         }
 
         // Create shader quad
@@ -77,7 +98,9 @@ export abstract class WebGLEffect<T> extends BaseEffect<T> {
         // Add mesh to scene
         scene.add(mesh)
 
-        this.debug('success', 'WebGL renderer initialized')
+        this.debug('success', 'WebGL renderer initialized', {
+            audioReactive: this.audioReactive,
+        })
     }
 
     /**
@@ -93,9 +116,23 @@ export abstract class WebGLEffect<T> extends BaseEffect<T> {
             this.material.uniforms.iTime.value = time
         }
 
+        // Update audio uniforms if audio reactive
+        if (this.audioReactive) {
+            this.currentAudioData = getAudioData()
+            updateAudioUniforms(this.material.uniforms, this.currentAudioData)
+        }
+
         // Render the scene
         const { renderer, scene, camera } = this.webGLContext
         renderer.render(scene, camera)
+    }
+
+    /**
+     * Get current audio data (available when audioReactive is true)
+     * Useful for effects that want to access audio data in updateUniforms
+     */
+    protected getAudio(): AudioData | null {
+        return this.currentAudioData
     }
 
     /**
