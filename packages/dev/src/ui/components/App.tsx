@@ -1,6 +1,7 @@
 import { ControlDefinition, ControlValues } from '@lightscript/core/controls/definitions'
 import { FunctionComponent } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
+import { FPS_CAP_OPTIONS, RESOLUTION_PRESETS, ResolutionPreset } from '../../engine/preact-engine'
 import { ControlsPanel } from './ControlsPanel'
 import { EffectsPanel } from './EffectsPanel'
 import { Loader } from './Loader'
@@ -15,7 +16,9 @@ interface AppProps {
         author?: string
     }>
     currentEffectId: string
+    currentResolution: ResolutionPreset
     fps: number
+    fpsCap: number
     controlDefinitions: ControlDefinition[]
     controlValues: ControlValues
     isLoading: boolean
@@ -23,6 +26,8 @@ interface AppProps {
     onControlChange: (id: string, value: unknown) => void
     onResetControls: () => void
     onSavePreview: () => void
+    onResolutionChange: (preset: ResolutionPreset) => void
+    onFpsCapChange: (fps: number) => void
 }
 
 // Make the showNotification function available globally
@@ -32,7 +37,9 @@ let showNotification: (message: string, isError?: boolean) => void
 export const App: FunctionComponent<AppProps> = ({
     effects,
     currentEffectId,
+    currentResolution,
     fps,
+    fpsCap,
     controlDefinitions,
     controlValues,
     isLoading,
@@ -40,6 +47,8 @@ export const App: FunctionComponent<AppProps> = ({
     onControlChange,
     onResetControls,
     onSavePreview,
+    onResolutionChange,
+    onFpsCapChange,
 }) => {
     const [notification, setNotification] = useState<{ message: string; isError: boolean } | null>(null)
     const [showWelcomeModal, setShowWelcomeModal] = useState(() => {
@@ -103,9 +112,15 @@ export const App: FunctionComponent<AppProps> = ({
 
             <EffectsPanel
                 currentEffectId={currentEffectId}
+                currentResolution={currentResolution}
                 effects={effects}
                 fps={fps}
+                fpsCap={fpsCap}
+                fpsCapOptions={FPS_CAP_OPTIONS}
                 onEffectChange={onEffectChange}
+                onFpsCapChange={onFpsCapChange}
+                onResolutionChange={onResolutionChange}
+                resolutionPresets={RESOLUTION_PRESETS}
                 onOpenDocs={() => {
                     // Close existing window if open
                     if (docsWindow && !docsWindow.closed) {

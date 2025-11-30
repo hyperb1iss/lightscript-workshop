@@ -303,6 +303,40 @@
     font-weight: 600;
 }
 
+.stat-item-select {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+}
+
+.stat-select {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(1, 205, 254, 0.3);
+    border-radius: 4px;
+    color: var(--neon-green);
+    font-family: inherit;
+    font-size: 11px;
+    padding: 4px 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.stat-select:hover {
+    border-color: var(--neon-pink);
+    box-shadow: 0 0 8px rgba(255, 113, 206, 0.3);
+}
+
+.stat-select:focus {
+    outline: none;
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 10px rgba(1, 205, 254, 0.4);
+}
+
+.stat-select option {
+    background: #0a0a12;
+    color: #f2f2f2;
+}
+
 .metadata-value {
     color: var(--neon-yellow);
     text-align: right;

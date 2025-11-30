@@ -1,0 +1,18 @@
+{
+  "name": "lightscript-workshop-docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LightScript Workshop Documentation",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
+    "lint": "prettier --check \"**/*.md\"",
+    "lint:fix": "prettier --write \"**/*.md\"",
+    "format": "pnpm lint:fix"
+  },
+  "devDependencies": {
+    "prettier": "^3.7.1",
+    "vitepress": "^2.0.0-alpha.15"
+  }
+}

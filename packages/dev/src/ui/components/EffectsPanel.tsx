@@ -1,5 +1,5 @@
 import { FunctionComponent } from 'preact'
-import { useEffect, useState } from 'preact/hooks'
+import type { RESOLUTION_PRESETS, FPS_CAP_OPTIONS, ResolutionPreset } from '../../engine/preact-engine'
 
 interface EffectsPanelProps {
     effects: Array<{
@@ -9,8 +9,14 @@ interface EffectsPanelProps {
         author?: string
     }>
     currentEffectId: string
+    currentResolution: ResolutionPreset
     fps: number
+    fpsCap: number
+    resolutionPresets: typeof RESOLUTION_PRESETS
+    fpsCapOptions: typeof FPS_CAP_OPTIONS
     onEffectChange: (effectId: string) => void
+    onResolutionChange: (preset: ResolutionPreset) => void
+    onFpsCapChange: (fps: number) => void
     onSavePreview: () => void
     onOpenDocs?: () => void
 }
@@ -18,24 +24,18 @@ interface EffectsPanelProps {
 export const EffectsPanel: FunctionComponent<EffectsPanelProps> = ({
     effects = [],
     currentEffectId,
+    currentResolution,
     fps,
+    fpsCap,
+    resolutionPresets,
+    fpsCapOptions,
     onEffectChange,
+    onResolutionChange,
+    onFpsCapChange,
     onSavePreview,
     onOpenDocs,
 }) => {
     const currentEffect = effects && effects.length > 0 ? effects.find((e) => e.id === currentEffectId) : null
-
-    const [canvasWidth, setCanvasWidth] = useState(0)
-    const [canvasHeight, setCanvasHeight] = useState(0)
-
-    // Get canvas dimensions on mount
-    useEffect(() => {
-        const canvas = document.getElementById('exCanvas') as HTMLCanvasElement
-        if (canvas) {
-            setCanvasWidth(canvas.width)
-            setCanvasHeight(canvas.height)
-        }
-    }, [])
 
     return (
         <div className="effects-panel">
@@ -66,7 +66,7 @@ export const EffectsPanel: FunctionComponent<EffectsPanelProps> = ({
 
             <div className="stats-panel">
                 <div className="stats-header">
-                    <h4>📶 Stats</h4>
+                    <h4>📶 Display</h4>
                 </div>
                 <div className="stats-content">
                     <div className="stat-item">
@@ -74,11 +74,34 @@ export const EffectsPanel: FunctionComponent<EffectsPanelProps> = ({
                         <span className="stat-value">{fps.toFixed(1)}</span>
                     </div>
 
-                    <div className="stat-item">
+                    <div className="stat-item stat-item-select">
                         <span className="stat-label">Resolution</span>
-                        <span className="stat-value">
-                            {canvasWidth}×{canvasHeight}
-                        </span>
+                        <select
+                            className="stat-select"
+                            onChange={(e: Event) => onResolutionChange((e.target as HTMLSelectElement).value as ResolutionPreset)}
+                            value={currentResolution}
+                        >
+                            {Object.entries(resolutionPresets).map(([key, preset]) => (
+                                <option key={key} value={key}>
+                                    {preset.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="stat-item stat-item-select">
+                        <span className="stat-label">FPS Cap</span>
+                        <select
+                            className="stat-select"
+                            onChange={(e: Event) => onFpsCapChange(Number((e.target as HTMLSelectElement).value))}
+                            value={fpsCap}
+                        >
+                            {fpsCapOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 </div>
             </div>

@@ -36,7 +36,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "dev:fast": "vite --host 0.0.0.0 --port 4096"
+    "dev:fast": "vite --host 0.0.0.0 --port 4096",
+    "docs": "pnpm --filter lightscript-workshop-docs dev",
+    "docs:build": "pnpm --filter lightscript-workshop-docs build",
+    "docs:preview": "pnpm --filter lightscript-workshop-docs preview"
   },
   "keywords": [
     "webgl",

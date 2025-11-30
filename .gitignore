@@ -25,6 +25,10 @@ dist-ssr
 
 coverage
 
+# VitePress
+docs/.vitepress/cache
+docs/.vitepress/dist
+
 # Private individual user cursor rules
 .cursor/rules/_*.mdc
 

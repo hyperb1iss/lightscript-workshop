@@ -16,6 +16,25 @@ const debug = createDebugLogger('PreactEngine')
 // Storage key prefix for control values
 const STORAGE_KEY_PREFIX = 'lightscript-controls-'
 
+// Resolution presets
+export const RESOLUTION_PRESETS = {
+    'signalrgb': { width: 320, height: 200, label: 'SignalRGB (320×200)' },
+    'sd': { width: 640, height: 480, label: 'SD (640×480)' },
+    'hd': { width: 800, height: 600, label: 'HD (800×600)' },
+    'hd+': { width: 1280, height: 720, label: 'HD+ (1280×720)' },
+    'fhd': { width: 1920, height: 1080, label: 'Full HD (1920×1080)' },
+} as const
+
+export type ResolutionPreset = keyof typeof RESOLUTION_PRESETS
+
+// FPS cap options
+export const FPS_CAP_OPTIONS = [
+    { value: 0, label: 'Unlimited' },
+    { value: 30, label: '30 FPS' },
+    { value: 60, label: '60 FPS' },
+    { value: 120, label: '120 FPS' },
+] as const
+
 // Discover effects at module load time
 const effectModules = discoverEffects()
 
@@ -69,11 +88,19 @@ export class PreactDevEngine {
     // Debounce timer for saving control values
     private saveTimeout: ReturnType<typeof setTimeout> | null = null
 
+    // Resolution and FPS settings
+    private currentResolution: ResolutionPreset = 'hd'
+    private fpsCap = 0 // 0 = unlimited
+    private lastFrameTime = 0
+
     /**
      * Create a new PreactDevEngine instance
      */
     constructor() {
         debug('info', 'Initializing lighting engine')
+
+        // Load saved display settings
+        this.loadDisplaySettings()
 
         // Create root element for Preact
         this.rootElement = document.createElement('div')
@@ -113,6 +140,14 @@ export class PreactDevEngine {
         if (!this.canvas) {
             debug('error', 'Canvas element with ID "exCanvas" not found')
             throw new Error('Canvas element with ID "exCanvas" not found')
+        }
+
+        // Apply saved resolution
+        const resolution = RESOLUTION_PRESETS[this.currentResolution]
+        if (resolution) {
+            this.canvas.width = resolution.width
+            this.canvas.height = resolution.height
+            debug('info', `🖼️ Applied saved resolution: ${resolution.label}`)
         }
 
         // Get the effect ID from URL, localStorage, or use the first effect
@@ -216,6 +251,78 @@ export class PreactDevEngine {
     }
 
     /**
+     * Change canvas resolution
+     */
+    public setResolution(preset: ResolutionPreset): void {
+        const resolution = RESOLUTION_PRESETS[preset]
+        if (!resolution || !this.canvas) return
+
+        debug('info', `🖼️ Changing resolution to ${resolution.label}`)
+
+        this.currentResolution = preset
+        this.canvas.width = resolution.width
+        this.canvas.height = resolution.height
+
+        // Save to localStorage
+        localStorage.setItem('lightscript-resolution', preset)
+
+        // Trigger resize handler and re-render
+        this.handleResize()
+        this.renderUI()
+
+        // Notify effect of resize
+        if (typeof window.update === 'function') {
+            window.update(true)
+        }
+    }
+
+    /**
+     * Set FPS cap
+     */
+    public setFpsCap(fps: number): void {
+        debug('info', `⏱️ Setting FPS cap to ${fps === 0 ? 'unlimited' : fps}`)
+        this.fpsCap = fps
+        localStorage.setItem('lightscript-fps-cap', String(fps))
+        this.renderUI()
+    }
+
+    /**
+     * Get minimum frame interval based on FPS cap
+     */
+    public getFrameInterval(): number {
+        return this.fpsCap > 0 ? 1000 / this.fpsCap : 0
+    }
+
+    /**
+     * Check if enough time has passed for next frame (for FPS capping)
+     */
+    public shouldRenderFrame(timestamp: number): boolean {
+        if (this.fpsCap === 0) return true
+
+        const interval = this.getFrameInterval()
+        if (timestamp - this.lastFrameTime >= interval) {
+            this.lastFrameTime = timestamp
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Load saved display settings from localStorage
+     */
+    private loadDisplaySettings(): void {
+        const savedResolution = localStorage.getItem('lightscript-resolution') as ResolutionPreset | null
+        if (savedResolution && savedResolution in RESOLUTION_PRESETS) {
+            this.currentResolution = savedResolution
+        }
+
+        const savedFpsCap = localStorage.getItem('lightscript-fps-cap')
+        if (savedFpsCap !== null) {
+            this.fpsCap = Number(savedFpsCap)
+        }
+    }
+
+    /**
      * Render the UI using Preact
      */
     private renderUI(): void {
@@ -226,12 +333,16 @@ export class PreactDevEngine {
                 controlDefinitions: this.controlDefinitions,
                 controlValues: this.controlValues,
                 currentEffectId: this.currentEffect?.id || '',
+                currentResolution: this.currentResolution,
                 effects: effects as AppEffect[],
                 fps: this.fpsValue,
+                fpsCap: this.fpsCap,
                 isLoading: this.isLoading,
                 onControlChange: (id: string, value: unknown) => this.handleControlChange(id, value),
                 onEffectChange: (id: string) => this.loadEffect(id),
+                onFpsCapChange: (fps: number) => this.setFpsCap(fps),
                 onResetControls: () => this.resetControls(),
+                onResolutionChange: (preset: ResolutionPreset) => this.setResolution(preset),
                 onSavePreview: () => this.savePreview(),
             }),
             this.rootElement,

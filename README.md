@@ -1,259 +1,194 @@
 <div align="center">
 
-# 🌠 LightScript Workshop for SignalRGB 🔮
+# 💜⚡ 𝕃𝕚𝕘𝕙𝕥𝕊𝕔𝕣𝕚𝕡𝕥 𝕎𝕠𝕣𝕜𝕤𝕙𝕠𝕡 ⚡💜
 
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![Three.js](https://img.shields.io/badge/Three.js-000000?style=for-the-badge&logo=three.js&logoColor=white)
-![WebGL](https://img.shields.io/badge/WebGL-990000?style=for-the-badge&logo=webgl&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-![Preact](https://img.shields.io/badge/Preact-673AB8?style=for-the-badge&logo=preact&logoColor=white)
+### _Mind-bending RGB effects for the chronically creative_
 
-_Create mind-bending RGB lighting effects with modern tools_
+[![TypeScript](https://img.shields.io/badge/TypeScript-e135ff?style=for-the-badge&logo=typescript&logoColor=121218)](https://www.typescriptlang.org/)
+[![Three.js](https://img.shields.io/badge/Three.js-80ffea?style=for-the-badge&logo=three.js&logoColor=121218)](https://threejs.org/)
+[![WebGL](https://img.shields.io/badge/WebGL-ff6ac1?style=for-the-badge&logo=webgl&logoColor=121218)](https://www.khronos.org/webgl/)
+[![Vite](https://img.shields.io/badge/Vite-bd93f9?style=for-the-badge&logo=vite&logoColor=121218)](https://vitejs.dev/)
+[![SignalRGB](https://img.shields.io/badge/SignalRGB-50fa7b?style=for-the-badge&logoColor=121218)](https://signalrgb.com/)
 
-![LightScript Workshop Screenshot](public/assets/workshop.png)
+[![License](https://img.shields.io/github/license/hyperb1iss/lightscript-workshop?style=flat-square&color=e135ff)](LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/hyperb1iss/lightscript-workshop?style=flat-square&color=80ffea)](https://github.com/hyperb1iss/lightscript-workshop/stargazers)
+
+[💎 Documentation](https://hyperb1iss.github.io/lightscript-workshop/) · [🌌 Effect Gallery](#-effect-gallery) · [💫 Quick Start](#-quick-start)
 
 </div>
 
-LightScript Workshop is a modern TypeScript framework for creating stunning RGB lighting effects for [SignalRGB](https://signalrgb.com/). Transform the way you build Lightscripts with a type-safe, decorator-based approach featuring hot reloading, WebGL integration, and an efficient build system.
+---
 
-## 🚀 What's New (v0.9.2)
-
-### 🎨 New Mind-Bending Effects
-- **🌊 Quantum Foam** - Virtual particles with wave function collapse visualization
-- **🧠 ADHD Hyperfocus** - Tunnel vision with dopamine-seeking patterns
-- **⚡ Neural Synapse Fire** - ML-inspired neural network activation patterns
-- **💥 Reality.exe Has Stopped Working** - Windows error dialogs in RGB chaos
-- **🧬 Cellular Automaton RGB** - Conway's Game of Life on your keyboard
-- **🌀 Black Hole** - Gravitational lensing with event horizon effects
-- **💎 Voronoi Flow** - Cellular patterns with fluid dynamics
-- **⏰ Temporal Hallucination** - Time-bending patterns that predict the future
-
-### 🛠️ Developer Experience Improvements
-- **📝 GLSL Linting** - Comprehensive shader validation and formatting
-- **💾 Effect Persistence** - Remembers your last selected effect across reloads
-- **🎯 Prettier Integration** - GLSL formatting with aligned comments support
-- **🔧 Biome Integration** - Fast, modern linting and formatting
-- **📊 Performance Controls** - Quality/performance trade-offs in effects
-
-## ⚡ Features
-
-- **🔷 Modern TypeScript** - Full type safety with decorator-based controls
-- **🔮 Three.js & WebGL** - Powerful GPU-accelerated rendering
-- **🎨 Canvas 2D Support** - Traditional drawing API for simpler effects
-- **⚡ Hot Reloading** - Instant visual feedback with effect persistence
-- **🧩 Decorator-Based Controls** - Type-safe UI elements with TypeScript decorators
-- **⚙️ Optimized Build Pipeline** - Production-ready effects with Vite
-- **🧪 Testing Framework** - Maintain quality with Vitest
-- **🤖 AI-Assisted Development** - Create effects with AI assistance
-- **📐 GLSL Tools** - Linting, formatting, and validation for shaders
-- **🎮 Live Development UI** - Interactive controls with real-time preview
-
-## 🌐 Quick Start
+## 💫 Quick Start
 
 ```bash
-# Clone the repository
 git clone https://github.com/hyperb1iss/lightscript-workshop.git
 cd lightscript-workshop
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
+pnpm install
+pnpm dev
 ```
 
-Then open your browser to http://localhost:4096 to see the effect gallery. The UI remembers your last selected effect!
+Open [localhost:4096](http://localhost:4096) and watch your keyboard become a canvas. The dev UI remembers your last effect, so you can pick up right where you left off.
 
-## 📚 Documentation
+## 💎 Features
 
-We've created comprehensive documentation to help you get the most out of LightScript Workshop:
+| Feature | Description |
+|---------|-------------|
+| **WebGL + Canvas 2D** | GPU-accelerated shaders _or_ traditional drawing — your choice |
+| **Decorator Controls** | Type-safe UI with `@NumberControl`, `@BooleanControl`, `@ComboboxControl` |
+| **Hot Reloading** | Change shader code, see it instantly — no refresh needed |
+| **AI-Native** | Designed for Claude, Cursor, and Copilot to generate effects |
+| **Monorepo** | Clean separation: `@lightscript/core` for the API, `@lightscript/dev` for tooling |
+| **GLSL Tooling** | Lint, format, and share shader code with built-in utilities |
 
-- [**Developer Guide**](/docs/developer-guide.md) - Start here for a complete introduction
-- [**API Reference**](/docs/api-reference.md) - Detailed technical documentation
-- [**Examples**](/docs/examples.md) - Ready-to-use effect examples with explanations
-- [**Advanced Guide**](/docs/advanced.md) - Deep dives into advanced techniques
-- [**AI-Assisted Development**](/docs/ai-assisted-development.md) - Create effects with AI assistance
-- [**Creative Ideas Catalog**](/docs/CREATIVE_IDEAS_CATALOG.md) - 50+ wild effect concepts
-- [**Technical Recommendations**](/docs/TECHNICAL_RECOMMENDATIONS.md) - Performance & architecture tips
+## 🌌 Effect Gallery
 
-## 🌈 Available Effects Gallery
+### ⚛️ Physics & Mathematics
+| Effect | Vibe |
+|--------|------|
+| **Black Hole** | Gravitational lensing with accretion disk and Hawking radiation |
+| **Voronoi Flow** | Cellular patterns morphing with fluid dynamics |
+| **Quantum Foam** | Planck-scale virtual particles popping in and out of existence |
 
-### 🧠 AI & Generative
-- **Neural Synapse Fire** - Real neural network mathematics visualized
-- **Quantum Foam** - Planck-scale virtual particles and wave collapse
-- **Cellular Automaton RGB** - Conway's Game of Life and other automata
+### 💾 Digital & Glitch
+| Effect | Vibe |
+|--------|------|
+| **Cyber Descent** | Cyberpunk matrix rainfall with scanline artifacts |
+| **Reality.exe Error** | Windows BSOD and error dialogs as RGB chaos |
+| **Kaleido Tunnel** | Raymarched kaleidoscopic infinity tunnel |
 
-### 🌀 Physics & Mathematics
-- **Black Hole** - Gravitational lensing with Hawking radiation
-- **Voronoi Flow** - Cellular patterns with fluid dynamics
-- **Kaleido Tunnel** - Kaleidoscopic tunnel with configurable symmetry
+### 🌀 Mind-Bending
+| Effect | Vibe |
+|--------|------|
+| **Glow Particles** | Vibrant particle swarms with luminous trails |
+| **ADHD Hyperfocus** | Tunnel vision with dopamine-seeking sparkles |
+| **Temporal Hallucination** | Time-warping patterns that predict the future |
 
-### 🎮 Digital & Glitch Art
-- **Reality.exe Has Stopped Working** - Windows errors as art
-- **Cyber Descent** - Cyberpunk-inspired matrix rainfall
-- **Temporal Hallucination** - Time-bending predictive patterns
+## 🔮 Creating Effects
 
-### 🧠 Neurodivergent Experience
-- **ADHD Hyperfocus** - Tunnel vision with dopamine sparks
-
-### ✨ Classic Effects
-- **Puff Stuff Tunnel** - Ray-marched psychedelic tunnel
-- **Glow Particles** - Vibrant particle system with trails
-
-## 💻 Development Workflow
-
-### Creating a New Effect
-
-1. **Generate** with the effect creator (coming soon) or manually create:
-   ```
-   effects/your-effect-name/
-   ├── fragment.glsl  # Shader code
-   └── main.ts        # Effect implementation
-   ```
-
-2. **Register** in `src/index.ts`:
-   ```typescript
-   export const effects = [
-     // ... existing effects
-     {
-       entry: './effects/your-effect-name/main.ts',
-       id: 'your-effect-name'
-     }
-   ]
-   ```
-
-3. **Develop** with hot reloading:
-   ```bash
-   npm run dev
-   ```
-
-4. **Lint** your shaders:
-   ```bash
-   npm run lint:glsl
-   ```
-
-5. **Build** for SignalRGB:
-   ```bash
-   EFFECT=your-effect-name npm run build
-   ```
-
-## 🎮 Control Types
-
-Effects can use these decorator-based controls:
+Effects are TypeScript classes with GLSL shaders. Here's the pattern:
 
 ```typescript
-@NumberControl({
-  label: 'Speed',
-  min: 0,
-  max: 200,
-  default: 100,
-  tooltip: 'Animation speed'
-})
-speed!: number
+import {
+  Effect, NumberControl, WebGLEffect, initializeEffect, normalizeSpeed
+} from '@lightscript/core'
+import fragmentShader from './fragment.glsl'
 
-@BooleanControl({
-  label: 'Enable Glow',
-  default: true
-})
-glowEnabled!: boolean
+interface MyControls { speed: number }
 
-@ComboboxControl({
-  label: 'Color Mode',
-  values: ['Rainbow', 'Neon', 'Monochrome'],
-  default: 'Rainbow'
-})
-colorMode!: string
+@Effect({ name: 'Neon Dreams', author: 'You' })
+export class NeonDreams extends WebGLEffect<MyControls> {
+  @NumberControl({ label: 'Speed', min: 1, max: 10, default: 5 })
+  speed!: number
+
+  constructor() {
+    super({ id: 'neon-dreams', name: 'Neon Dreams', fragmentShader })
+  }
+
+  protected initializeControls() { window.speed = 5 }
+  protected getControlValues() { return { speed: normalizeSpeed(window.speed ?? 5) } }
+  protected createUniforms() { return { iSpeed: { value: 1.0 } } }
+  protected updateUniforms(c: MyControls) {
+    if (this.material) this.material.uniforms.iSpeed.value = c.speed
+  }
+}
+
+initializeEffect(() => new NeonDreams().initialize())
 ```
 
-## ⚙️ Scripts & Commands
-
-```bash
-# Development
-npm run dev           # Start dev server with hot reload
-npm run typecheck     # Check TypeScript types
-npm run lint          # Run Biome linter
-npm run lint:glsl     # Lint GLSL shaders
-npm run format        # Format code with Biome
-
-# Building
-npm run build         # Build all effects
-npm run build:debug   # Build without minification
-EFFECT=name npm run build  # Build specific effect
-
-# Testing
-npm test              # Run tests
-npm run test:ui       # Run tests with UI
-npm run coverage      # Generate coverage report
-```
-
-## 🔧 Configuration
-
-### Prettier for GLSL
-
-The project includes GLSL formatting with `prettier-plugin-glsl`. To preserve aligned comments in shaders, use:
+And the shader (`fragment.glsl`):
 
 ```glsl
-// prettier-ignore
-// Controls
-uniform float iScale;        // 0.3..4.0  (cell size)
-uniform float iSpeed;        // 0..2      (flow speed)
+uniform float iTime;
+uniform vec2 iResolution;
+uniform float iSpeed;
+
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
+    vec2 uv = fragCoord / iResolution.xy;
+    float t = iTime * iSpeed;
+    vec3 col = 0.5 + 0.5 * cos(t + uv.xyx + vec3(0, 2, 4));
+    fragColor = vec4(col, 1.0);
+}
+
+void main() { mainImage(gl_FragColor, gl_FragCoord.xy); }
 ```
 
-### TypeScript
+Drop these in `src/effects/neon-dreams/` and it's auto-discovered. No registration needed.
 
-Configured for Preact with automatic JSX runtime and decorator support.
+## 🗂️ Project Structure
 
-### Biome
+```
+lightscript-workshop/
+├── packages/
+│   ├── core/              # @lightscript/core — The framework API
+│   └── dev/               # @lightscript/dev — Dev server & build tools
+├── src/
+│   ├── effects/           # Your effects live here
+│   └── shaders/           # Shared GLSL utilities (noise, colors, SDFs)
+├── docs/                  # VitePress documentation
+└── dist/                  # Built effects ready for SignalRGB
+```
 
-Modern, fast linter configured for TypeScript and Preact with sensible defaults.
+## ⌨️ Commands
 
-## 🎮 SignalRGB Integration
+```bash
+pnpm dev              # Start dev server with hot reload
+pnpm build:effects    # Build all effects to dist/
+pnpm docs             # Preview documentation locally
+pnpm typecheck        # Check TypeScript types
+pnpm test             # Run tests
+pnpm lint             # Lint code
+```
 
-1. Build your effect: `EFFECT=effect-name npm run build`
-2. Copy the HTML file from `dist/` to:
-   - Windows: `~/Documents/WhirlwindFX/Effects`
-   - macOS: `~/Documents/SignalRGB/Effects`
-3. Restart SignalRGB or refresh effects
-4. Your effect appears in the "Lighting Effects" section
+## 🪐 Deploy to SignalRGB
 
-## 🤝 Contributing
+```bash
+# Build your effect
+EFFECT=black-hole pnpm build:effects
 
-Contributions are welcome! Whether you're fixing bugs, improving documentation, or creating wild new effects, we'd love your help.
+# Copy to SignalRGB effects folder
+# Windows: ~/Documents/WhirlwindFX/Effects/
+# macOS:   ~/Documents/SignalRGB/Effects/
+```
 
-### Areas for Contribution
-- New mind-bending effects
-- Performance optimizations
-- Documentation improvements
-- UI/UX enhancements
-- Testing coverage
-- GLSL shader techniques
+Restart SignalRGB, find your effect in "Lighting Effects", and bask in the glow.
 
-Check out [CREATIVE_IDEAS_CATALOG.md](/docs/CREATIVE_IDEAS_CATALOG.md) for effect inspiration!
+## 🧬 AI-Powered Development
 
-## 📦 Tech Stack
+LightScript Workshop is built for AI collaboration. The consistent patterns and typed interfaces make it trivial for AI to generate complete, working effects.
 
-- **Framework**: TypeScript + Vite + Preact
-- **Graphics**: Three.js, WebGL, Canvas 2D
-- **Shaders**: GLSL ES 3.00 / WebGL 2.0
-- **Linting**: Biome + Custom GLSL linter
-- **Formatting**: Prettier + prettier-plugin-glsl
-- **Testing**: Vitest + @vitest/coverage-v8
-- **Build**: Rollup via Vite
+**Try this prompt:**
+```
+Create a WebGL effect called "aurora-waves" that simulates northern lights.
+Add controls for speed (1-10), intensity (0-200), and a color palette dropdown.
+Reference src/effects/black-hole/main.ts for the pattern.
+```
 
-## 🎯 Roadmap
+See [CLAUDE.md](CLAUDE.md) for complete AI agent documentation.
 
-- [ ] Visual shader editor
-- [ ] Effect marketplace
-- [ ] AI effect generator
-- [ ] Performance profiler
-- [ ] Mobile preview app
-- [ ] Effect chaining/layering
-- [ ] Audio reactivity
-- [ ] Community effect sharing
+## 🌙 Documentation
 
-## 📄 License
+Full docs at [hyperb1iss.github.io/lightscript-workshop](https://hyperb1iss.github.io/lightscript-workshop/)
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- [Getting Started](https://hyperb1iss.github.io/lightscript-workshop/getting-started/) — Installation and first effect
+- [Guide](https://hyperb1iss.github.io/lightscript-workshop/guide/) — Core concepts and patterns
+- [Reference](https://hyperb1iss.github.io/lightscript-workshop/reference/) — Complete API documentation
+- [Examples](https://hyperb1iss.github.io/lightscript-workshop/examples/) — Code patterns and snippets
+- [AI Development](https://hyperb1iss.github.io/lightscript-workshop/ai/) — Working with AI assistants
+
+## 💜 Contributing
+
+Got a wild effect idea? Performance optimization? Bug fix? We want it all.
+
+```bash
+pnpm install && pnpm dev   # Get running
+# Make something awesome
+pnpm test && pnpm lint     # Make sure it's solid
+```
+
+## 📜 License
+
+MIT License — see [LICENSE](LICENSE)
 
 ---
 
@@ -261,6 +196,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Created by [Stefanie Jane 🌠](https://github.com/hyperb1iss)
 
-If you love lightscript-workshop, star the repo and [buy me a Monster Ultra Violet](https://ko-fi.com/hyperb1iss)! ⚡️
+If your RGB has transcended, [buy me a Monster Ultra Violet](https://ko-fi.com/hyperb1iss)! ⚡️
 
 </div>
