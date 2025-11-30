@@ -119,8 +119,6 @@ export const App: FunctionComponent<AppProps> = ({
                 fpsCapOptions={FPS_CAP_OPTIONS}
                 onEffectChange={onEffectChange}
                 onFpsCapChange={onFpsCapChange}
-                onResolutionChange={onResolutionChange}
-                resolutionPresets={RESOLUTION_PRESETS}
                 onOpenDocs={() => {
                     // Close existing window if open
                     if (docsWindow && !docsWindow.closed) {
@@ -297,7 +295,9 @@ export const App: FunctionComponent<AppProps> = ({
                         })
                     }
                 }}
+                onResolutionChange={onResolutionChange}
                 onSavePreview={onSavePreview}
+                resolutionPresets={RESOLUTION_PRESETS}
             />
 
             <ControlsPanel

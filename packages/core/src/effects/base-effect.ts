@@ -45,6 +45,9 @@ export abstract class BaseEffect<T> {
     protected canvasHeight: number
     protected canvas: HTMLCanvasElement | null = null
 
+    // FPS limiting
+    private fpsCapLastFrameTime = 0
+
     /**
      * Create a new BaseEffect
      */
@@ -120,6 +123,20 @@ export abstract class BaseEffect<T> {
     protected animationFrame(timestamp: number): void {
         if (this.animationId === null) return
 
+        // Request next frame first (ensures smooth scheduling)
+        this.animationId = requestAnimationFrame(this.animationFrame.bind(this))
+        window.currentAnimationFrame = this.animationId
+
+        // Check FPS cap from global setting (set by dev engine)
+        const fpsCap = (window as { __lightscriptFpsCap?: number }).__lightscriptFpsCap ?? 0
+        if (fpsCap > 0) {
+            const frameInterval = 1000 / fpsCap
+            if (timestamp - this.fpsCapLastFrameTime < frameInterval) {
+                return // Skip this frame
+            }
+            this.fpsCapLastFrameTime = timestamp
+        }
+
         // Convert to seconds for consistency
         const time = timestamp / 1000
 
@@ -128,12 +145,6 @@ export abstract class BaseEffect<T> {
 
         // Call onFrame for additional processing
         this.onFrame(time)
-
-        // Request next frame
-        this.animationId = requestAnimationFrame(this.animationFrame.bind(this))
-
-        // Update global animation ID
-        window.currentAnimationFrame = this.animationId
     }
 
     /**

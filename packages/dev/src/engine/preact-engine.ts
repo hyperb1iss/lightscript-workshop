@@ -18,21 +18,21 @@ const STORAGE_KEY_PREFIX = 'lightscript-controls-'
 
 // Resolution presets
 export const RESOLUTION_PRESETS = {
-    'signalrgb': { width: 320, height: 200, label: 'SignalRGB (320×200)' },
-    'sd': { width: 640, height: 480, label: 'SD (640×480)' },
-    'hd': { width: 800, height: 600, label: 'HD (800×600)' },
-    'hd+': { width: 1280, height: 720, label: 'HD+ (1280×720)' },
-    'fhd': { width: 1920, height: 1080, label: 'Full HD (1920×1080)' },
+    fhd: { height: 1080, label: 'Full HD (1920×1080)', width: 1920 },
+    hd: { height: 600, label: 'HD (800×600)', width: 800 },
+    'hd+': { height: 720, label: 'HD+ (1280×720)', width: 1280 },
+    sd: { height: 480, label: 'SD (640×480)', width: 640 },
+    signalrgb: { height: 200, label: 'SignalRGB (320×200)', width: 320 },
 } as const
 
 export type ResolutionPreset = keyof typeof RESOLUTION_PRESETS
 
 // FPS cap options
 export const FPS_CAP_OPTIONS = [
-    { value: 0, label: 'Unlimited' },
-    { value: 30, label: '30 FPS' },
-    { value: 60, label: '60 FPS' },
-    { value: 120, label: '120 FPS' },
+    { label: 'Unlimited', value: 0 },
+    { label: '30 FPS', value: 30 },
+    { label: '60 FPS', value: 60 },
+    { label: '120 FPS', value: 120 },
 ] as const
 
 // Discover effects at module load time
@@ -91,7 +91,6 @@ export class PreactDevEngine {
     // Resolution and FPS settings
     private currentResolution: ResolutionPreset = 'hd'
     private fpsCap = 0 // 0 = unlimited
-    private lastFrameTime = 0
 
     /**
      * Create a new PreactDevEngine instance
@@ -266,13 +265,13 @@ export class PreactDevEngine {
         // Save to localStorage
         localStorage.setItem('lightscript-resolution', preset)
 
-        // Trigger resize handler and re-render
+        // Trigger resize handler and re-render UI
         this.handleResize()
         this.renderUI()
 
-        // Notify effect of resize
-        if (typeof window.update === 'function') {
-            window.update(true)
+        // Reload current effect to reinitialize for new resolution
+        if (this.currentEffect?.id) {
+            this.loadEffect(this.currentEffect.id)
         }
     }
 
@@ -282,29 +281,12 @@ export class PreactDevEngine {
     public setFpsCap(fps: number): void {
         debug('info', `⏱️ Setting FPS cap to ${fps === 0 ? 'unlimited' : fps}`)
         this.fpsCap = fps
+
+        // Set global FPS cap for effects to read
+        ;(window as { __lightscriptFpsCap?: number }).__lightscriptFpsCap = fps
+
         localStorage.setItem('lightscript-fps-cap', String(fps))
         this.renderUI()
-    }
-
-    /**
-     * Get minimum frame interval based on FPS cap
-     */
-    public getFrameInterval(): number {
-        return this.fpsCap > 0 ? 1000 / this.fpsCap : 0
-    }
-
-    /**
-     * Check if enough time has passed for next frame (for FPS capping)
-     */
-    public shouldRenderFrame(timestamp: number): boolean {
-        if (this.fpsCap === 0) return true
-
-        const interval = this.getFrameInterval()
-        if (timestamp - this.lastFrameTime >= interval) {
-            this.lastFrameTime = timestamp
-            return true
-        }
-        return false
     }
 
     /**
@@ -320,6 +302,8 @@ export class PreactDevEngine {
         if (savedFpsCap !== null) {
             this.fpsCap = Number(savedFpsCap)
         }
+        // Set global FPS cap for effects to read
+        ;(window as { __lightscriptFpsCap?: number }).__lightscriptFpsCap = this.fpsCap
     }
 
     /**
@@ -406,6 +390,9 @@ export class PreactDevEngine {
 
         // Stop any existing animation and clean up
         this.cleanupCurrentEffect()
+
+        // Resize the new canvas to fill container
+        this.handleResize()
 
         // Reset controls
         this.controlDefinitions = []
@@ -685,7 +672,8 @@ export class PreactDevEngine {
     }
 
     /**
-     * Start monitoring FPS
+     * Start FPS monitoring
+     * Note: FPS limiting is handled in BaseEffect.animationFrame via __lightscriptFpsCap
      */
     public startFPSMonitor(): void {
         const performanceNow =
@@ -699,13 +687,10 @@ export class PreactDevEngine {
             const now = performanceNow()
             this.frameCount++
 
-            // Update every second
+            // Update FPS display every second
             if (now - this.lastTime >= 1000) {
                 this.fpsValue = Math.round((this.frameCount * 1000) / (now - this.lastTime))
-
-                // Update UI with new FPS value
                 this.renderUI()
-
                 this.frameCount = 0
                 this.lastTime = now
             }

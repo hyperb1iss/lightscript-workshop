@@ -1,5 +1,5 @@
 import { FunctionComponent } from 'preact'
-import type { RESOLUTION_PRESETS, FPS_CAP_OPTIONS, ResolutionPreset } from '../../engine/preact-engine'
+import type { FPS_CAP_OPTIONS, RESOLUTION_PRESETS, ResolutionPreset } from '../../engine/preact-engine'
 
 interface EffectsPanelProps {
     effects: Array<{
@@ -78,7 +78,9 @@ export const EffectsPanel: FunctionComponent<EffectsPanelProps> = ({
                         <span className="stat-label">Resolution</span>
                         <select
                             className="stat-select"
-                            onChange={(e: Event) => onResolutionChange((e.target as HTMLSelectElement).value as ResolutionPreset)}
+                            onChange={(e: Event) =>
+                                onResolutionChange((e.target as HTMLSelectElement).value as ResolutionPreset)
+                            }
                             value={currentResolution}
                         >
                             {Object.entries(resolutionPresets).map(([key, preset]) => (
