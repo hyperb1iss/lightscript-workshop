@@ -4,7 +4,7 @@ import { defineConfig } from 'vite'
 import glsl from 'vite-plugin-glsl'
 
 // Import our custom plugins
-import { getEffectBuildConfig, lightscriptDecoratorsPlugin, signalRGBPlugin } from './plugins'
+import { getEffectBuildConfig, lightscriptDecoratorsPlugin, signalRGBPlugin, startupLogoPlugin } from './plugins'
 
 export default defineConfig(({ command }: ConfigEnv) => {
     const isDevelopment = command === 'serve'
@@ -31,8 +31,8 @@ export default defineConfig(({ command }: ConfigEnv) => {
             // GLSL shader support
             glsl(),
 
-            // Only add lightscript decorators plugin for development mode
-            ...(isDevelopment ? [lightscriptDecoratorsPlugin()] : []),
+            // Only add lightscript plugins for development mode
+            ...(isDevelopment ? [lightscriptDecoratorsPlugin(), startupLogoPlugin()] : []),
         ],
         resolve: {
             // Add Preact aliases for compatibility
