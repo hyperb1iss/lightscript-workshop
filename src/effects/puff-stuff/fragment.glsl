@@ -10,20 +10,33 @@ uniform float iColorPulse;
 uniform float iMotionWave;
 uniform bool iMotionReverse;
 uniform float iColorSaturation;
+// New powerful uniforms
+uniform float iTunnelWidth;
+uniform float iCameraTilt;
+uniform float iSurfaceRoughness;
+uniform float iFogDensity;
+uniform float iZoomFOV;
+uniform float iColorCycleSpeed;
 
+// Color time runs independently from animation
+#define CT (iTime * iColorCycleSpeed * 2.0)
 #define T (iTime * 3.5 * iSpeed * (iMotionReverse ? -1.0 : 1.0))
+
+// Tunnel path - now with adjustable width via amplitude
+#define TUNNEL_AMP_X (12.0 * iTunnelWidth)
+#define TUNNEL_AMP_Y (24.0 * iTunnelWidth)
 #define P(z)                                                                   \
   vec3(                                                                        \
     tanh(                                                                      \
       cos((z) * 0.2 + sin(iTime * iMotionWave) * 2.0 * iMotionWave) * 0.4      \
     ) *                                                                        \
-      12.0,                                                                    \
+      TUNNEL_AMP_X,                                                            \
     5.0 +                                                                      \
       tanh(                                                                    \
         cos((z) * 0.14 + cos(iTime * iMotionWave * 0.5) * 3.0 * iMotionWave) * \
           0.5                                                                  \
       ) *                                                                      \
-        24.0,                                                                  \
+        TUNNEL_AMP_Y,                                                          \
     z                                                                          \
   )
 #define rot(a) mat2(cos(a), -sin(a), sin(a), cos(a))
@@ -125,20 +138,21 @@ vec3 saturateColor(vec3 color, float factor) {
 }
 
 // Color scheme palettes with enhanced dynamism
+// Uses CT (color time) for independent color animation speed
 vec3 getColorPalette(int scheme, vec3 baseColor) {
   // Calculate more dramatic color pulse with multiple frequencies
   float pulseFactor = 1.0;
   if (iColorPulse > 0.0) {
-    // Multi-frequency pulsing for more complex effect
-    float fastPulse = sin(iTime * 5.0) * 0.5 + 0.5;
-    float slowPulse = sin(iTime * 2.0) * 0.5 + 0.5;
-    float weirdPulse = sin(iTime * 0.7) * sin(iTime * 1.3) * 0.5 + 0.5;
+    // Multi-frequency pulsing for more complex effect - using CT for color time
+    float fastPulse = sin(CT * 5.0) * 0.5 + 0.5;
+    float slowPulse = sin(CT * 2.0) * 0.5 + 0.5;
+    float weirdPulse = sin(CT * 0.7) * sin(CT * 1.3) * 0.5 + 0.5;
 
     // Mix between different pulse frequencies
     float mixedPulse = mix(
       mix(fastPulse, slowPulse, 0.5),
       weirdPulse,
-      sin(iTime * 0.3) * 0.5 + 0.5
+      sin(CT * 0.3) * 0.5 + 0.5
     );
 
     // Apply a more dramatic effect (up to 50% variation at max pulse)
@@ -151,9 +165,9 @@ vec3 getColorPalette(int scheme, vec3 baseColor) {
   // Apply non-linear intensity adjustment (preserves some color at 0 intensity)
   float intensityFactor = max(0.01, iColorIntensity) * pulseFactor;
 
-  // Dynamic positions on the tunnel affect color
-  float depthEffect = sin(baseHSV.x * 10.0 + iTime) * 0.1;
-  float spatialEffect = sin(baseHSV.z * 8.0 + iTime * 0.5) * 0.15;
+  // Dynamic positions on the tunnel affect color - using CT
+  float depthEffect = sin(baseHSV.x * 10.0 + CT) * 0.1;
+  float spatialEffect = sin(baseHSV.z * 8.0 + CT * 0.5) * 0.15;
 
   // Apply these effects to the base HSV
   baseHSV.x += depthEffect; // Hue shift
@@ -161,18 +175,18 @@ vec3 getColorPalette(int scheme, vec3 baseColor) {
   // Enhance hue variations with color shift
   if (iColorShift) {
     // More gradual hue rotation when color shift is enabled
-    // Use depth-based variation that changes smoothly
-    float depthCoord = baseHSV.z * 3.0 + iTime * 0.1;
-    float hueShift = sin(depthCoord) * sin(depthCoord * 0.7) * 0.07; // Gentler shift with multiple frequencies
+    // Use depth-based variation that changes smoothly - using CT
+    float depthCoord = baseHSV.z * 3.0 + CT * 0.1;
+    float hueShift = sin(depthCoord) * sin(depthCoord * 0.7) * 0.07;
 
     // Apply smoothstep to create more continuous transitions
-    float smoothFactor = smoothstep(0.0, 1.0, sin(iTime * 0.15) * 0.5 + 0.5);
+    float smoothFactor = smoothstep(0.0, 1.0, sin(CT * 0.15) * 0.5 + 0.5);
     hueShift *= smoothFactor;
 
     baseHSV.x = fract(baseHSV.x + hueShift); // Wrap around the hue circle
   }
 
-  baseHSV.y = min(1.0, baseHSV.y * (1.0 + spatialEffect)); // Saturation - removed iColorSaturation here
+  baseHSV.y = min(1.0, baseHSV.y * (1.0 + spatialEffect)); // Saturation
 
   // Base intensity with non-linear curve for better low-intensity look
   baseHSV.z = pow(baseHSV.z, 0.5) * intensityFactor;
@@ -185,44 +199,43 @@ vec3 getColorPalette(int scheme, vec3 baseColor) {
 
   if (scheme == 1) {
     // Cyberpunk - Purple and teal with dynamic shifting
-    float cybShift = sin(iTime * 0.2) * 0.2;
+    float cybShift = sin(CT * 0.2) * 0.2;
     color =
       enhancedBase * vec3(1.0 + cybShift, 0.25, 1.4 - cybShift) +
-      vec3(0.03, 0.05 + sin(iTime * 0.7) * 0.03, 0.25);
+      vec3(0.03, 0.05 + sin(CT * 0.7) * 0.03, 0.25);
   } else if (scheme == 2) {
     // Fire - Dynamic reds, oranges and yellow tones
-    float flicker = sin(iTime * 8.0) * sin(iTime * 5.7) * 0.1;
-    float glow = sin(iTime * 0.4) * 0.2 + 0.8;
-    // Reduce green component and increase red for a more intense fire look
+    float flicker = sin(CT * 8.0) * sin(CT * 5.7) * 0.1;
+    float glow = sin(CT * 0.4) * 0.2 + 0.8;
     color =
       enhancedBase * vec3(1.9 * glow, 0.4 + flicker, 0.05) +
       vec3(flicker * 0.2, 0.0, 0.0);
   } else if (scheme == 3) {
     // Toxic - Pulsing greens and yellows
-    float toxicPulse = sin(iTime * 1.2) * 0.15 + 0.85;
-    float yellowShift = cos(iTime * 0.7) * 0.3;
+    float toxicPulse = sin(CT * 1.2) * 0.15 + 0.85;
+    float yellowShift = cos(CT * 0.7) * 0.3;
     color =
       enhancedBase * vec3(0.25 + yellowShift, 1.6 * toxicPulse, 0.35) +
-      vec3(sin(iTime * 3.1) * 0.05, 0.0, 0.0);
+      vec3(sin(CT * 3.1) * 0.05, 0.0, 0.0);
   } else if (scheme == 4) {
     // Ethereal - Color cycling pastels
-    float etherealShift = sin(iTime * 0.3);
-    float blueShift = cos(iTime * 0.5) * 0.2;
+    float etherealShift = sin(CT * 0.3);
+    float blueShift = cos(CT * 0.5) * 0.2;
     color =
       enhancedBase * vec3(0.7 + etherealShift * 0.1, 0.9, 1.3 - blueShift) +
       vec3(
-        0.25 + sin(iTime * 1.1) * 0.1,
+        0.25 + sin(CT * 1.1) * 0.1,
         etherealShift * 0.1,
         0.4 + blueShift * 0.2
       );
   } else if (scheme == 5) {
     // Monochrome - With subtle, shifting tint
-    float tint = sin(iTime * 0.2) * 0.05;
+    float tint = sin(CT * 0.2) * 0.05;
     float luminance = dot(enhancedBase, vec3(0.299, 0.587, 0.114));
     color = vec3(luminance * 1.6) + vec3(tint, tint, tint * 1.5);
   } else if (scheme == 6) {
     // Rainbow - Spectrum cycling with spatial variation
-    float hueBase = iTime * 0.1;
+    float hueBase = CT * 0.1;
     float hueSpatial = sin(enhancedBase.x * 5.0 + enhancedBase.y * 3.0) * 0.2;
     vec3 rainbow;
 
@@ -232,49 +245,47 @@ vec3 getColorPalette(int scheme, vec3 baseColor) {
     rainbow.b = sin(hueBase + 4.0 + hueSpatial) * 0.5 + 0.7;
 
     // Add some saturation pulsing
-    float rainbowPulse = sin(iTime * 2.0) * 0.1 + 0.9;
+    float rainbowPulse = sin(CT * 2.0) * 0.1 + 0.9;
     color = enhancedBase * (rainbow * rainbowPulse) + vec3(0.15);
   } else if (scheme == 7) {
     // Electric - Dynamic blues and whites with lightning flashes
-    // Make flash less frequent (reduced threshold from 0.95 to 0.98)
-    float flash = pow(sin(iTime * 10.0) * 0.5 + 0.5, 4.0) * sin(iTime * 5.0);
-    float glow = sin(iTime * 0.5) * 0.2 + 0.8;
+    float flash = pow(sin(CT * 10.0) * 0.5 + 0.5, 4.0) * sin(CT * 5.0);
+    float glow = sin(CT * 0.5) * 0.2 + 0.8;
     color =
       enhancedBase * vec3(0.2, 0.7, 1.8 * glow) +
-      vec3(0.3 * sin(T * 0.3)) +
+      vec3(0.3 * sin(CT * 0.3)) +
       vec3(flash);
 
-    // Occasional lightning strike (reduced frequency by changing threshold)
-    if (sin(iTime * 0.73) > 0.98 || flash > 0.85) {
-      // Changed from 0.95 to 0.98 and 0.7 to 0.85
+    // Occasional lightning strike
+    if (sin(CT * 0.73) > 0.98 || flash > 0.85) {
       color += vec3(0.2, 0.3, 0.6) * flash * (1.0 + iColorPulse);
     }
   } else if (scheme == 8) {
     // Amethyst - Rich purples with subtle sparkle
     float shimmer =
-      pow(sin(iTime * 7.0 + enhancedBase.x * 20.0) * 0.5 + 0.5, 8.0) * 0.2;
-    float purpleShift = sin(iTime * 0.3) * 0.1;
+      pow(sin(CT * 7.0 + enhancedBase.x * 20.0) * 0.5 + 0.5, 8.0) * 0.2;
+    float purpleShift = sin(CT * 0.3) * 0.1;
     color =
       enhancedBase * vec3(0.8 + purpleShift, 0.3, 1.2 - purpleShift) +
       vec3(shimmer) +
       vec3(0.05, 0.0, 0.1);
   } else if (scheme == 9) {
     // Coral Reef - Vibrant underwater colors
-    float waveMotion = sin(iTime * 0.5 + enhancedBase.y * 3.0) * 0.1;
-    float blueOverlay = sin(iTime * 0.2) * 0.1 + 0.2;
+    float waveMotion = sin(CT * 0.5 + enhancedBase.y * 3.0) * 0.1;
+    float blueOverlay = sin(CT * 0.2) * 0.1 + 0.2;
     color =
       enhancedBase * vec3(1.3 + waveMotion, 0.8 - waveMotion, 0.4) +
       vec3(0.0, 0.1, blueOverlay);
 
     // Occasional bright coral highlights
-    if (sin(enhancedBase.x * 10.0 + iTime) > 0.8) {
+    if (sin(enhancedBase.x * 10.0 + CT) > 0.8) {
       color += vec3(0.15, 0.05, 0.0);
     }
   } else if (scheme == 10) {
     // Deep Sea - Dark blues with bioluminescent accents
     float luminescence =
-      pow(sin(enhancedBase.z * 8.0 + iTime) * 0.5 + 0.5, 4.0) * 0.4;
-    float depth = sin(iTime * 0.1) * 0.1 + 0.8;
+      pow(sin(enhancedBase.z * 8.0 + CT) * 0.5 + 0.5, 4.0) * 0.4;
+    float depth = sin(CT * 0.1) * 0.1 + 0.8;
     color =
       enhancedBase * vec3(0.1, 0.3, depth) +
       vec3(0.0, luminescence * 0.6, luminescence);
@@ -284,7 +295,7 @@ vec3 getColorPalette(int scheme, vec3 baseColor) {
       fract(
         sin(
           dot(
-            vec2(enhancedBase.x, enhancedBase.y * iTime * 0.1),
+            vec2(enhancedBase.x, enhancedBase.y * CT * 0.1),
             vec2(12.9898, 78.233)
           )
         ) *
@@ -292,23 +303,23 @@ vec3 getColorPalette(int scheme, vec3 baseColor) {
       ) >
       0.99
     ) {
-      color += vec3(0.0, 0.2, 0.3) * (sin(iTime * 2.0) * 0.5 + 0.5);
+      color += vec3(0.0, 0.2, 0.3) * (sin(CT * 2.0) * 0.5 + 0.5);
     }
   } else if (scheme == 11) {
     // Emerald - Deep greens with crystal-like reflections
     float crystalFlash =
-      pow(sin(enhancedBase.y * 10.0 + iTime * 2.0) * 0.5 + 0.5, 6.0) * 0.3;
-    float greenShift = sin(iTime * 0.4) * 0.1;
+      pow(sin(enhancedBase.y * 10.0 + CT * 2.0) * 0.5 + 0.5, 6.0) * 0.3;
+    float greenShift = sin(CT * 0.4) * 0.1;
     color =
       enhancedBase * vec3(0.2, 1.1 + greenShift, 0.5) +
       vec3(crystalFlash * 0.7, crystalFlash, crystalFlash * 0.6);
   } else if (scheme == 12) {
     // Neon - Vibrant glowing colors with dark backdrop
-    float neonPulse = sin(iTime * 1.5) * 0.15 + 0.85;
+    float neonPulse = sin(CT * 1.5) * 0.15 + 0.85;
     vec3 neonColor;
 
     // Shifting neon hue based on position and time
-    float hueShift = fract(enhancedBase.z * 0.2 + iTime * 0.05);
+    float hueShift = fract(enhancedBase.z * 0.2 + CT * 0.05);
     float hueSector = floor(hueShift * 3.0);
 
     if (hueSector < 1.0) {
@@ -331,17 +342,17 @@ vec3 getColorPalette(int scheme, vec3 baseColor) {
   } else if (scheme == 13) {
     // Rose Gold - Warm metallic pinks and golds
     float metallic = pow(
-      sin(enhancedBase.x * 5.0 + enhancedBase.y * 3.0 + iTime) * 0.5 + 0.5,
+      sin(enhancedBase.x * 5.0 + enhancedBase.y * 3.0 + CT) * 0.5 + 0.5,
       2.0
     );
-    float warmth = sin(iTime * 0.3) * 0.1 + 0.9;
+    float warmth = sin(CT * 0.3) * 0.1 + 0.9;
     color =
       enhancedBase * vec3(1.1 * warmth, 0.7, 0.6) +
       vec3(metallic * 0.3, metallic * 0.2, metallic * 0.1);
   } else if (scheme == 14) {
     // Sunset - Warm oranges, reds and purples
     float skyGradient = enhancedBase.y * 2.0;
-    float sunsetPhase = sin(iTime * 0.2) * 0.5 + 0.5; // Time of sunset
+    float sunsetPhase = sin(CT * 0.2) * 0.5 + 0.5; // Time of sunset
 
     // Sky colors transition from orange/red to purple/blue
     vec3 horizon = mix(
@@ -367,37 +378,36 @@ vec3 getColorPalette(int scheme, vec3 baseColor) {
     float gridEffect =
       max(
         0.0,
-        sin(enhancedBase.x * 10.0 + iTime) *
-          sin(enhancedBase.y * 10.0 + iTime) -
+        sin(enhancedBase.x * 10.0 + CT) *
+          sin(enhancedBase.y * 10.0 + CT) -
           0.8
       ) *
       0.5;
 
     // Pink and cyan palette with subtle movement
-    float vaporShift = sin(iTime * 0.2) * 0.1;
+    float vaporShift = sin(CT * 0.2) * 0.1;
     color =
       enhancedBase * vec3(0.9 + vaporShift, 0.4, 0.9 - vaporShift) +
       vec3(0.1, 0.1 + gridEffect, 0.3);
 
     // Add occasional glitch lines
-    if (fract(iTime * 2.0) < 0.03) {
-      float glitchPos = floor(sin(iTime * 10.0) * 10.0) / 10.0;
+    if (fract(CT * 2.0) < 0.03) {
+      float glitchPos = floor(sin(CT * 10.0) * 10.0) / 10.0;
       if (abs(enhancedBase.y - glitchPos) < 0.02) {
         color *= vec3(0.8, 1.2, 1.5);
       }
     }
   }
 
-  // Dynamic color adjustments - apply different effects based on depth and
-  // position Convert to HSV for easier manipulation
+  // Dynamic color adjustments - using CT for color time
   vec3 resultHSV = rgb2hsv(color);
 
   // Dynamic saturation based on position and time
-  float saturationMod = sin(iTime * 0.4 + resultHSV.x * 10.0) * 0.15;
-  resultHSV.y = clamp(resultHSV.y + saturationMod, 0.0, 1.0); // Removed iColorSaturation here
+  float saturationMod = sin(CT * 0.4 + resultHSV.x * 10.0) * 0.15;
+  resultHSV.y = clamp(resultHSV.y + saturationMod, 0.0, 1.0);
 
   // Subtle hue rotation over time, different for each position
-  resultHSV.x += sin(iTime * 0.1 + resultHSV.z * 3.0) * 0.02;
+  resultHSV.x += sin(CT * 0.1 + resultHSV.z * 3.0) * 0.02;
 
   // Convert back to RGB
   color = hsv2rgb(resultHSV);
@@ -479,18 +489,25 @@ vec4 applyEffectStyle(vec4 color, float depth, int style) {
 
 float triSurface(vec3 p) {
   // Add motion wave effect to the surface
-  // Only calculate wave effect if actually used
   float waveEffect = 0.0;
   if (iMotionWave > 0.0) {
     waveEffect = sin(p.z * 0.2 + iTime * 2.0) * iMotionWave * 0.5;
   }
 
-  // Optimize with fewer calculations
-  vec3 p1 = p + waveEffect;
-  vec3 p2 = p * 0.2 + waveEffect + tri(0.05 * T + p1);
+  // Surface roughness: 0 = smooth, 2 = very bumpy organic
+  float roughness = iSurfaceRoughness;
 
-  return 1.0 -
-  dot(tri(0.15 * T + p * 0.25 + tri(p2)) + tri(p1) * 0.2, vec3(2.5));
+  // At low roughness, return minimal surface detail
+  if (roughness < 0.1) {
+    return 0.0;
+  }
+
+  vec3 p1 = p + waveEffect;
+  vec3 p2 = p * 0.2 + waveEffect + tri(0.05 * T + p1) * roughness;
+
+  // Scale the entire surface effect by roughness
+  float surface = dot(tri(0.15 * T + p * 0.25 + tri(p2)) + tri(p1) * 0.2, vec3(2.5));
+  return (1.0 - surface) * roughness;
 }
 
 float map(vec3 p) {
@@ -535,13 +552,21 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
     d = 0.0,
     i = 0.0,
     a;
+
+  // FOV control: low = telephoto/zoomed, high = wide angle/fisheye
+  float fov = 0.5 + iZoomFOV * 0.75; // Range 0.5 to 2.0
+
+  // Camera tilt: how much the view rocks
+  float tiltAmount = iCameraTilt * 0.5; // Scale to reasonable range
+  float tiltAngle = sin(T * 0.2) * 0.3 * tiltAmount;
+
   vec3 r = vec3(iResolution, 0.0),
     p = P(T),
     ro = p,
     Z = N(P(T + 3.0) - p),
     X = N(vec3(Z.z, 0, -Z.x)),
     D =
-      vec3(rot(sin(T * 0.2) * 0.3) * (fragCoord - r.xy / 2.0) / r.y, 1) *
+      vec3(rot(tiltAngle) * (fragCoord - r.xy / 2.0) / r.y * fov, 1) *
       mat3(-X, cross(X, Z), Z);
   fragColor = vec4(0.0);
   rgb = vec3(0);
@@ -551,26 +576,25 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
 
   // More aggressive step size for faster convergence
   while (i++ < MAX_ITER && s > 0.001 && d < MAX_DISTANCE)
-    p = ro + D * d, d += s = map(p) * 0.4; // Increased step multiplier from 0.3 to 0.4
+    p = ro + D * d, d += s = map(p) * 0.4;
 
-  // Reduce iterations in color detail loop
+  // Color detail loop
   for (
     a = 0.5;
-    a < 4.0; // Start from 0.5 instead of 0.4
+    a < 4.0;
     rgb += abs(dot(sin(p * a * 8.0), vec3(0.07))) / a, a *= 1.6
-  ); // Increased step multiplier from 1.4142 to 1.6
+  );
 
   // Apply color scheme
   rgb = getColorPalette(iColorScheme, rgb);
 
-  // Use a custom power curve to preserve more saturation
-  // Apply a less aggressive distance attenuation with a minimum brightness
-  // floor
-  float distanceAttenuation = mix(1.0, exp(-d / 3.5), 0.85); // Less aggressive falloff (was -d/2.5)
-  vec3 baseColor = pow(rgb * distanceAttenuation + 0.03, vec3(0.43)); // Added brightness floor and slightly adjusted power
+  // Fog density control: affects how quickly things fade
+  // Low fog = crystal clear, see far. High fog = thick haze
+  float fogScale = 2.0 + (2.0 - iFogDensity) * 3.0; // Range 2.0 to 8.0 (inverted)
+  float distanceAttenuation = mix(1.0, exp(-d / fogScale), 0.85);
+  vec3 baseColor = pow(rgb * distanceAttenuation + 0.03, vec3(0.43));
 
-  // Apply extra saturation to the final color before intensity adjustment
-  // Only apply saturation here, not in getColorPalette
+  // Apply saturation
   baseColor = saturateColor(baseColor, iColorSaturation);
 
   // Limit white areas

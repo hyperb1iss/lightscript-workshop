@@ -23,6 +23,13 @@ declare global {
         motionWave: number
         motionReverse: boolean | number
         colorSaturation: number
+        // New powerful controls
+        tunnelWidth: number
+        cameraTilt: number
+        surfaceRoughness: number
+        fogDensity: number
+        zoomFOV: number
+        colorCycleSpeed: number
     }
 }
 
@@ -37,6 +44,13 @@ export interface PuffStuffControls {
     motionWave: number
     motionReverse: boolean | number
     colorSaturation: number
+    // New powerful controls
+    tunnelWidth: number
+    cameraTilt: number
+    surfaceRoughness: number
+    fogDensity: number
+    zoomFOV: number
+    colorCycleSpeed: number
 }
 
 /**
@@ -163,6 +177,64 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
     })
     colorSaturation!: number
 
+    // ═══════════════════════════════════════════════════════════════
+    // NEW POWERFUL CONTROLS
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({
+        default: 5,
+        label: 'Tunnel Width',
+        max: 10,
+        min: 1,
+        tooltip: 'Claustrophobic tight (1) to vast cavernous (10)',
+    })
+    tunnelWidth!: number
+
+    @NumberControl({
+        default: 5,
+        label: 'Camera Tilt',
+        max: 10,
+        min: 0,
+        tooltip: 'How much the view rocks and sways (0=Stable, 10=Drunk)',
+    })
+    cameraTilt!: number
+
+    @NumberControl({
+        default: 5,
+        label: 'Surface Texture',
+        max: 10,
+        min: 0,
+        tooltip: 'Smooth glass walls (0) to organic alien flesh (10)',
+    })
+    surfaceRoughness!: number
+
+    @NumberControl({
+        default: 5,
+        label: 'Fog Density',
+        max: 10,
+        min: 1,
+        tooltip: 'Crystal clear (1) to thick atmospheric haze (10)',
+    })
+    fogDensity!: number
+
+    @NumberControl({
+        default: 5,
+        label: 'Zoom / FOV',
+        max: 10,
+        min: 1,
+        tooltip: 'Telephoto warp speed (1) to fisheye trippy (10)',
+    })
+    zoomFOV!: number
+
+    @NumberControl({
+        default: 5,
+        label: 'Color Cycle Speed',
+        max: 10,
+        min: 0,
+        tooltip: 'How fast colors shift and morph (0=Frozen, 10=Hyperdrive)',
+    })
+    colorCycleSpeed!: number
+
     constructor() {
         super({
             debug: true,
@@ -186,6 +258,13 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
         window.motionWave = 0
         window.motionReverse = 0
         window.colorSaturation = 100
+        // New controls
+        window.tunnelWidth = 5
+        window.cameraTilt = 5
+        window.surfaceRoughness = 5
+        window.fogDensity = 5
+        window.zoomFOV = 5
+        window.colorCycleSpeed = 5
     }
 
     /**
@@ -222,6 +301,13 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
             motionReverse: boolToInt(window.motionReverse ?? 0),
             motionWave: Number(window.motionWave ?? 0) / 10,
             speed: normalizeSpeed(window.speed ?? 5),
+            // New controls - normalize to useful ranges
+            tunnelWidth: Number(window.tunnelWidth ?? 5) / 5, // 0.2 to 2.0
+            cameraTilt: Number(window.cameraTilt ?? 5) / 5, // 0 to 2.0
+            surfaceRoughness: Number(window.surfaceRoughness ?? 5) / 5, // 0 to 2.0
+            fogDensity: Number(window.fogDensity ?? 5) / 5, // 0.2 to 2.0
+            zoomFOV: Number(window.zoomFOV ?? 5) / 5, // 0.2 to 2.0
+            colorCycleSpeed: Number(window.colorCycleSpeed ?? 5) / 5, // 0 to 2.0
         }
     }
 
@@ -239,6 +325,13 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
             iMotionReverse: { value: false },
             iMotionWave: { value: 0.0 },
             iSpeed: { value: 1.0 },
+            // New uniforms
+            iTunnelWidth: { value: 1.0 },
+            iCameraTilt: { value: 1.0 },
+            iSurfaceRoughness: { value: 1.0 },
+            iFogDensity: { value: 1.0 },
+            iZoomFOV: { value: 1.0 },
+            iColorCycleSpeed: { value: 1.0 },
         }
     }
 
@@ -257,6 +350,13 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
         this.material.uniforms.iMotionWave.value = controls.motionWave
         this.material.uniforms.iMotionReverse.value = controls.motionReverse === 1
         this.material.uniforms.iColorSaturation.value = controls.colorSaturation
+        // New uniforms
+        this.material.uniforms.iTunnelWidth.value = controls.tunnelWidth
+        this.material.uniforms.iCameraTilt.value = controls.cameraTilt
+        this.material.uniforms.iSurfaceRoughness.value = controls.surfaceRoughness
+        this.material.uniforms.iFogDensity.value = controls.fogDensity
+        this.material.uniforms.iZoomFOV.value = controls.zoomFOV
+        this.material.uniforms.iColorCycleSpeed.value = controls.colorCycleSpeed
     }
 }
 
