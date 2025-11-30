@@ -13,6 +13,9 @@ import { App } from '../ui/components/App'
 // Debug helper
 const debug = createDebugLogger('PreactEngine')
 
+// Storage key prefix for control values
+const STORAGE_KEY_PREFIX = 'lightscript-controls-'
+
 // Discover effects at module load time
 const effectModules = discoverEffects()
 
@@ -62,6 +65,9 @@ export class PreactDevEngine {
     private rootElement: HTMLElement | null = null
 
     private isLoading = true
+
+    // Debounce timer for saving control values
+    private saveTimeout: ReturnType<typeof setTimeout> | null = null
 
     /**
      * Create a new PreactDevEngine instance
@@ -144,6 +150,69 @@ export class PreactDevEngine {
     public showNotification(message: string, isError = false): void {
         debug(isError ? 'error' : 'info', `Notification: ${message}`)
         // In the future we can add UI notifications
+    }
+
+    /**
+     * Save control values to localStorage for persistence
+     */
+    private saveControlValues(effectId: string): void {
+        if (!effectId || Object.keys(this.controlValues).length === 0) return
+
+        try {
+            const key = `${STORAGE_KEY_PREFIX}${effectId}`
+            localStorage.setItem(key, JSON.stringify(this.controlValues))
+            debug('info', `💾 Saved control values for ${effectId}`)
+        } catch (err) {
+            debug('warn', `Failed to save control values: ${err}`)
+        }
+    }
+
+    /**
+     * Load saved control values from localStorage
+     */
+    private loadControlValues(effectId: string): Record<string, unknown> | null {
+        if (!effectId) return null
+
+        try {
+            const key = `${STORAGE_KEY_PREFIX}${effectId}`
+            const saved = localStorage.getItem(key)
+            if (saved) {
+                const values = JSON.parse(saved)
+                debug('info', `📂 Loaded saved control values for ${effectId}`)
+                return values
+            }
+        } catch (err) {
+            debug('warn', `Failed to load control values: ${err}`)
+        }
+        return null
+    }
+
+    /**
+     * Clear saved control values for an effect
+     */
+    private clearSavedControlValues(effectId: string): void {
+        if (!effectId) return
+
+        try {
+            const key = `${STORAGE_KEY_PREFIX}${effectId}`
+            localStorage.removeItem(key)
+            debug('info', `🗑️ Cleared saved control values for ${effectId}`)
+        } catch (err) {
+            debug('warn', `Failed to clear control values: ${err}`)
+        }
+    }
+
+    /**
+     * Save control values with debounce to avoid excessive writes
+     */
+    private debouncedSave(effectId: string, delay = 300): void {
+        if (this.saveTimeout) {
+            clearTimeout(this.saveTimeout)
+        }
+        this.saveTimeout = setTimeout(() => {
+            this.saveControlValues(effectId)
+            this.saveTimeout = null
+        }, delay)
     }
 
     /**
@@ -337,6 +406,57 @@ export class PreactDevEngine {
                     debug('info', `Initialized control: ${control.id} = ${window[control.id]}`)
                 }
 
+                // Load saved values if they exist (overrides defaults)
+                if (this.currentEffect?.id) {
+                    const savedValues = this.loadControlValues(this.currentEffect.id)
+                    if (savedValues) {
+                        for (const control of filteredControls) {
+                            if (control.id in savedValues) {
+                                const savedValue = savedValues[control.id]
+                                // Validate saved value matches control type
+                                if (control.type === 'number' || control.type === 'hue') {
+                                    const typedControl = control as Record<string, unknown>
+                                    const min = typedControl.min ? Number(typedControl.min) : 0
+                                    const max = typedControl.max ? Number(typedControl.max) : 100
+                                    const numValue = Number(savedValue)
+                                    if (!Number.isNaN(numValue)) {
+                                        const safeValue = Math.max(min, Math.min(max, numValue))
+                                        this.controlValues[control.id] = safeValue
+                                        window[control.id] = safeValue
+                                        debug('info', `🔄 Restored: ${control.id} = ${safeValue}`)
+                                    }
+                                } else if (control.type === 'boolean') {
+                                    const boolValue = savedValue === 1 ? true : Boolean(savedValue)
+                                    this.controlValues[control.id] = boolValue
+                                    window[control.id] = boolValue
+                                    debug('info', `🔄 Restored: ${control.id} = ${boolValue}`)
+                                } else {
+                                    this.controlValues[control.id] = savedValue
+                                    window[control.id] = savedValue
+                                    debug('info', `🔄 Restored: ${control.id} = ${savedValue}`)
+                                }
+                            }
+                        }
+
+                        // Trigger effect update after restoring values
+                        // Poll for window.update to be available (effects may take time to init)
+                        const triggerUpdate = (attempts = 0) => {
+                            if (typeof window.update === 'function') {
+                                try {
+                                    window.update(true)
+                                    debug('info', '🔄 Triggered effect update after restore')
+                                } catch (err) {
+                                    debug('warn', 'Error triggering update after restore:', err)
+                                }
+                            } else if (attempts < 10) {
+                                // Retry up to 10 times with 50ms delay
+                                setTimeout(() => triggerUpdate(attempts + 1), 50)
+                            }
+                        }
+                        requestAnimationFrame(() => triggerUpdate())
+                    }
+                }
+
                 // Update the UI with the controls
                 this.renderUI()
             } else {
@@ -426,6 +546,11 @@ export class PreactDevEngine {
             } catch (error) {
                 debug('error', 'Error calling update:', error)
             }
+        }
+
+        // Save control values with debounce
+        if (this.currentEffect?.id) {
+            this.debouncedSave(this.currentEffect.id)
         }
     }
 
@@ -555,6 +680,11 @@ export class PreactDevEngine {
         if (!shouldConfirm) return
 
         debug('info', 'Resetting all controls to default values')
+
+        // Clear saved values for this effect
+        if (this.currentEffect?.id) {
+            this.clearSavedControlValues(this.currentEffect.id)
+        }
 
         // Reset all controls to default values
         for (const def of this.controlDefinitions) {
