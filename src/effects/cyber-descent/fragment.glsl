@@ -13,6 +13,18 @@ uniform float iFogDensity;
 uniform float iLightIntensity;
 uniform float iColorSaturation;
 uniform float iColorIntensity;
+// Movement controls (-1 to +1)
+uniform float iCameraPitch;
+uniform float iCameraRoll;
+uniform float iCameraYaw;
+// Style controls (0 to 2)
+uniform float iBuildingHeight;
+uniform float iNeonFlash;
+uniform float iStreetLights;
+// Color palette (0-7)
+uniform int iColorPalette;
+// Building fill for RGB systems (0-1)
+uniform float iBuildingFill;
 
 // Effect Constants
 const float tau = 6.283185;
@@ -38,72 +50,182 @@ float fogDensity;
 float lightHeight;
 float lightSpeed;
 
-// Initialize effect settings based on cyberpunk mode
-void initializeSettings() {
+// Initialize color palette with good contrast
+void initializeColorPalette() {
+  // Mode-specific color boosts
+  float neonBoost = 1.0;
+  float satBoost = 1.0;
+  float darkBoost = 1.0;
+
   if (iCyberpunkMode == 1) {
-    // Fast Descent mode (original "FAST_DESCENT")
-    cameraDir = normalize(vec3(-2.0, -1.0, -4.0));
+    // Fast Descent - darker, more intense, higher contrast
+    darkBoost = 0.7;  // Darker fog
+    satBoost = 1.2;   // Punchier signs
+  } else if (iCyberpunkMode == 2) {
+    // Neon - maximum saturation and glow
+    neonBoost = 1.4;
+    satBoost = 1.3;
+  }
+
+  if (iColorPalette == 1) {
+    // Blade Runner - Cool rain fog, warm amber windows, pink/teal signs
+    windowColorA = vec3(1.8, 1.0, 0.3);      // Warm amber
+    windowColorB = vec3(1.0, 0.6, 0.2);      // Deep orange
+    fogColor = vec3(0.08, 0.12, 0.18);       // Cool blue-gray rain
+    lightColorA = vec3(1.2, 0.5, 0.2) * iLightIntensity;  // Orange
+    lightColorB = vec3(0.3, 0.8, 1.0) * iLightIntensity;  // Teal contrast
+    signColorA = vec3(2.0, 0.3, 0.8);        // Hot pink
+    signColorB = vec3(1.5, 1.8, 0.2);        // Yellow-green
+  } else if (iColorPalette == 2) {
+    // Synthwave - Deep purple fog, cyan/magenta split, hot accents
+    windowColorA = vec3(0.2, 1.8, 2.0);      // Electric cyan
+    windowColorB = vec3(2.0, 0.2, 1.2);      // Hot magenta
+    fogColor = vec3(0.12, 0.02, 0.18);       // Deep purple
+    lightColorA = vec3(1.0, 0.4, 1.5) * iLightIntensity;  // Pink
+    lightColorB = vec3(0.2, 1.2, 1.5) * iLightIntensity;  // Cyan
+    signColorA = vec3(2.5, 1.5, 0.0);        // Hot orange
+    signColorB = vec3(0.0, 2.5, 2.0);        // Bright cyan
+  } else if (iColorPalette == 3) {
+    // Matrix - Black void, bright green, white-hot accents
+    windowColorA = vec3(0.0, 2.0, 0.4);      // Bright matrix green
+    windowColorB = vec3(0.2, 1.2, 0.3);      // Darker green
+    fogColor = vec3(0.0, 0.02, 0.01);        // Near black
+    lightColorA = vec3(0.3, 1.5, 0.5) * iLightIntensity;  // Green
+    lightColorB = vec3(1.5, 1.5, 1.5) * iLightIntensity;  // White-hot
+    signColorA = vec3(0.0, 2.5, 0.6);        // Bright green
+    signColorB = vec3(2.0, 2.0, 2.0);        // Pure white
+  } else if (iColorPalette == 4) {
+    // Akira Red - Dark smoke, red buildings, cyan accent signs
+    windowColorA = vec3(2.0, 0.3, 0.1);      // Bright red
+    windowColorB = vec3(1.5, 0.8, 0.2);      // Orange
+    fogColor = vec3(0.1, 0.05, 0.08);        // Dark smoky
+    lightColorA = vec3(1.5, 0.4, 0.2) * iLightIntensity;  // Red-orange
+    lightColorB = vec3(0.2, 0.8, 1.2) * iLightIntensity;  // Cyan contrast!
+    signColorA = vec3(0.0, 1.8, 2.0);        // Cyan (contrast)
+    signColorB = vec3(2.5, 2.0, 0.0);        // Yellow
+  } else if (iColorPalette == 5) {
+    // Ice - Cool blue fog, white-cyan windows, warm pink accents
+    windowColorA = vec3(0.8, 1.8, 2.2);      // Bright cyan
+    windowColorB = vec3(1.8, 1.9, 2.0);      // Near white
+    fogColor = vec3(0.05, 0.1, 0.18);        // Cold blue
+    lightColorA = vec3(0.6, 0.9, 1.2) * iLightIntensity;  // Ice blue
+    lightColorB = vec3(1.2, 0.6, 0.8) * iLightIntensity;  // Warm pink contrast
+    signColorA = vec3(2.0, 0.5, 1.0);        // Pink accent
+    signColorB = vec3(0.5, 2.0, 2.5);        // Bright cyan
+  } else if (iColorPalette == 6) {
+    // Toxic - Murky brown fog, acid green, warning orange
+    windowColorA = vec3(0.6, 2.0, 0.2);      // Acid green
+    windowColorB = vec3(1.8, 1.8, 0.0);      // Yellow
+    fogColor = vec3(0.08, 0.06, 0.02);       // Murky brown
+    lightColorA = vec3(0.5, 1.5, 0.2) * iLightIntensity;  // Green
+    lightColorB = vec3(1.5, 0.8, 0.2) * iLightIntensity;  // Warning orange
+    signColorA = vec3(2.0, 0.5, 0.0);        // Hazard orange
+    signColorB = vec3(0.2, 2.5, 0.4);        // Radioactive green
+  } else if (iColorPalette == 7) {
+    // Noir - Dark moody fog, muted blues, single red accent
+    windowColorA = vec3(0.3, 0.4, 0.8);      // Muted blue
+    windowColorB = vec3(0.5, 0.6, 0.7);      // Gray-blue
+    fogColor = vec3(0.02, 0.02, 0.04);       // Near black
+    lightColorA = vec3(0.4, 0.45, 0.6) * iLightIntensity;  // Cool gray
+    lightColorB = vec3(1.2, 0.3, 0.2) * iLightIntensity;  // Red accent!
+    signColorA = vec3(1.8, 0.2, 0.2);        // Neon red
+    signColorB = vec3(0.8, 0.9, 1.2);        // Cool white
+  } else {
+    // Classic Cyber (default) - Purple fog, blue/cyan windows, warm lights
+    windowColorA = vec3(0.0, 0.5, 2.0);      // Deep blue
+    windowColorB = vec3(0.5, 1.8, 2.0);      // Cyan
+    fogColor = vec3(0.2, 0.0, 0.25);         // Purple haze
+    lightColorA = vec3(1.0, 0.5, 0.2) * iLightIntensity;  // Warm orange
+    lightColorB = vec3(0.8, 0.6, 0.4) * iLightIntensity;  // Warm gold
+    signColorA = vec3(2.0, 0.2, 1.0);        // Magenta
+    signColorB = vec3(0.2, 2.5, 2.0);        // Bright cyan
+  }
+
+  // Apply mode-specific boosts
+  windowColorA *= neonBoost;
+  windowColorB *= neonBoost;
+  signColorA *= satBoost;
+  signColorB *= satBoost;
+  lightColorA *= neonBoost;
+  lightColorB *= neonBoost;
+  fogColor *= darkBoost;
+
+  // Mode-specific fog tints
+  if (iCyberpunkMode == 1) {
+    // Fast Descent - slight blue tint for speed feel
+    fogColor = mix(fogColor, vec3(0.05, 0.08, 0.15), 0.3);
+  } else if (iCyberpunkMode == 2) {
+    // Neon - purple/pink tint
+    fogColor = mix(fogColor, vec3(0.18, 0.0, 0.25), 0.5);
+  }
+}
+
+// Apply camera rotation from controls
+vec3 applyCameraControls(vec3 baseDir) {
+  // Yaw rotation (around Z axis) - turn left/right
+  float yawAngle = iCameraYaw * 0.8; // ~45 degrees max
+  float cosYaw = cos(yawAngle);
+  float sinYaw = sin(yawAngle);
+  vec3 yawed = vec3(
+    baseDir.x * cosYaw - baseDir.y * sinYaw,
+    baseDir.x * sinYaw + baseDir.y * cosYaw,
+    baseDir.z
+  );
+
+  // Pitch rotation (tilt up/down) - affects Z component
+  float pitchAngle = iCameraPitch * 0.6; // ~35 degrees max
+  float cosPitch = cos(pitchAngle);
+  float sinPitch = sin(pitchAngle);
+  vec3 pitched = vec3(
+    yawed.x,
+    yawed.y * cosPitch - yawed.z * sinPitch,
+    yawed.y * sinPitch + yawed.z * cosPitch
+  );
+
+  return normalize(pitched);
+}
+
+// Initialize effect settings based on cyberpunk mode (camera and fog behavior only)
+void initializeSettings() {
+  vec3 baseDir;
+
+  if (iCyberpunkMode == 1) {
+    // Fast Descent mode - steeper, faster dive
+    baseDir = vec3(-2.0, -1.0, -4.0);
     cameraDist = 5.0;
     speed = 3.0 * iSpeed;
     zoom = 2.5 * iZoom;
-
-    windowColorA = vec3(0.0, 0.0, 1.5);
-    windowColorB = vec3(0.5, 1.5, 2.0);
-
     fogOffset = 2.5;
     fogDensity = 0.6 * iFogDensity;
-    fogColor = vec3(0.25, 0.0, 0.3);
-
     lightHeight = 0.5;
     lightSpeed = 0.2 * iSpeed;
-    lightColorA = vec3(0.6, 0.3, 0.1) * iLightIntensity;
-    lightColorB = vec3(0.8, 0.6, 0.4) * iLightIntensity;
-
-    signColorA = vec3(0.0, 0.0, 1.5);
-    signColorB = vec3(3.0, 3.0, 3.0);
   } else if (iCyberpunkMode == 2) {
-    // Neon mode (custom)
-    cameraDir = normalize(vec3(-1.5, -1.0, -3.0));
+    // Neon mode - medium angle, glowy atmosphere
+    baseDir = vec3(-1.5, -1.0, -3.0);
     cameraDist = 7.0;
     speed = 2.0 * iSpeed;
     zoom = 3.0 * iZoom;
-
-    windowColorA = vec3(1.0, 0.0, 1.0); // Purple
-    windowColorB = vec3(0.0, 1.0, 1.0); // Cyan
-
     fogOffset = 5.0;
     fogDensity = 0.65 * iFogDensity;
-    fogColor = vec3(0.1, 0.0, 0.2);
-
     lightHeight = 0.3;
     lightSpeed = 0.18 * iSpeed;
-    lightColorA = vec3(1.0, 0.1, 0.8) * iLightIntensity; // Pink
-    lightColorB = vec3(0.2, 1.0, 0.8) * iLightIntensity; // Teal
-
-    signColorA = vec3(1.0, 0.4, 0.0); // Orange
-    signColorB = vec3(2.0, 2.0, 0.0); // Yellow
   } else {
-    // Standard mode (original default)
-    cameraDir = normalize(vec3(-2.0, -1.0, -2.0));
+    // Standard mode - balanced view
+    baseDir = vec3(-2.0, -1.0, -2.0);
     cameraDist = 9.0;
     speed = 1.0 * iSpeed;
     zoom = 3.5 * iZoom;
-
-    windowColorA = vec3(0.0, 0.0, 1.5);
-    windowColorB = vec3(0.5, 1.5, 2.0);
-
     fogOffset = 7.0;
     fogDensity = 0.7 * iFogDensity;
-    fogColor = vec3(0.25, 0.0, 0.3);
-
     lightHeight = 0.0;
     lightSpeed = 0.15 * iSpeed;
-    lightColorA = vec3(0.6, 0.3, 0.1) * iLightIntensity;
-    lightColorB = vec3(0.8, 0.6, 0.4) * iLightIntensity;
-
-    signColorA = vec3(0.0, 0.0, 1.5);
-    signColorB = vec3(3.0, 3.0, 3.0);
   }
+
+  // Apply user camera controls to base direction
+  cameraDir = applyCameraControls(baseDir);
+
+  // Initialize colors from the separate palette selection
+  initializeColorPalette();
 }
 
 // Hash functions
@@ -164,7 +286,9 @@ vec4 castRay(vec3 eye, vec3 ray, vec2 center) {
 
   for (int i = 0; i < 16; ++i) {
     float d = dot(block - center, cameraDir.xy);
-    float height = 3.0 * hash1(block) - 1.0 + 1.5 * d - 0.1 * d * d;
+    // Building height scales with iBuildingHeight (0.2 to 2.0)
+    float heightScale = 0.4 + iBuildingHeight * 1.3;
+    float height = (3.0 * hash1(block) - 1.0 + 1.5 * d - 0.1 * d * d) * heightScale;
 
     vec2 lo0 = vec2(block);
     vec2 loX = vec2(0.45, 0.45);
@@ -241,7 +365,9 @@ vec4 castRay(vec3 eye, vec3 ray, vec2 center) {
 
 vec3 window(float z, vec2 pos, vec2 id) {
   float windowSize = 0.03 + 0.12 * hash1(id + 0.1);
-  float windowProb = 0.3 + 0.8 * hash1(id + 0.2);
+  // Window probability increases with building fill
+  float baseProb = 0.3 + 0.8 * hash1(id + 0.2);
+  float windowProb = baseProb - iBuildingFill * 0.4; // Lower threshold = more windows
   float depth = z / windowSize;
   float level = floor(depth);
   vec3 colorA = mix(windowColorA, windowColorB, hash3(id));
@@ -249,12 +375,19 @@ vec3 window(float z, vec2 pos, vec2 id) {
   vec3 color = mix(colorA, colorB, hash1(id, level));
   color *=
     0.3 + 0.7 * smoothstep(0.1, 0.5, noise(20.0 * pos + 100.0 * hash1(level)));
-  color *= smoothstep(
+
+  float windowMask = smoothstep(
     windowProb - 0.2,
     windowProb + 0.2,
     hash1(id, level + 0.1)
   );
-  return color * (0.5 - 0.5 * cos(tau * depth));
+
+  // Base building surface glow (ambient reflected light)
+  vec3 surfaceGlow = mix(windowColorA, fogColor, 0.6) * iBuildingFill * 0.3;
+
+  // Combine windows with surface glow
+  vec3 windowColor = color * windowMask * (0.5 - 0.5 * cos(tau * depth));
+  return windowColor + surfaceGlow;
 }
 
 vec3 addLight(vec3 eye, vec3 ray, float res, float time, float height) {
@@ -310,9 +443,11 @@ vec3 addSign(vec3 color, vec3 pos, float side, vec2 id) {
 
   vec3 signColor = mix(signColorA, signColorB, hash3(id + 0.5));
   vec3 outlineColor = mix(signColorA, signColorB, hash3(id + 0.6));
-  float flash = 6.0 - 24.0 * hash1(id + 0.8);
-  flash *= step(3.0, flash);
-  flash = smoothstep(0.1, 0.5, 0.5 + 0.5 * cos(flash * iTime));
+  // Neon flash intensity controlled by iNeonFlash (0 = static, 2 = rave)
+  float flashBase = 6.0 - 24.0 * hash1(id + 0.8);
+  flashBase *= step(3.0, flashBase);
+  float flashSpeed = flashBase * (0.5 + iNeonFlash * 1.5);
+  float flash = mix(1.0, smoothstep(0.1, 0.5, 0.5 + 0.5 * cos(flashSpeed * iTime)), min(iNeonFlash, 1.0));
 
   vec2 halfSize = vec2(halfWidth, halfWidth * charCount);
   center.y -= halfSize.y;
@@ -355,9 +490,17 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
   vec3 forward = normalize(cameraDir);
   vec3 right = normalize(cross(forward, vec3(0.0, 0.0, 1.0)));
   vec3 up = cross(right, forward);
+
+  // Apply camera roll (banking)
+  float rollAngle = iCameraRoll * 0.5; // ~30 degrees max
+  float cosRoll = cos(rollAngle);
+  float sinRoll = sin(rollAngle);
+  vec3 rolledRight = right * cosRoll + up * sinRoll;
+  vec3 rolledUp = up * cosRoll - right * sinRoll;
+
   vec2 xy = 2.0 * fragCoord - iResolution.xy;
   vec3 ray = normalize(
-    xy.x * right + xy.y * up + zoom * forward * iResolution.y
+    xy.x * rolledRight + xy.y * rolledUp + zoom * forward * iResolution.y
   );
 
   vec4 res = castRay(eye, ray, center);
@@ -367,28 +510,47 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
   vec3 color = window(p.z - res.y, p.xy, block);
 
   color = addSign(color, vec3(p.xy - block, p.z - res.y), res.z, block);
-  color = mix(vec3(0.0), color, abs(res.z));
+
+  // Edge highlighting - glows at building edges where faces meet
+  float edgeFactor = 1.0 - abs(res.z);
+  vec3 edgeGlow = mix(windowColorA, windowColorB, 0.5) * edgeFactor * iBuildingFill * 0.5;
+
+  // Apply face shading with edge glow
+  color = mix(edgeGlow, color, abs(res.z));
 
   float fog = exp(-fogDensity * max(res.x - fogOffset, 0.0));
   color = mix(fogColor, color, fog);
 
+  // Street lights / flying lights controlled by iStreetLights (0 = none, 2 = swarm)
   float time = lightSpeed * iTime;
-  color += addLight(eye.xyz, ray.xyz, res.x, time, lightHeight - 0.6);
-  color += addLight(eye.yxz, ray.yxz, res.x, time, lightHeight - 0.4);
-  color += addLight(
-    vec3(-eye.xy, eye.z),
-    vec3(-ray.xy, ray.z),
-    res.x,
-    time,
-    lightHeight - 0.2
-  );
-  color += addLight(
-    vec3(-eye.yx, eye.z),
-    vec3(-ray.yx, ray.z),
-    res.x,
-    time,
-    lightHeight
-  );
+  float lightDensity = iStreetLights;
+  // First two layers (base lights)
+  color += addLight(eye.xyz, ray.xyz, res.x, time, lightHeight - 0.6) * min(lightDensity * 2.0, 1.0);
+  color += addLight(eye.yxz, ray.yxz, res.x, time, lightHeight - 0.4) * min(lightDensity * 2.0, 1.0);
+  // Additional layers only appear at higher densities
+  if (lightDensity > 0.5) {
+    float extraIntensity = (lightDensity - 0.5) * 2.0;
+    color += addLight(
+      vec3(-eye.xy, eye.z),
+      vec3(-ray.xy, ray.z),
+      res.x,
+      time,
+      lightHeight - 0.2
+    ) * extraIntensity;
+    color += addLight(
+      vec3(-eye.yx, eye.z),
+      vec3(-ray.yx, ray.z),
+      res.x,
+      time,
+      lightHeight
+    ) * extraIntensity;
+  }
+  // Extra swarm lights at max density
+  if (lightDensity > 1.5) {
+    float swarmIntensity = (lightDensity - 1.5) * 2.0;
+    color += addLight(eye.xyz, ray.xyz, res.x, time * 1.3, lightHeight + 0.3) * swarmIntensity * 0.7;
+    color += addLight(eye.yxz, ray.yxz, res.x, time * 0.8, lightHeight - 0.8) * swarmIntensity * 0.7;
+  }
 
   // Optional black and white mode when colorSaturation is very low
   if (iColorSaturation < 0.1) {
