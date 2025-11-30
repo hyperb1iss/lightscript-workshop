@@ -7,18 +7,28 @@ import { h, render } from 'preact'
 import { extractControlsFromClass, extractEffectMetadata } from '../../core/controls/decorators'
 import { ControlDefinition, ControlValues } from '../../core/controls/definitions'
 import { createDebugLogger, printStartupBanner } from '../../core/utils/debug'
-import { effects } from '../../index'
+import { discoverEffects } from '../../effects'
 import { App } from '../ui/components/App'
 
 // Debug helper
 const debug = createDebugLogger('PreactEngine')
 
+// Discover effects at module load time
+const effectModules = discoverEffects()
+
+// Convert to array format for UI
+const effects: AppEffect[] = Object.keys(effectModules)
+    .sort()
+    .map((id) => ({ id, name: id }))
+
 /**
- * Effect definition with required paths
+ * Type that matches exactly what the App component expects for effects
  */
-interface EffectDefinition {
+type AppEffect = {
     id: string
-    entry: string
+    name?: string
+    description?: string
+    author?: string
 }
 
 /**
@@ -28,23 +38,6 @@ export interface EffectMetadata {
     name: string
     description: string
     author: string
-}
-
-/**
- * Full effect type including optional metadata
- */
-export type EffectWithMetadata = EffectDefinition & Partial<EffectMetadata>
-
-/**
- * Type that matches exactly what the App component expects for effects
- * This is also what we store in the effects array
- */
-type AppEffect = {
-    id: string
-    entry: string
-    name?: string
-    description?: string
-    author?: string
 }
 
 // Add the global window properties
@@ -224,11 +217,18 @@ export class PreactDevEngine {
     public async loadEffect(effectId: string): Promise<void> {
         debug('info', `Loading effect: ${effectId}`)
 
-        // Find the effect in the effects array
-        const effect = effects.find((e) => e.id === effectId) as AppEffect
-        if (!effect) {
+        // Find the effect loader
+        const loadEffect = effectModules[effectId]
+        if (!loadEffect) {
             debug('error', `Effect not found: ${effectId}`)
             return
+        }
+
+        // Find or create the effect entry for UI
+        let effect = effects.find((e) => e.id === effectId)
+        if (!effect) {
+            effect = { id: effectId, name: effectId }
+            effects.push(effect)
         }
 
         // Save the selected effect to localStorage
@@ -245,14 +245,10 @@ export class PreactDevEngine {
         this.controlValues = {}
 
         try {
-            // Use the same approach as dev.ts for loading the effect
-            const entryPath = effect.entry.replace(/^\.\//, '/src/')
-            const cacheBuster = `?t=${Date.now()}`
+            debug('info', `Loading effect module: ${effectId}`)
 
-            debug('info', `Importing effect from ${entryPath}`)
-
-            // Import the effect module
-            const effectModule = await import(/* @vite-ignore */ `${entryPath}${cacheBuster}`)
+            // Load the effect module using Vite's glob loader
+            const effectModule = (await loadEffect()) as { default?: unknown }
 
             if (!effectModule || !effectModule.default) {
                 throw new Error(`Effect module ${effectId} has no default export`)

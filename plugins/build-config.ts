@@ -1,6 +1,44 @@
+import { readdirSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import type { BuildOptions } from 'vite'
-import { effects } from '../src'
+
+interface EffectEntry {
+    id: string
+    entry: string
+}
+
+/**
+ * Discover effects from the file system (Node.js version)
+ */
+function discoverEffects(): EffectEntry[] {
+    const effectsDir = resolve(process.cwd(), 'src/effects')
+    const effects: EffectEntry[] = []
+
+    for (const item of readdirSync(effectsDir)) {
+        const itemPath = resolve(effectsDir, item)
+        const stat = statSync(itemPath)
+
+        if (stat.isDirectory()) {
+            // Folder-based: effects/{name}/main.ts
+            const mainPath = resolve(itemPath, 'main.ts')
+            try {
+                statSync(mainPath)
+                effects.push({ entry: `./effects/${item}/main.ts`, id: item })
+            } catch {
+                // No main.ts, skip
+            }
+        } else if (item.endsWith('.ts') && item !== 'index.ts') {
+            // Single-file: effects/{name}.ts
+            const id = item.replace(/\.ts$/, '')
+            effects.push({ entry: `./effects/${item}`, id })
+        }
+    }
+
+    return effects.sort((a, b) => a.id.localeCompare(b.id))
+}
+
+// Discover effects at module load
+const effects = discoverEffects()
 
 // Environment variables
 const noMinify = process.env.NO_MINIFY === 'true'
@@ -12,7 +50,7 @@ const effectToBuild = process.env.EFFECT || effects[0]?.id
  */
 export function getEffectBuildConfig(): BuildOptions | undefined {
     // Find the current effect to build
-    const effect = effectToBuild ? effects.find((e) => e.id === effectToBuild) : null
+    const effect = effectToBuild ? effects.find((e: EffectEntry) => e.id === effectToBuild) : null
 
     if (!effect) {
         return undefined

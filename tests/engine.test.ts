@@ -1,23 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { extractControlsFromClass } from '../src/core/controls/decorators'
 import { generateControlUI } from '../src/dev/controls-registry'
-import * as indexModule from '../src/index'
 
-// Mock the effects array
-vi.mock('../src/index', () => {
-    return {
-        effects: [
-            {
-                entry: './effects/puff-stuff/main.ts',
-                id: 'puff-stuff',
-            },
-            {
-                entry: './effects/glow-particles/main.ts',
-                id: 'glow-particles',
-            },
-        ],
-    }
-})
+// Mock effect data for tests
+const mockEffects = [
+    { id: 'puff-stuff', name: 'Puff Stuff' },
+    { id: 'glow-particles', name: 'Glow Particles' },
+]
+
+// Mock effect discovery
+vi.mock('../src/effects', () => ({
+    discoverEffects: vi.fn().mockReturnValue({
+        'glow-particles': vi.fn().mockResolvedValue({ default: class {} }),
+        'puff-stuff': vi.fn().mockResolvedValue({ default: class {} }),
+    }),
+    getEffectList: vi.fn().mockReturnValue([
+        { entry: './effects/puff-stuff/main.ts', id: 'puff-stuff' },
+        { entry: './effects/glow-particles/main.ts', id: 'glow-particles' },
+    ]),
+}))
 
 // Mock the control-decorators module with inline controls definition
 vi.mock('../src/core/controls/decorators', () => ({
@@ -104,20 +105,20 @@ describe('DevEngine', () => {
                 extractControlsFromClass('<dummy>')
 
                 // If multiple effects, we need to load the effect from URL param
-                if (indexModule.effects.length > 1) {
+                if (mockEffects.length > 1) {
                     // Call loadEffect for the URL param effect
                     await engine.loadEffect('puff-stuff')
                     return true
                 }
-                if (indexModule.effects.length === 1) {
+                if (mockEffects.length === 1) {
                     // Load the single effect
-                    await engine.loadEffect(indexModule.effects[0].id)
+                    await engine.loadEffect(mockEffects[0].id)
                     return false
                 }
                 return false
             }),
             loadEffect: vi.fn().mockImplementation(async (effectId) => {
-                const effect = indexModule.effects.find((e) => e.id === effectId)
+                const effect = mockEffects.find((e) => e.id === effectId)
                 if (!effect) {
                     throw new Error(`Effect not found: ${effectId}`)
                 }
@@ -174,16 +175,18 @@ describe('DevEngine', () => {
 
         it('should load the first effect when only one effect exists', async () => {
             // Temporarily replace effects with a single effect array
-            vi.mocked(indexModule.effects).splice(0)
-            vi.mocked(indexModule.effects).push({
-                entry: './effects/puff-stuff/main.ts',
-                id: 'puff-stuff',
-            })
+            const originalEffects = [...mockEffects]
+            mockEffects.length = 0
+            mockEffects.push({ id: 'puff-stuff', name: 'Puff Stuff' })
 
             await engine.initialize()
 
             // Verify the effect is loaded
             expect(generateControlUI).toHaveBeenCalled()
+
+            // Restore original effects
+            mockEffects.length = 0
+            mockEffects.push(...originalEffects)
         })
     })
 

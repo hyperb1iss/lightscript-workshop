@@ -292,22 +292,22 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
         }
 
         return {
+            cameraTilt: Number(window.cameraTilt ?? 5) / 5, // 0 to 2.0
+            colorCycleSpeed: Number(window.colorCycleSpeed ?? 5) / 5, // 0 to 2.0
             colorIntensity: Number(window.colorIntensity ?? 100) / 100,
             colorPulse: Number(window.colorPulse ?? 0) / 10,
             colorSaturation: Number(window.colorSaturation ?? 100) / 100,
             colorScheme,
             colorShift: boolToInt(window.colorShift ?? 1),
             effectStyle,
+            fogDensity: Number(window.fogDensity ?? 5) / 5, // 0.2 to 2.0
             motionReverse: boolToInt(window.motionReverse ?? 0),
             motionWave: Number(window.motionWave ?? 0) / 10,
             speed: normalizeSpeed(window.speed ?? 5),
+            surfaceRoughness: Number(window.surfaceRoughness ?? 5) / 5, // 0 to 2.0
             // New controls - normalize to useful ranges
             tunnelWidth: Number(window.tunnelWidth ?? 5) / 5, // 0.2 to 2.0
-            cameraTilt: Number(window.cameraTilt ?? 5) / 5, // 0 to 2.0
-            surfaceRoughness: Number(window.surfaceRoughness ?? 5) / 5, // 0 to 2.0
-            fogDensity: Number(window.fogDensity ?? 5) / 5, // 0.2 to 2.0
             zoomFOV: Number(window.zoomFOV ?? 5) / 5, // 0.2 to 2.0
-            colorCycleSpeed: Number(window.colorCycleSpeed ?? 5) / 5, // 0 to 2.0
         }
     }
 
@@ -316,22 +316,22 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
      */
     protected createUniforms(): Record<string, THREE.IUniform> {
         return {
+            iCameraTilt: { value: 1.0 },
+            iColorCycleSpeed: { value: 1.0 },
             iColorIntensity: { value: 1.0 },
             iColorPulse: { value: 0.0 },
             iColorSaturation: { value: 1.0 },
             iColorScheme: { value: 0 },
             iColorShift: { value: true },
             iEffectStyle: { value: 0 },
+            iFogDensity: { value: 1.0 },
             iMotionReverse: { value: false },
             iMotionWave: { value: 0.0 },
             iSpeed: { value: 1.0 },
+            iSurfaceRoughness: { value: 1.0 },
             // New uniforms
             iTunnelWidth: { value: 1.0 },
-            iCameraTilt: { value: 1.0 },
-            iSurfaceRoughness: { value: 1.0 },
-            iFogDensity: { value: 1.0 },
             iZoomFOV: { value: 1.0 },
-            iColorCycleSpeed: { value: 1.0 },
         }
     }
 

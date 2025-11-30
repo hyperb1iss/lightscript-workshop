@@ -10,7 +10,6 @@ import { WelcomeModal } from './WelcomeModal'
 interface AppProps {
     effects: Array<{
         id: string
-        entry: string
         name?: string
         description?: string
         author?: string
@@ -119,26 +118,26 @@ export const App: FunctionComponent<AppProps> = ({
                     const height = 600
                     const left = window.screenX + (window.outerWidth - width) / 2
                     const top = window.screenY + (window.outerHeight - height) / 2
-                    
+
                     const newWindow = window.open(
                         '',
                         'lightscript-docs',
-                        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+                        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`,
                     )
-                    
+
                     if (newWindow) {
                         setDocsWindow(newWindow)
-                        
+
                         // Set up the window content
                         newWindow.document.title = '📚 LightScript Documentation'
                         newWindow.document.body.innerHTML = '<div id="docs-root"></div>'
-                        
+
                         // Copy styles to new window
                         const styles = document.querySelectorAll('link[rel="stylesheet"], style')
-                        styles.forEach(style => {
+                        styles.forEach((style) => {
                             newWindow.document.head.appendChild(style.cloneNode(true))
                         })
-                        
+
                         // Add custom styles for standalone window
                         const customStyle = newWindow.document.createElement('style')
                         customStyle.textContent = `
@@ -256,7 +255,7 @@ export const App: FunctionComponent<AppProps> = ({
                             }
                         `
                         newWindow.document.head.appendChild(customStyle)
-                        
+
                         // Render docs browser in new window
                         import('preact').then(({ render }) => {
                             import('./DocsBrowser').then(({ DocsBrowser }) => {
@@ -271,12 +270,12 @@ export const App: FunctionComponent<AppProps> = ({
                                                 <DocsBrowser />
                                             </div>
                                         </div>,
-                                        root
+                                        root,
                                     )
                                 }
                             })
                         })
-                        
+
                         // Clean up reference when window closes
                         newWindow.addEventListener('beforeunload', () => {
                             setDocsWindow(null)
@@ -300,7 +299,6 @@ export const App: FunctionComponent<AppProps> = ({
                     onClose={() => setNotification(null)}
                 />
             )}
-
         </div>
     )
 }

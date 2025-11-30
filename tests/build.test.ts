@@ -1,7 +1,7 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { effects } from '../src/index'
+import { getEffectList } from '../src/index'
 
 // Mock the fs and child_process modules
 vi.mock('node:fs', () => ({
@@ -37,12 +37,14 @@ describe('build process', () => {
         vi.resetAllMocks()
     })
 
-    describe('effects array', () => {
-        it('should have at least one effect defined', () => {
+    describe('effect discovery', () => {
+        it('should discover at least one effect', () => {
+            const effects = getEffectList()
             expect(effects.length).toBeGreaterThan(0)
         })
 
         it('should have valid structure for each effect', () => {
+            const effects = getEffectList()
             for (const effect of effects) {
                 expect(effect).toHaveProperty('id')
                 expect(effect).toHaveProperty('entry')
@@ -50,7 +52,8 @@ describe('build process', () => {
         })
 
         it('should have unique IDs for each effect', () => {
-            const ids = effects.map((e) => e.id)
+            const effects = getEffectList()
+            const ids = effects.map((e: { id: string }) => e.id)
             const uniqueIds = [...new Set(ids)]
             expect(uniqueIds.length).toBe(effects.length)
         })
@@ -59,6 +62,7 @@ describe('build process', () => {
             // Set mock for existsSync to return true for this test
             vi.mocked(fs.existsSync).mockReturnValue(true)
 
+            const effects = getEffectList()
             for (const effect of effects) {
                 // Check entry file - normalize the path for platform independence
                 const entryPath = path.resolve(process.cwd(), 'src', effect.entry.replace(/^\.\//, ''))

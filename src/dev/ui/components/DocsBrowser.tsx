@@ -4,7 +4,11 @@ import { useMemo, useState } from 'preact/hooks'
 type DocsMap = Record<string, string>
 
 // Load markdown files as raw strings using Vite's glob import
-const rawDocs = import.meta.glob('/docs/*.{md,MD}', { as: 'raw', eager: true }) as DocsMap
+const rawDocs = import.meta.glob('/docs/*.{md,MD}', {
+    eager: true,
+    import: 'default',
+    query: '?raw',
+}) as DocsMap
 
 interface DocItem {
     path: string
@@ -30,51 +34,102 @@ function extractNameFromPath(path: string): string {
 function highlightCode(code: string, lang: string): string {
     // Basic keyword highlighting based on language
     const keywords: Record<string, string[]> = {
-        javascript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'extends', 'import', 'export', 'from', 'async', 'await', 'new', 'this'],
-        typescript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'extends', 'import', 'export', 'from', 'async', 'await', 'new', 'this', 'interface', 'type', 'enum', 'implements'],
-        glsl: ['vec2', 'vec3', 'vec4', 'float', 'int', 'bool', 'void', 'uniform', 'varying', 'attribute', 'if', 'else', 'for', 'while', 'return', 'in', 'out', 'inout', 'sampler2D', 'texture2D', 'gl_Position', 'gl_FragCoord', 'gl_FragColor'],
+        glsl: [
+            'vec2',
+            'vec3',
+            'vec4',
+            'float',
+            'int',
+            'bool',
+            'void',
+            'uniform',
+            'varying',
+            'attribute',
+            'if',
+            'else',
+            'for',
+            'while',
+            'return',
+            'in',
+            'out',
+            'inout',
+            'sampler2D',
+            'texture2D',
+            'gl_Position',
+            'gl_FragCoord',
+            'gl_FragColor',
+        ],
+        javascript: [
+            'const',
+            'let',
+            'var',
+            'function',
+            'return',
+            'if',
+            'else',
+            'for',
+            'while',
+            'class',
+            'extends',
+            'import',
+            'export',
+            'from',
+            'async',
+            'await',
+            'new',
+            'this',
+        ],
+        typescript: [
+            'const',
+            'let',
+            'var',
+            'function',
+            'return',
+            'if',
+            'else',
+            'for',
+            'while',
+            'class',
+            'extends',
+            'import',
+            'export',
+            'from',
+            'async',
+            'await',
+            'new',
+            'this',
+            'interface',
+            'type',
+            'enum',
+            'implements',
+        ],
     }
-    
-    let highlighted = code
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-    
+
+    let highlighted = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
     const langKeywords = keywords[lang] || keywords.javascript
-    
+
     // Highlight strings
-    highlighted = highlighted.replace(
-        /(["'])(?:(?=(\\?))\2.)*?\1/g,
-        '<span style="color: #B5FF71;">$&</span>'
-    )
-    
+    highlighted = highlighted.replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, '<span style="color: #B5FF71;">$&</span>')
+
     // Highlight numbers
-    highlighted = highlighted.replace(
-        /\b(\d+\.?\d*)\b/g,
-        '<span style="color: #FFB571;">$&</span>'
-    )
-    
+    highlighted = highlighted.replace(/\b(\d+\.?\d*)\b/g, '<span style="color: #FFB571;">$&</span>')
+
     // Highlight comments
     highlighted = highlighted.replace(
         /(\/\/.*$|\/\*[\s\S]*?\*\/)/gm,
-        '<span style="color: #666; font-style: italic;">$&</span>'
+        '<span style="color: #666; font-style: italic;">$&</span>',
     )
-    
+
     // Highlight keywords
-    langKeywords.forEach(keyword => {
+    langKeywords.forEach((keyword) => {
         const regex = new RegExp(`\\b(${keyword})\\b`, 'g')
-        highlighted = highlighted.replace(
-            regex,
-            '<span style="color: #FF71CE; font-weight: bold;">$1</span>'
-        )
+        highlighted = highlighted.replace(regex, '<span style="color: #FF71CE; font-weight: bold;">$1</span>')
     })
-    
+
     // Highlight functions
-    highlighted = highlighted.replace(
-        /\b([a-zA-Z_]\w*)\s*(?=\()/g,
-        '<span style="color: #01CDFE;">$1</span>'
-    )
-    
+    highlighted = highlighted.replace(/\b([a-zA-Z_]\w*)\s*(?=\()/g, '<span style="color: #01CDFE;">$1</span>')
+
     return highlighted
 }
 
@@ -84,23 +139,17 @@ function renderMarkdown(md: string): string {
 
     // Process code blocks first to prevent escaping their content
     const codeBlocks: string[] = []
-    
+
     // Code fences with language ```lang
-    html = html.replace(
-        /```(\w+)?\n([\s\S]*?)```/g,
-        (_m, lang, code) => {
-            const highlighted = highlightCode(code.trim(), lang || 'javascript')
-            const block = `<pre class="md-code" data-lang="${lang || 'text'}"><code>${highlighted}</code></pre>`
-            codeBlocks.push(block)
-            return `__CODE_BLOCK_${codeBlocks.length - 1}__`
-        }
-    )
+    html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (_m, lang, code) => {
+        const highlighted = highlightCode(code.trim(), lang || 'javascript')
+        const block = `<pre class="md-code" data-lang="${lang || 'text'}"><code>${highlighted}</code></pre>`
+        codeBlocks.push(block)
+        return `__CODE_BLOCK_${codeBlocks.length - 1}__`
+    })
 
     // Escape HTML
-    html = html
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
+    html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
     // Inline code `code`
     html = html.replace(/`([^`]+)`/g, (_m, code) => `<code class="md-inline-code">${code}</code>`)
@@ -164,7 +213,6 @@ export const DocsBrowser: FunctionComponent = () => {
         <div className="docs-panel">
             <div className="docs-toolbar">
                 <input
-                    autoFocus={true}
                     className="docs-search"
                     onInput={(e: any) => setQuery(e.currentTarget.value)}
                     placeholder="Search docs..."

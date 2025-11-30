@@ -14,21 +14,21 @@
  * - Detailed error reporting with file locations
  */
 
-import { readFileSync } from 'fs'
+import { readFileSync } from 'node:fs'
+import { basename } from 'node:path'
 import { glob } from 'glob'
-import { basename } from 'path'
 
 // ANSI color codes for better output
 const colors = {
-    reset: '\x1b[0m',
-    red: '\x1b[31m',
-    green: '\x1b[32m',
-    yellow: '\x1b[33m',
     blue: '\x1b[34m',
-    magenta: '\x1b[35m',
-    cyan: '\x1b[36m',
     bold: '\x1b[1m',
+    cyan: '\x1b[36m',
     dim: '\x1b[2m',
+    green: '\x1b[32m',
+    magenta: '\x1b[35m',
+    red: '\x1b[31m',
+    reset: '\x1b[0m',
+    yellow: '\x1b[33m',
 }
 
 class GLSLLinter {
@@ -46,31 +46,29 @@ class GLSLLinter {
         const templateLiteralRegex = /(?:fragmentShader|vertexShader|shader)\s*=\s*`([\s\S]*?)`/g
         const inlineShaderRegex = /const\s+\w*[Ss]hader\s*=\s*`([\s\S]*?)`/g
 
-        let match
-
         // Extract from assignment patterns
-        while ((match = templateLiteralRegex.exec(content)) !== null) {
+        for (const match of content.matchAll(templateLiteralRegex)) {
             const shaderContent = match[1]
             const lineNumber = content.substring(0, match.index).split('\n').length
 
             shaders.push({
                 content: shaderContent.trim(),
                 line: lineNumber,
-                type: 'template_literal',
                 source: filePath,
+                type: 'template_literal',
             })
         }
 
         // Extract from const declarations
-        while ((match = inlineShaderRegex.exec(content)) !== null) {
+        for (const match of content.matchAll(inlineShaderRegex)) {
             const shaderContent = match[1]
             const lineNumber = content.substring(0, match.index).split('\n').length
 
             shaders.push({
                 content: shaderContent.trim(),
                 line: lineNumber,
-                type: 'const_declaration',
                 source: filePath,
+                type: 'const_declaration',
             })
         }
 
@@ -78,50 +76,50 @@ class GLSLLinter {
     }
 
     // Validate GLSL shader content
-    validateGLSL(shaderContent, shaderType = 'fragment', source = '', line = 1) {
+    validateGLSL(shaderContent, shaderType = 'fragment', source = '', _line = 1) {
         const issues = []
         const lines = shaderContent.split('\n')
 
         // Basic syntax checks
         if (!shaderContent.includes('precision')) {
             issues.push({
-                type: 'warning',
-                message: 'Missing precision qualifier - add "precision highp float;" or similar',
                 line: 1,
+                message: 'Missing precision qualifier - add "precision highp float;" or similar',
                 source,
+                type: 'warning',
             })
         }
 
         // Check for main function
         if (!shaderContent.includes('void main()')) {
             issues.push({
-                type: 'error',
-                message: 'Missing main() function',
                 line: 1,
+                message: 'Missing main() function',
                 source,
+                type: 'error',
             })
         }
 
         // Check for output in fragment shaders
         if (shaderType === 'fragment' && !shaderContent.includes('gl_FragColor') && !shaderContent.includes('out ')) {
             issues.push({
-                type: 'warning',
-                message: 'Fragment shader should output color via gl_FragColor or out variable',
                 line: 1,
+                message: 'Fragment shader should output color via gl_FragColor or out variable',
                 source,
+                type: 'warning',
             })
         }
 
         // Check version compatibility
         const versionMatch = shaderContent.match(/#version\s+(\d+)/)
         if (versionMatch) {
-            const version = parseInt(versionMatch[1])
+            const version = Number.parseInt(versionMatch[1], 10)
             if (version > 300) {
                 issues.push({
-                    type: 'warning',
-                    message: `Version ${version} may not be supported on all WebGL contexts`,
                     line: this.findLineContaining(shaderContent, '#version'),
+                    message: `Version ${version} may not be supported on all WebGL contexts`,
                     source,
+                    type: 'warning',
                 })
             }
         }
@@ -129,29 +127,29 @@ class GLSLLinter {
         // Check for common WebGL incompatibilities
         if (shaderContent.includes('varying ') && shaderContent.includes('#version 300')) {
             issues.push({
-                type: 'error',
-                message: 'Use "in"/"out" instead of "varying" in GLSL ES 3.00',
                 line: this.findLineContaining(shaderContent, 'varying'),
+                message: 'Use "in"/"out" instead of "varying" in GLSL ES 3.00',
                 source,
+                type: 'error',
             })
         }
 
         // Check for deprecated functions
         const deprecatedFunctions = [
-            { old: 'texture2D', new: 'texture' },
-            { old: 'textureCube', new: 'texture' },
-            { old: 'texture2DProj', new: 'textureProj' },
-            { old: 'shadow2D', new: 'texture' },
-            { old: 'shadow1D', new: 'texture' },
+            { new: 'texture', old: 'texture2D' },
+            { new: 'texture', old: 'textureCube' },
+            { new: 'textureProj', old: 'texture2DProj' },
+            { new: 'texture', old: 'shadow2D' },
+            { new: 'texture', old: 'shadow1D' },
         ]
 
         deprecatedFunctions.forEach(({ old, new: newFunc }) => {
             if (shaderContent.includes(old)) {
                 issues.push({
-                    type: 'warning',
-                    message: `Deprecated function "${old}" - consider using "${newFunc}()" instead`,
                     line: this.findLineContaining(shaderContent, old),
+                    message: `Deprecated function "${old}" - consider using "${newFunc}()" instead`,
                     source,
+                    type: 'warning',
                 })
             }
         })
@@ -177,10 +175,10 @@ class GLSLLinter {
                 trimmed.includes('=')
             ) {
                 issues.push({
-                    type: 'warning',
-                    message: 'Possible missing semicolon',
                     line: lineNum,
+                    message: 'Possible missing semicolon',
                     source,
+                    type: 'warning',
                 })
             }
 
@@ -188,10 +186,10 @@ class GLSLLinter {
             const variableMatch = trimmed.match(/^\s*(\w+)\s*=/)
             if (variableMatch && !shaderContent.includes(`${variableMatch[1]} `)) {
                 issues.push({
-                    type: 'warning',
-                    message: `Variable "${variableMatch[1]}" may not be declared`,
                     line: lineNum,
+                    message: `Variable "${variableMatch[1]}" may not be declared`,
                     source,
+                    type: 'warning',
                 })
             }
         })
@@ -199,20 +197,20 @@ class GLSLLinter {
         // SignalRGB-specific validations
         if (shaderContent.includes('uniform float iTime') && !shaderContent.includes('uniform vec2 iResolution')) {
             issues.push({
-                type: 'suggestion',
-                message: 'Consider adding "uniform vec2 iResolution" for aspect ratio handling',
                 line: this.findLineContaining(shaderContent, 'uniform float iTime'),
+                message: 'Consider adding "uniform vec2 iResolution" for aspect ratio handling',
                 source,
+                type: 'suggestion',
             })
         }
 
         // Check for performance issues
         if (shaderContent.match(/for\s*\([^}]*\{[^}]*for\s*\(/)) {
             issues.push({
-                type: 'warning',
-                message: 'Nested loops can cause performance issues on some GPUs',
                 line: this.findLineContaining(shaderContent, 'for'),
+                message: 'Nested loops can cause performance issues on some GPUs',
                 source,
+                type: 'warning',
             })
         }
 
@@ -220,10 +218,10 @@ class GLSLLinter {
         const divisionByZeroMatch = shaderContent.match(/\s\/\s*0\.0(?!\d)/) || shaderContent.match(/\/0\.0(?!\d)/)
         if (divisionByZeroMatch) {
             issues.push({
-                type: 'error',
-                message: 'Division by zero detected',
                 line: this.findLineContaining(shaderContent, divisionByZeroMatch[0]),
+                message: 'Division by zero detected',
                 source,
+                type: 'error',
             })
         }
 
@@ -258,10 +256,10 @@ class GLSLLinter {
             this.processed++
         } catch (error) {
             this.errors.push({
-                type: 'error',
-                message: `Failed to read file: ${error.message}`,
                 line: 0,
+                message: `Failed to read file: ${error.message}`,
                 source: filePath,
+                type: 'error',
             })
         }
     }
@@ -279,7 +277,7 @@ class GLSLLinter {
                     `${colors.blue}📄 Checking ${fileName} (${shaders.length} shader${shaders.length > 1 ? 's' : ''})...${colors.reset}`,
                 )
 
-                shaders.forEach((shader, index) => {
+                shaders.forEach((shader) => {
                     const issues = this.validateGLSL(shader.content, 'fragment', filePath, shader.line)
 
                     issues.forEach((issue) => {
@@ -297,10 +295,10 @@ class GLSLLinter {
             this.processed++
         } catch (error) {
             this.errors.push({
-                type: 'error',
-                message: `Failed to read file: ${error.message}`,
                 line: 0,
+                message: `Failed to read file: ${error.message}`,
                 source: filePath,
+                type: 'error',
             })
         }
     }

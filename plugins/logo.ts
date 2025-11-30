@@ -1,13 +1,13 @@
-import type { Plugin } from 'vite'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import type { Plugin } from 'vite'
 
 // SilkCircuit Neon palette
 const C = {
-    purple: '\x1b[38;2;225;53;255m',
+    bold: '\x1b[1m',
     cyan: '\x1b[38;2;128;255;234m',
     dim: '\x1b[38;2;100;100;120m',
-    bold: '\x1b[1m',
+    purple: '\x1b[38;2;225;53;255m',
     reset: '\x1b[0m',
 }
 
@@ -50,5 +50,3 @@ export function startupLogoPlugin(): Plugin {
         name: 'lightscript-startup-logo',
     }
 }
-
-

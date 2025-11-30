@@ -9,77 +9,83 @@ import { execSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-const NEON_PINK = '\x1b[38;2;255;97;216m'
-const NEON_BLUE = '\x1b[38;2;156;158;255m'
-const NEON_CYAN = '\x1b[38;2;0;255;255m'
-const NEON_GREEN = '\x1b[38;2;0;255;136m'
-const NEON_YELLOW = '\x1b[38;2;255;240;0m'
-const NEON_PURPLE = '\x1b[38;2;190;110;255m'
-const GLITCH = '\x1b[31m\x1b[1m' // Bold red for "glitchy" text
-const RESET = '\x1b[0m'
-const BOLD = '\x1b[1m'
-const _BLINK = '\x1b[5m'
-const DIM = '\x1b[2m'
+// SilkCircuit Neon palette
+const C = {
+    bold: '\x1b[1m',
+    cyan: '\x1b[38;2;128;255;234m',
+    dim: '\x1b[38;2;100;100;120m',
+    green: '\x1b[38;2;80;250;123m',
+    purple: '\x1b[38;2;225;53;255m',
+    red: '\x1b[38;2;255;99;99m',
+    reset: '\x1b[0m',
+    yellow: '\x1b[38;2;241;250;140m',
+}
 
-console.log(`\n${NEON_CYAN}
-██╗     ██╗ ██████╗ ██╗  ██╗████████╗███████╗ ██████╗██████╗ ██╗██████╗ ████████╗
-██║     ██║██╔════╝ ██║  ██║╚══██╔══╝██╔════╝██╔════╝██╔══██╗██║██╔══██╗╚══██╔══╝
-██║     ██║██║  ███╗███████║   ██║   ███████╗██║     ██████╔╝██║██████╔╝   ██║   
-██║     ██║██║   ██║██╔══██║   ██║   ╚════██║██║     ██╔══██╗██║██╔═══╝    ██║   
-███████╗██║╚██████╔╝██║  ██║   ██║   ███████║╚██████╗██║  ██║██║██║        ██║   
-╚══════╝╚═╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝╚═╝        ╚═╝   
-${NEON_PINK}
-      ██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗███████╗██╗  ██╗ ██████╗ ██████╗ 
-      ██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝██╔════╝██║  ██║██╔═══██╗██╔══██╗
-      ██║ █╗ ██║██║   ██║██████╔╝█████╔╝ ███████╗███████║██║   ██║██████╔╝
-      ██║███╗██║██║   ██║██╔══██╗██╔═██╗ ╚════██║██╔══██║██║   ██║██╔═══╝ 
-      ╚███╔███╔╝╚██████╔╝██║  ██║██║  ██╗███████║██║  ██║╚██████╔╝██║     
-       ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     
-`)
+// Aliases for existing code
+const NEON_BLUE = C.cyan
+const NEON_CYAN = C.cyan
+const NEON_GREEN = C.green
+const NEON_YELLOW = C.yellow
+const NEON_PURPLE = C.purple
+const GLITCH = `${C.red}${C.bold}`
+const RESET = C.reset
+const BOLD = C.bold
+const DIM = C.dim
 
-// We can't directly import from .ts files in Node.js ESM
-// Instead, let's parse the effects array from the source file
-
-function getEffectsList() {
-    console.log(`${NEON_BLUE}[⚡]${RESET} ${DIM}Reading effects manifest...${RESET}`)
+function getVersion() {
     try {
-        // Read the TypeScript source file
-        const source = readFileSync(resolve(process.cwd(), 'src/index.ts'), 'utf-8')
-
-        // Extract the effects array using a regex pattern
-        // This is a simple approach - in a larger project we might want to use a TS parser
-        const effectsMatch = source.match(/export const effects = (\[[\s\S]*?\]);/)
-
-        if (!effectsMatch || !effectsMatch[1]) {
-            throw new Error('Could not find effects array in src/index.ts')
-        }
-
-        // Parse the array without using eval: convert TS literal to JSON-like and JSON.parse
-        const arrayLiteral = effectsMatch[1]
-        // Remove trailing commas and comments
-        const sanitized = arrayLiteral
-            .replace(/\/\/.*$/gm, '')
-            .replace(/,\s*([\]}])/g, '$1')
-            .replace(/(['"])entry\1\s*:\s*(['"])([^'"]+)\2/g, '"entry":"$3"')
-            .replace(/(['"])id\1\s*:\s*(['"])([^'"]+)\2/g, '"id":"$3"')
-        // Wrap keys to ensure valid JSON
-        const jsonReady = sanitized.replace(/(\{|,)\s*(entry|id)\s*:/g, '$1 "$2":')
-        /** @type {{id:string,entry:string}[]} */
-        const effects = JSON.parse(jsonReady)
-
-        console.log(`${NEON_GREEN}[✓]${RESET} ${BOLD}Effects manifest loaded${RESET}`)
-        return effects
-    } catch (err) {
-        console.error(`${GLITCH}[✘] ERROR: Failed to parse effects${RESET}`, err)
-        return []
+        const pkg = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8'))
+        return pkg.version || '0.0.0'
+    } catch {
+        return '0.0.0'
     }
 }
 
-// Get effects list
-const effects = getEffectsList()
+const version = getVersion()
+console.log(`
+${C.dim}─────────────────────────────────────────${C.reset}
+${C.bold}${C.purple}◈${C.reset} ${C.bold}${C.cyan}LightScript Workshop${C.reset}  ${C.dim}v${version}${C.reset}  ${C.dim}build${C.reset}
+${C.dim}─────────────────────────────────────────${C.reset}
+`)
+
+import { glob } from 'glob'
+
+/**
+ * Discover effects automatically from the file system
+ * Patterns:
+ *   - src/effects/{name}/main.ts  → folder-based effect
+ *   - src/effects/{name}.ts       → single-file effect
+ */
+async function discoverEffects() {
+    console.log(`${NEON_BLUE}[⚡]${RESET} ${DIM}Discovering effects...${RESET}`)
+
+    const effectsDir = resolve(process.cwd(), 'src/effects')
+    const effects = []
+
+    // Find folder-based effects: effects/{name}/main.ts
+    const folderEffects = await glob('*/main.ts', { cwd: effectsDir })
+    for (const path of folderEffects) {
+        const id = path.split('/')[0]
+        effects.push({ entry: `./effects/${id}/main.ts`, id })
+    }
+
+    // Find single-file effects: effects/{name}.ts (exclude index.ts)
+    const singleEffects = await glob('*.ts', { cwd: effectsDir })
+    for (const file of singleEffects) {
+        if (file === 'index.ts') continue
+        const id = file.replace(/\.ts$/, '')
+        effects.push({ entry: `./effects/${file}`, id })
+    }
+
+    console.log(`${NEON_GREEN}[✓]${RESET} ${BOLD}Found ${effects.length} effects${RESET}`)
+    return effects
+}
+
+// Discover effects from file system
+const effects = await discoverEffects()
 
 if (effects.length === 0) {
-    console.error(`${GLITCH}[FATAL] No effects found! Check src/index.ts file.${RESET}`)
+    console.error(`${GLITCH}[FATAL] No effects found in src/effects/${RESET}`)
     process.exit(1)
 }
 

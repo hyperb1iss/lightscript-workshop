@@ -22,6 +22,7 @@
     "format:glsl:check": "prettier --check \"**/*.{glsl,vert,frag}\"",
     "lint": "biome lint .",
     "lint:fix": "biome check --write .",
+    "lint:all": "biome check --write --unsafe .",
     "lint:glsl": "node scripts/glsl-lint.js",
     "lint:glsl:fix": "npm run format:glsl && npm run lint:glsl",
     "typecheck": "tsc --noEmit",

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'preact/hooks'
 interface EffectsPanelProps {
     effects: Array<{
         id: string
-        entry: string
         name?: string
         description?: string
         author?: string
@@ -47,93 +46,91 @@ export const EffectsPanel: FunctionComponent<EffectsPanelProps> = ({
                 </button>
             </div>
 
-            <>
-                    <div className="effects-selector">
-                        <select
-                            disabled={!effects || effects.length === 0}
-                            onChange={(e: Event) => onEffectChange((e.target as HTMLSelectElement).value)}
-                            value={currentEffectId}
-                        >
-                            {!effects || effects.length === 0 ? (
-                                <option value="">No effects available</option>
-                            ) : (
-                                effects.map((effect) => (
-                                    <option key={effect.id} value={effect.id}>
-                                        {effect.name || effect.id}
-                                    </option>
-                                ))
-                            )}
-                        </select>
+            <div className="effects-selector">
+                <select
+                    disabled={!effects || effects.length === 0}
+                    onChange={(e: Event) => onEffectChange((e.target as HTMLSelectElement).value)}
+                    value={currentEffectId}
+                >
+                    {!effects || effects.length === 0 ? (
+                        <option value="">No effects available</option>
+                    ) : (
+                        effects.map((effect) => (
+                            <option key={effect.id} value={effect.id}>
+                                {effect.name || effect.id}
+                            </option>
+                        ))
+                    )}
+                </select>
+            </div>
+
+            <div className="stats-panel">
+                <div className="stats-header">
+                    <h4>📶 Stats</h4>
+                </div>
+                <div className="stats-content">
+                    <div className="stat-item">
+                        <span className="stat-label">FPS</span>
+                        <span className="stat-value">{fps.toFixed(1)}</span>
                     </div>
 
-                    <div className="stats-panel">
-                        <div className="stats-header">
-                            <h4>📶 Stats</h4>
-                        </div>
-                        <div className="stats-content">
-                            <div className="stat-item">
-                                <span className="stat-label">FPS</span>
-                                <span className="stat-value">{fps.toFixed(1)}</span>
-                            </div>
+                    <div className="stat-item">
+                        <span className="stat-label">Resolution</span>
+                        <span className="stat-value">
+                            {canvasWidth}×{canvasHeight}
+                        </span>
+                    </div>
+                </div>
+            </div>
 
-                            <div className="stat-item">
-                                <span className="stat-label">Resolution</span>
-                                <span className="stat-value">
-                                    {canvasWidth}×{canvasHeight}
+            {currentEffect && (
+                <div className="metadata-panel">
+                    <div className="metadata-header">
+                        <h4>🔬 Effect Info</h4>
+                    </div>
+                    <div className="metadata-content">
+                        <div className="metadata-item">
+                            <span className="metadata-label">Name</span>
+                            <span className="metadata-value highlight">{currentEffect.name || currentEffect.id}</span>
+                        </div>
+                        <div className="metadata-item">
+                            <span className="metadata-label">ID</span>
+                            <span className="metadata-value">{currentEffect.id}</span>
+                        </div>
+                        {currentEffect.author && (
+                            <div className="metadata-item">
+                                <span className="metadata-label">Author</span>
+                                <span className="metadata-value highlight">{currentEffect.author}</span>
+                            </div>
+                        )}
+                        {currentEffect.description && (
+                            <div className="metadata-item">
+                                <span className="metadata-label">Description</span>
+                                <span className="metadata-value">
+                                    {currentEffect.description && currentEffect.description.length > 60
+                                        ? `${currentEffect.description.substring(0, 57)}...`
+                                        : currentEffect.description}
                                 </span>
                             </div>
+                        )}
+                        <div className="metadata-item">
+                            <span className="metadata-label">Controls</span>
+                            <span className="metadata-value highlight">🔌 {window.controlsCount || '0'}</span>
                         </div>
                     </div>
+                </div>
+            )}
 
-                    {currentEffect && (
-                        <div className="metadata-panel">
-                            <div className="metadata-header">
-                                <h4>🔬 Effect Info</h4>
-                            </div>
-                            <div className="metadata-content">
-                                <div className="metadata-item">
-                                    <span className="metadata-label">Name</span>
-                                    <span className="metadata-value highlight">{currentEffect.name || currentEffect.id}</span>
-                                </div>
-                                <div className="metadata-item">
-                                    <span className="metadata-label">ID</span>
-                                    <span className="metadata-value">{currentEffect.id}</span>
-                                </div>
-                                {currentEffect.author && (
-                                    <div className="metadata-item">
-                                        <span className="metadata-label">Author</span>
-                                        <span className="metadata-value highlight">{currentEffect.author}</span>
-                                    </div>
-                                )}
-                                {currentEffect.description && (
-                                    <div className="metadata-item">
-                                        <span className="metadata-label">Description</span>
-                                        <span className="metadata-value">
-                                            {currentEffect.description && currentEffect.description.length > 60
-                                                ? `${currentEffect.description.substring(0, 57)}...`
-                                                : currentEffect.description}
-                                        </span>
-                                    </div>
-                                )}
-                                <div className="metadata-item">
-                                    <span className="metadata-label">Controls</span>
-                                    <span className="metadata-value highlight">🔌 {window.controlsCount || '0'}</span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="actions-panel">
-                        <button
-                            className="screenshot-button"
-                            onClick={onSavePreview}
-                            title="Save a 1024×1024 preview image"
-                            type="button"
-                        >
-                            🖼️ Save Preview (1024×1024)
-                        </button>
-                    </div>
-                </>
+            <div className="actions-panel">
+                <button
+                    className="screenshot-button"
+                    onClick={onSavePreview}
+                    title="Save a 1024×1024 preview image"
+                    type="button"
+                >
+                    🖼️ Save Preview (1024×1024)
+                </button>
+            </div>
 
             {/* Logo at the bottom */}
             <div className="logo-separator" />

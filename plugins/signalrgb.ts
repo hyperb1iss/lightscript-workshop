@@ -1,7 +1,44 @@
-import fs from 'node:fs'
+import fs, { readdirSync, statSync } from 'node:fs'
 import { extname, resolve } from 'node:path'
 import type { Plugin } from 'vite'
-import { effects } from '../src'
+
+interface EffectEntry {
+    id: string
+    entry: string
+}
+
+/**
+ * Discover effects from the file system (Node.js version)
+ */
+function discoverEffects(): EffectEntry[] {
+    const effectsDir = resolve(process.cwd(), 'src/effects')
+    const effects: EffectEntry[] = []
+
+    for (const item of readdirSync(effectsDir)) {
+        const itemPath = resolve(effectsDir, item)
+        const stat = statSync(itemPath)
+
+        if (stat.isDirectory()) {
+            // Folder-based: effects/{name}/main.ts
+            const mainPath = resolve(itemPath, 'main.ts')
+            try {
+                statSync(mainPath)
+                effects.push({ entry: `./effects/${item}/main.ts`, id: item })
+            } catch {
+                // No main.ts, skip
+            }
+        } else if (item.endsWith('.ts') && item !== 'index.ts') {
+            // Single-file: effects/{name}.ts
+            const id = item.replace(/\.ts$/, '')
+            effects.push({ entry: `./effects/${item}`, id })
+        }
+    }
+
+    return effects.sort((a, b) => a.id.localeCompare(b.id))
+}
+
+// Discover effects at module load
+const effects = discoverEffects()
 
 // Get effect to build from environment variable or default to first effect
 const effectToBuild = process.env.EFFECT || effects[0]?.id
@@ -222,7 +259,11 @@ function processEffect(effect: (typeof effects)[0]) {
                         // If the Effect decorator explicitly provides an image, handle that first
                         if (typeof effectData.image === 'string' && effectData.image.length > 0) {
                             const imageValue = String(effectData.image)
-                            if (imageValue.startsWith('http://') || imageValue.startsWith('https://') || imageValue.startsWith('data:')) {
+                            if (
+                                imageValue.startsWith('http://') ||
+                                imageValue.startsWith('https://') ||
+                                imageValue.startsWith('data:')
+                            ) {
                                 // Remote or data URI – just reference directly
                                 metaTags += `<meta property="image" content="${imageValue}">\n`
                             } else {
@@ -234,12 +275,17 @@ function processEffect(effect: (typeof effects)[0]) {
                                     try {
                                         fs.copyFileSync(explicitLocalPath, outPath)
                                         metaTags += `<meta property="image" content="${effect.id}${ext}">\n`
-                                        logger.effect(effect.id, `Preview image attached from decorator: ${effect.id}${ext}`)
+                                        logger.effect(
+                                            effect.id,
+                                            `Preview image attached from decorator: ${effect.id}${ext}`,
+                                        )
                                     } catch (_copyErr) {
                                         logger.error(`Failed to copy decorator-provided image for ${effect.id}`)
                                     }
                                 } else {
-                                    logger.error(`Decorator-provided image not found for ${effect.id}: ${explicitLocalPath}`)
+                                    logger.error(
+                                        `Decorator-provided image not found for ${effect.id}: ${explicitLocalPath}`,
+                                    )
                                 }
                             }
                         }
@@ -410,7 +456,7 @@ export function signalRGBPlugin(): Plugin {
                 return
             }
 
-            const effect = effects.find((e) => e.id === effectToBuild)
+            const effect = effects.find((e: EffectEntry) => e.id === effectToBuild)
             if (!effect) {
                 logger.error(`Effect ${effectToBuild} not found!`)
                 return

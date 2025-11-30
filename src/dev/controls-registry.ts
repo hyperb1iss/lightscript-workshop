@@ -393,7 +393,7 @@ function createHueControl(
 
     // Handle keyboard accessibility through hidden slider
     hiddenSlider.addEventListener('input', () => {
-        const value = Number.parseInt(hiddenSlider.value)
+        const value = Number.parseInt(hiddenSlider.value, 10)
         const percent = (value - min) / (max - min)
 
         // Update thumb position and color

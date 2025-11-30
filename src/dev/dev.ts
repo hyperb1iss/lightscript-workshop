@@ -5,15 +5,19 @@
 
 import './ui' // Import styles via UI index
 import { printStartupBanner } from '../core/utils/debug'
-import { effects } from '../index'
+import { discoverEffects } from '../effects'
 import { PreactDevEngine } from './engine/preact-engine'
 
 // Display startup banner
 printStartupBanner()
 
+// Discover effects from file system
+const effectModules = discoverEffects()
+const effectIds = Object.keys(effectModules).sort()
+
 // Initialize effect from URL parameter or use the first effect
 const urlParams = new URLSearchParams(window.location.search)
-const effectId = urlParams.get('effect') || effects[0].id
+const effectId = urlParams.get('effect') || effectIds[0]
 
 console.log(`✨ Loading effect: ${effectId}`)
 
@@ -27,21 +31,16 @@ async function initializeDevEnvironment() {
         // Initialize PreactDevEngine for UI and controls first
         const engine = new PreactDevEngine()
 
-        // Find effect data
-        const effectData = effects.find((e) => e.id === effectId)
-        if (!effectData) {
+        // Load effect module
+        const loadEffect = effectModules[effectId]
+        if (!loadEffect) {
             throw new Error(`Effect not found: ${effectId}`)
         }
 
-        // Import effect dynamically after engine initialization
-        const entryPath = effectData.entry.replace(/^\.\//, '/src/')
+        // Dynamic import with cache-busting
+        await loadEffect()
 
-        // Dynamic import for the effect module
-        // Add cache-busting to ensure we get a fresh module
-        const cacheBuster = `?t=${Date.now()}`
-        await import(/* @vite-ignore */ `${entryPath}${cacheBuster}`)
-
-        console.log(`✅ Loaded effect module: ${effectData.id}`)
+        console.log(`✅ Loaded effect module: ${effectId}`)
 
         try {
             await engine.initialize()
