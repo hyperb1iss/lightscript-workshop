@@ -56,4 +56,8 @@ export const effects = [
         entry: './effects/cellular-automaton.ts',
         id: 'cellular-automaton',
     },
+    {
+        entry: './effects/temporal-hallucination/main.ts',
+        id: 'temporal-hallucination',
+    },
 ]
