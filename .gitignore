@@ -27,3 +27,6 @@ coverage
 
 # Private individual user cursor rules
 .cursor/rules/_*.mdc
+
+# Local tool caches
+.crush/
