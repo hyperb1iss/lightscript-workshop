@@ -6,8 +6,8 @@
 
 import * as THREE from 'three'
 import { initializeEffect } from '../../core'
-import { BooleanControl, Effect, NumberControl } from '../../core/controls/decorators'
-import { boolToInt, normalizePercentage } from '../../core/controls/helpers'
+import { BooleanControl, ComboboxControl, Effect, NumberControl } from '../../core/controls/decorators'
+import { boolToInt, comboboxValueToIndex, normalizePercentage } from '../../core/controls/helpers'
 import { WebGLEffect } from '../../core/effects/webgl-effect'
 
 import fragmentShader from './fragment.glsl'
@@ -23,6 +23,8 @@ declare global {
         collapseRate: number
         observer: boolean | number
         virtualParticles: boolean | number
+        palette: string | number
+        paletteMix: number
     }
 }
 
@@ -36,6 +38,8 @@ export interface QuantumFoamControls {
     collapseRate: number // 0-1
     observer: boolean
     virtualParticles: boolean
+    palette: number
+    paletteMix: number
 }
 
 @Effect({
@@ -121,6 +125,39 @@ export class QuantumFoamEffect extends WebGLEffect<QuantumFoamControls> {
     })
     virtualParticles!: boolean
 
+    @ComboboxControl({
+        default: 'Aurora',
+        label: 'Palette',
+        tooltip: 'Alternate color schemes for the foam',
+        values: [
+            'Aurora',
+            'Rainbow',
+            'Neon',
+            'Ocean',
+            'Fire',
+            'Cyberpunk',
+            'Sunset',
+            'Mono',
+            'Pastel',
+            'Forest',
+            'Heatmap',
+            'Viridis',
+            'Inferno',
+            'Plasma',
+            'Magma',
+        ],
+    })
+    palette!: string
+
+    @NumberControl({
+        default: 40,
+        label: 'Palette Mix',
+        max: 100,
+        min: 0,
+        tooltip: 'Blend between base physics color and palette',
+    })
+    paletteMix!: number
+
     constructor() {
         super({
             debug: true,
@@ -140,9 +177,32 @@ export class QuantumFoamEffect extends WebGLEffect<QuantumFoamControls> {
         window.collapseRate = 30
         window.observer = 0
         window.virtualParticles = 1
+        window.palette = 'Aurora'
+        window.paletteMix = 40
     }
 
     protected getControlValues(): QuantumFoamControls {
+        const paletteIndex = comboboxValueToIndex(
+            (window.palette as string | number | undefined) ?? 'Aurora',
+            [
+                'Aurora',
+                'Rainbow',
+                'Neon',
+                'Ocean',
+                'Fire',
+                'Cyberpunk',
+                'Sunset',
+                'Mono',
+                'Pastel',
+                'Forest',
+                'Heatmap',
+                'Viridis',
+                'Inferno',
+                'Plasma',
+                'Magma',
+            ],
+            0,
+        )
         return {
             collapseRate: normalizePercentage(window.collapseRate ?? 30, 100, 0.0),
             density: normalizePercentage(window.density ?? 100, 100, 0.0) * 2.0,
@@ -150,6 +210,8 @@ export class QuantumFoamEffect extends WebGLEffect<QuantumFoamControls> {
             fluctuationSpeed: normalizePercentage(window.fluctuationSpeed ?? 60, 100, 0.0),
             foamScale: normalizePercentage(window.foamScale ?? 100, 100, 0.5) * 4.0,
             observer: Boolean(boolToInt(window.observer ?? 0)),
+            palette: paletteIndex,
+            paletteMix: normalizePercentage(window.paletteMix ?? 40, 100, 0.0),
             saturation: normalizePercentage(window.saturation ?? 120, 100, 0.0) * 2.0,
             turbulence: normalizePercentage(window.turbulence ?? 80, 100, 0.0) * 2.0,
             virtualParticles: Boolean(boolToInt(window.virtualParticles ?? 1)),
@@ -164,6 +226,8 @@ export class QuantumFoamEffect extends WebGLEffect<QuantumFoamControls> {
             iFluctuationSpeed: { value: 0.6 },
             iFoamScale: { value: 1.0 },
             iObserver: { value: 0.0 },
+            iPalette: { value: 0 },
+            iPaletteMix: { value: 0.4 },
             iSaturation: { value: 1.2 },
             iTurbulence: { value: 0.8 },
             iVirtualParticles: { value: 1.0 },
@@ -181,6 +245,8 @@ export class QuantumFoamEffect extends WebGLEffect<QuantumFoamControls> {
         this.material.uniforms.iCollapseRate.value = c.collapseRate
         this.material.uniforms.iObserver.value = c.observer ? 1.0 : 0.0
         this.material.uniforms.iVirtualParticles.value = c.virtualParticles ? 1.0 : 0.0
+        this.material.uniforms.iPalette.value = c.palette
+        this.material.uniforms.iPaletteMix.value = c.paletteMix
     }
 }
 

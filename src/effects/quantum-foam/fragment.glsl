@@ -17,6 +17,8 @@ uniform float iTurbulence;       // 0.0 - 2.0
 uniform float iCollapseRate;     // 0.0 - 1.0
 uniform float iObserver;         // 0.0 or 1.0
 uniform float iVirtualParticles; // 0.0 or 1.0
+uniform int iPalette;            // color palette id
+uniform float iPaletteMix;       // 0..1 blend with base color
 
 // Hash & noise helpers
 float hash11(float p) {
@@ -83,11 +85,31 @@ float ridged(vec3 p) {
   return s;
 }
 
-// HSV -> RGB
+// HSV -> RGB and palettes
 vec3 hsv2rgb(vec3 c) {
   vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
   vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
   return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+vec3 palette(float t, int mode) {
+  t = fract(t);
+  if (mode == 1) return hsv2rgb(vec3(t, 0.95, 1.0));
+  if (mode == 2) return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.0, 0.33, 0.67)));
+  if (mode == 3) return mix(vec3(0.0, 0.2, 0.5), vec3(0.0, 0.9, 1.0), t);
+  if (mode == 4) return mix(vec3(0.2, 0.0, 0.0), vec3(1.0, 0.6, 0.0), smoothstep(0.0, 1.0, t));
+  if (mode == 5) return mix(vec3(1.0, 0.0, 0.8), vec3(0.0, 1.0, 1.0), t);
+  if (mode == 6) return mix(vec3(0.05, 0.9, 0.2), vec3(0.2, 0.2, 1.0), 0.5 + 0.5 * sin(t * 6.28318));
+  if (mode == 7) return mix(vec3(0.9, 0.2, 0.0), vec3(1.0, 0.8, 0.2), t);
+  if (mode == 8) return vec3(t);
+  if (mode == 9) return mix(vec3(0.9, 0.8, 1.0), vec3(0.8, 1.0, 0.9), t);
+  if (mode == 10) return mix(vec3(0.0, 0.2, 0.0), vec3(0.2, 0.9, 0.3), t);
+  if (mode == 11) return hsv2rgb(vec3(0.05 + 0.95 * t, 1.0, 1.0));
+  if (mode == 12) return mix(vec3(0.267, 0.004, 0.329), vec3(0.993, 0.906, 0.144), t);
+  if (mode == 13) return mix(vec3(0.001, 0.000, 0.014), vec3(0.988, 0.998, 0.644), t);
+  if (mode == 14) return mix(vec3(0.050, 0.030, 0.527), vec3(0.940, 0.975, 0.131), t);
+  if (mode == 15) return mix(vec3(0.001, 0.000, 0.016), vec3(0.987, 0.730, 0.258), t);
+  return hsv2rgb(vec3(t, 0.9, 1.0));
 }
 
 // Virtual particle pairs — pop in/out quickly near random cell centers
@@ -178,6 +200,11 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
     color = mix(color, vec3(l), 0.18);
     color = pow(color, vec3(0.9));
   }
+
+  // Optional palette overlay
+  float tCol = fract(hue + foam * 0.35 + time * 0.05);
+  vec3 pal = palette(tCol, iPalette);
+  color = mix(color, pal, clamp(iPaletteMix, 0.0, 1.0));
 
   fragColor = vec4(color, 1.0);
 }
