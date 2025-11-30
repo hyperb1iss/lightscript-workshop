@@ -4,11 +4,12 @@
  * Watch digital life emerge and evolve in stunning patterns across your keyboard ✨
  */
 
-import type * as THREE from 'three'
+import * as THREE from 'three'
 import { initializeEffect } from '../core'
 import { BooleanControl, ComboboxControl, Effect, NumberControl } from '../core/controls/decorators'
 import { boolToInt, comboboxValueToIndex, normalizePercentage } from '../core/controls/helpers'
 import { WebGLEffect } from '../core/effects/webgl-effect'
+import { createStandardUniforms, initializeWebGL, WebGLContext } from '../core/utils/webgl'
 
 export interface CellularAutomatonControls {
     automatonRule: number // 0-5: Conway, Rule30, Rule110, Brian's Brain, Langton's Ant, Custom
@@ -23,415 +24,260 @@ export interface CellularAutomatonControls {
     generationCounter: boolean // Show generation number
     rgbChannelMode: number // 0-2: Independent, Cross-interact, Unified
     multiLayerDepth: number // 1-8: Number of automaton layers
+    visualStyle: number // 0-4 curated visual styles
+    psychedelia: number // 0..1 intensity for camera/aberration
+    entropy: number // 0..1 chaos injection probability
 }
 
-const fragmentShader = `
-precision highp float;
+// Simulation shader: updates automaton state in a low-res grid render target.
+// State encoding: R = alive (0..1), G = age (0..1), B = aux (Brian phase: 0=off, 0.5=dying, 1=on)
+const simFragmentShader = `
+precision mediump float;
 
-uniform float iTime;
-uniform vec2 iResolution;
-uniform float iAutomatonRule;
-uniform float iEvolutionSpeed;
-uniform float iInitialPattern;
-uniform float iColorMappingMode;
-uniform float iCellSize;
-uniform float iWrapAround;
-uniform float iBirthRule;
-uniform float iSurvivalRule;
-uniform float iTrailEffect;
-uniform float iGenerationCounter;
-uniform float iRgbChannelMode;
-uniform float iMultiLayerDepth;
+uniform sampler2D uPrevState;
+uniform vec2 uGridSize;     // grid resolution (state RT size)
+uniform float iAutomatonRule; // 0:Conway, 3:Brian, 5:Custom
+uniform float iBirthRule;     // 0..255 bitmask
+uniform float iSurvivalRule;  // 0..255 bitmask
+uniform float iTrailEffect;   // 0..2 controls age decay
+uniform float iWrapAround;    // bool as float
+uniform float iEntropy;       // 0..1 chaos injection probability
 
-#define PI 3.14159265359
-#define TAU 6.28318530718
-#define MAX_LAYERS 8
-
-// Hash functions for cellular automata
-float hash21(vec2 p) {
-    p = fract(p * vec2(233.34, 851.73));
-    p += dot(p, p + 23.45);
-    return fract(p.x * p.y);
-}
-
-vec2 hash22(vec2 p) {
-    p = fract(p * vec2(443.8975, 397.2973));
-    p += dot(p, p.yx + 19.19);
-    return fract(vec2(p.x * p.y, p.y * p.x));
-}
-
-vec3 hash33(vec3 p) {
-    p = fract(p * vec3(443.8975, 397.2973, 491.1871));
-    p += dot(p, p.zxy + 19.19);
-    return fract(vec3(p.x * p.y, p.y * p.z, p.z * p.x));
-}
-
-// Convert rules to binary representation
-float getBit(float value, int bit) {
-    return mod(floor(value / pow(2.0, float(bit))), 2.0);
-}
-
-// Conway's Game of Life rules
-bool conwayRules(int neighbors, bool alive) {
-    // Birth: exactly 3 neighbors
-    // Survival: 2 or 3 neighbors
-    if (alive) {
-        return neighbors == 2 || neighbors == 3;
+// Fetch a cell (with optional wrapping)
+vec4 fetchCell(ivec2 c) {
+  vec2 gs = uGridSize;
+  // Clamp or wrap
+  if (iWrapAround < 0.5) {
+    c = ivec2(clamp(vec2(c), vec2(0.0), gs - 1.0));
     } else {
-        return neighbors == 3;
+    c = ivec2(mod(vec2(c) + gs, gs));
+  }
+  vec2 uv = (vec2(c) + 0.5) / gs;
+  return texture2D(uPrevState, uv);
+}
+
+int countNeighbors(ivec2 p) {
+  int n = 0;
+  for (int dy=-1; dy<=1; dy++) {
+    for (int dx=-1; dx<=1; dx++) {
+      if (dx==0 && dy==0) continue;
+      vec4 s = fetchCell(p + ivec2(dx,dy));
+      n += int(s.r > 0.5);
     }
+  }
+  return n;
 }
 
-// Custom birth/survival rules
-bool customRules(int neighbors, bool alive, float birthRule, float survivalRule) {
-    if (alive) {
-        return getBit(survivalRule, neighbors) > 0.5;
-    } else {
-        return getBit(birthRule, neighbors) > 0.5;
-    }
-}
-
-// Rule 30 (elementary cellular automaton adapted to 2D)
-float rule30(vec2 coord, vec2 resolution) {
-    vec2 cellCoord = floor(coord * resolution / iCellSize);
-    
-    // Get neighborhood (using Rule 30 pattern)
-    float left = hash21(cellCoord + vec2(-1, 0)) > 0.5 ? 1.0 : 0.0;
-    float center = hash21(cellCoord) > 0.5 ? 1.0 : 0.0;
-    float right = hash21(cellCoord + vec2(1, 0)) > 0.5 ? 1.0 : 0.0;
-    
-    // Rule 30: 00011110 in binary
-    int pattern = int(left) * 4 + int(center) * 2 + int(right);
-    float rule = 30.0; // Binary: 00011110
-    
-    return getBit(rule, pattern);
-}
-
-// Rule 110 (Turing complete!)
-float rule110(vec2 coord, vec2 resolution) {
-    vec2 cellCoord = floor(coord * resolution / iCellSize);
-    
-    float left = hash21(cellCoord + vec2(-1, 0) + iTime) > 0.5 ? 1.0 : 0.0;
-    float center = hash21(cellCoord + iTime) > 0.5 ? 1.0 : 0.0;
-    float right = hash21(cellCoord + vec2(1, 0) + iTime) > 0.5 ? 1.0 : 0.0;
-    
-    // Rule 110: 01101110 in binary (110 decimal)
-    int pattern = int(left) * 4 + int(center) * 2 + int(right);
-    float rule = 110.0;
-    
-    return getBit(rule, pattern);
-}
-
-// Brian's Brain (3-state automaton: Off, On, Dying)
-vec3 briansBrain(vec2 coord, vec2 resolution) {
-    vec2 cellCoord = floor(coord * resolution / iCellSize);
-    vec3 state = hash33(vec3(cellCoord, iTime * 0.1));
-    
-    // Simulate 3-state evolution
-    // State: 0=off, 0.5=dying, 1=on
-    float currentState = step(0.33, state.x) * (1.0 - step(0.66, state.x)) * 0.5 + 
-                        step(0.66, state.x);
-    
-    // Count living neighbors
-    int neighbors = 0;
-    for (int dx = -1; dx <= 1; dx++) {
-        for (int dy = -1; dy <= 1; dy++) {
-            if (dx == 0 && dy == 0) continue;
-            vec2 neighborCoord = cellCoord + vec2(float(dx), float(dy));
-            vec3 neighborState = hash33(vec3(neighborCoord, iTime * 0.1));
-            if (step(0.66, neighborState.x) > 0.5) neighbors++;
-        }
-    }
-    
-    // Brian's Brain rules:
-    // Off -> On if exactly 2 living neighbors
-    // On -> Dying always
-    // Dying -> Off always
-    vec3 result = vec3(0.0);
-    
-    if (currentState < 0.1) { // Off
-        if (neighbors == 2) result = vec3(1.0, 0.8, 0.2); // Birth (yellow)
-    } else if (currentState > 0.9) { // On
-        result = vec3(0.5, 0.2, 0.8); // Dying (purple)
-    }
-    // Dying -> Off (black)
-    
-    return result;
-}
-
-// Langton's Ant simulation
-vec3 langtonsAnt(vec2 coord, vec2 resolution) {
-    vec2 cellCoord = floor(coord * resolution / iCellSize);
-    vec2 antPos = vec2(resolution * 0.5) + 
-                  vec2(sin(iTime * 0.5) * 10.0, cos(iTime * 0.7) * 8.0);
-    
-    float antDistance = length(cellCoord - antPos);
-    
-    // Ant's path creates colored trail
-    float trailAge = abs(antDistance - iTime * 2.0);
-    vec3 trailColor = vec3(
-        0.5 + 0.5 * sin(trailAge * 0.2),
-        0.5 + 0.5 * cos(trailAge * 0.3 + PI * 0.5),
-        0.5 + 0.5 * sin(trailAge * 0.4 + PI)
-    );
-    
-    // Ant's current position
-    vec3 antColor = vec3(1.0, 0.2, 0.2);
-    float antRadius = 2.0;
-    
-    if (antDistance < antRadius) {
-        return mix(trailColor, antColor, 1.0 - antDistance / antRadius);
-    }
-    
-    // Background cellular pattern
-    bool cellState = mod(cellCoord.x + cellCoord.y + floor(iTime * 0.5), 2.0) < 1.0;
-    return cellState ? trailColor * 0.3 : vec3(0.0);
-}
-
-// Multi-layer automaton evolution
-vec3 multiLayerAutomaton(vec2 coord, vec2 resolution) {
-    vec3 result = vec3(0.0);
-    int layers = int(clamp(iMultiLayerDepth, 1.0, float(MAX_LAYERS)));
-    
-    for (int layer = 0; layer < MAX_LAYERS; layer++) {
-        if (layer >= layers) break;
-        
-        vec2 layerCoord = coord + vec2(float(layer) * 0.1);
-        vec2 cellCoord = floor(layerCoord * resolution / (iCellSize + float(layer) * 0.5));
-        
-        // Each layer has different evolution rules
-        vec3 layerSeed = vec3(cellCoord, float(layer) + iTime * iEvolutionSpeed);
-        vec3 cellState = hash33(layerSeed);
-        
-        // Count neighbors for this layer
-        int neighbors = 0;
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dy = -1; dy <= 1; dy++) {
-                if (dx == 0 && dy == 0) continue;
-                vec2 neighborCoord = cellCoord + vec2(float(dx), float(dy));
-                vec3 neighborSeed = vec3(neighborCoord, float(layer) + iTime * iEvolutionSpeed);
-                if (length(hash33(neighborSeed)) > 1.2) neighbors++;
-            }
-        }
-        
-        // Layer-specific rules
-        bool alive = length(cellState) > 1.2;
-        bool nextState = conwayRules(neighbors, alive);
-        
-        if (nextState) {
-            // Each layer contributes to a different color channel
-            if (layer % 3 == 0) result.r += cellState.x / float(layers);
-            else if (layer % 3 == 1) result.g += cellState.y / float(layers);
-            else result.b += cellState.z / float(layers);
-        }
-    }
-    
-    return clamp(result, 0.0, 1.0);
-}
-
-// Initial pattern generators
-vec3 generateInitialPattern(vec2 coord, vec2 resolution) {
-    vec2 cellCoord = floor(coord * resolution / iCellSize);
-    vec2 center = resolution * 0.5;
-    
-    if (int(iInitialPattern) == 0) {
-        // Random
-        return step(0.5, hash33(vec3(cellCoord, 1.0))) * 
-               vec3(hash21(cellCoord), hash21(cellCoord + vec2(1.0)), hash21(cellCoord + vec2(2.0)));
-    } else if (int(iInitialPattern) == 1) {
-        // Glider
-        vec2 gliderOffset = cellCoord - center;
-        bool isGliderCell = (abs(gliderOffset.x) < 2.0 && abs(gliderOffset.y) < 2.0) &&
-                           (length(gliderOffset) > 0.5);
-        return isGliderCell ? vec3(1.0, 0.8, 0.2) : vec3(0.0);
-    } else if (int(iInitialPattern) == 2) {
-        // Oscillators (blinkers)
-        float oscillatorPhase = sin(iTime * 2.0 + cellCoord.x * 0.1 + cellCoord.y * 0.1);
-        return oscillatorPhase > 0.0 ? 
-               vec3(0.5 + 0.5 * sin(cellCoord.x * 0.3),
-                    0.5 + 0.5 * cos(cellCoord.y * 0.2),
-                    0.5 + 0.5 * sin((cellCoord.x + cellCoord.y) * 0.25)) : vec3(0.0);
-    } else if (int(iInitialPattern) == 3) {
-        // Puffer (moving pattern)
-        vec2 pufferPos = center + vec2(sin(iTime * 0.3) * 20.0, cos(iTime * 0.2) * 15.0);
-        float pufferDist = length(cellCoord - pufferPos);
-        return pufferDist < 3.0 ? 
-               vec3(1.0 - pufferDist / 3.0, 0.5, pufferDist / 3.0) : vec3(0.0);
-    } else {
-        // Custom pattern
-        float pattern = sin(cellCoord.x * 0.1 + iTime) * cos(cellCoord.y * 0.15 + iTime);
-        return pattern > 0.0 ? 
-               vec3(pattern, 1.0 - pattern, 0.5 + 0.5 * pattern) : vec3(0.0);
-    }
-}
-
-// Age-based coloring
-vec3 ageBasedColoring(vec3 cellState, vec2 cellCoord) {
-    float age = cellState.r + cellState.g + cellState.b;
-    
-    // Color transitions: Birth (white) -> Youth (yellow) -> Adult (orange) -> Old (red) -> Death (purple)
-    vec3 color0 = vec3(1.0, 1.0, 1.0); // Birth
-    vec3 color1 = vec3(1.0, 1.0, 0.2); // Youth
-    vec3 color2 = vec3(1.0, 0.6, 0.2); // Adult
-    vec3 color3 = vec3(1.0, 0.2, 0.2); // Old
-    vec3 color4 = vec3(0.6, 0.2, 1.0); // Death
-    
-    float agePhase = clamp(age * 2.0, 0.0, 4.0);
-    float colorIndex = floor(agePhase);
-    float lerpFactor = fract(agePhase);
-    
-    vec3 result;
-    if (colorIndex < 0.5) result = mix(color0, color1, lerpFactor);
-    else if (colorIndex < 1.5) result = mix(color1, color2, lerpFactor);
-    else if (colorIndex < 2.5) result = mix(color2, color3, lerpFactor);
-    else if (colorIndex < 3.5) result = mix(color3, color4, lerpFactor);
-    else result = color4;
-    
-    return result;
-}
-
-// Population density coloring
-vec3 populationColoring(vec2 coord, vec2 resolution) {
-    vec2 cellCoord = floor(coord * resolution / iCellSize);
-    
-    // Count local population
-    int population = 0;
-    for (int dx = -2; dx <= 2; dx++) {
-        for (int dy = -2; dy <= 2; dy++) {
-            vec2 neighborCoord = cellCoord + vec2(float(dx), float(dy));
-            if (length(hash33(vec3(neighborCoord, iTime * iEvolutionSpeed))) > 1.2) {
-                population++;
-            }
-        }
-    }
-    
-    float density = float(population) / 25.0; // Max 25 cells in 5x5 area
-    
-    // Color based on population density
-    return vec3(
-        density, // Red for high density
-        1.0 - abs(density - 0.5) * 2.0, // Green for medium density
-        1.0 - density // Blue for low density
-    );
-}
-
-// Velocity field visualization
-vec3 velocityColoring(vec2 coord, vec2 resolution) {
-    vec2 cellCoord = floor(coord * resolution / iCellSize);
-    
-    // Calculate velocity based on pattern movement
-    vec2 prevPos = cellCoord - vec2(sin(iTime - 0.1), cos(iTime - 0.1));
-    vec2 currPos = cellCoord - vec2(sin(iTime), cos(iTime));
-    vec2 velocity = (currPos - prevPos) * 10.0;
-    
-    // Map velocity to color
-    return vec3(
-        0.5 + 0.5 * tanh(velocity.x),
-        0.5 + 0.5 * tanh(velocity.y),
-        0.5 + 0.5 * tanh(length(velocity))
-    );
-}
-
-// Generation counter visualization
-vec3 addGenerationCounter(vec3 baseColor, vec2 coord) {
-    if (iGenerationCounter < 0.5) return baseColor;
-    
-    // Simple digital counter in top-left corner
-    vec2 counterPos = coord * 50.0; // Scale for digit visibility
-    float generation = floor(iTime * iEvolutionSpeed * 10.0);
-    
-    // Display generation number (simplified)
-    if (counterPos.x < 20.0 && counterPos.y > 40.0 && counterPos.y < 48.0) {
-        float digit = mod(generation, 10.0);
-        vec3 counterColor = vec3(0.0, 1.0, 1.0);
-        
-        // Simple digit pattern (would need full implementation for all digits)
-        if (mod(floor(counterPos.x), 4.0) < 2.0 && digit > 0.0) {
-            return mix(baseColor, counterColor, 0.7);
-        }
-    }
-    
-    return baseColor;
-}
-
-// Trail effect visualization
-vec3 addTrailEffect(vec3 currentColor, vec2 coord) {
-    if (iTrailEffect < 0.1) return currentColor;
-    
-    // Sample previous generations for trail
-    vec3 trail = vec3(0.0);
-    for (int i = 1; i <= 8; i++) {
-        float timeOffset = float(i) * 0.1;
-        vec3 pastColor = generateInitialPattern(coord, iResolution) * 
-                        exp(-timeOffset * iEvolutionSpeed * 2.0);
-        trail += pastColor * (1.0 / float(i));
-    }
-    
-    return mix(currentColor, currentColor + trail * 0.3, iTrailEffect);
-}
-
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec2 uv = fragCoord / iResolution.xy;
-    vec2 coord = fragCoord;
-    
-    vec3 color = vec3(0.0);
-    
-    // Choose automaton rule
-    if (int(iAutomatonRule) == 0) {
-        // Conway's Game of Life
-        color = generateInitialPattern(coord, iResolution);
-    } else if (int(iAutomatonRule) == 1) {
-        // Rule 30
-        float intensity = rule30(coord, iResolution);
-        color = vec3(intensity, intensity * 0.5, intensity * 0.2);
-    } else if (int(iAutomatonRule) == 2) {
-        // Rule 110
-        float intensity = rule110(coord, iResolution);
-        color = vec3(intensity * 0.2, intensity * 0.8, intensity);
-    } else if (int(iAutomatonRule) == 3) {
-        // Brian's Brain
-        color = briansBrain(coord, iResolution);
-    } else if (int(iAutomatonRule) == 4) {
-        // Langton's Ant
-        color = langtonsAnt(coord, iResolution);
-    } else {
-        // Multi-layer automaton
-        color = multiLayerAutomaton(coord, iResolution);
-    }
-    
-    // Apply color mapping mode
-    if (int(iColorMappingMode) == 0) {
-        // Age-based
-        color = ageBasedColoring(color, floor(coord / iCellSize));
-    } else if (int(iColorMappingMode) == 1) {
-        // Population density
-        color = populationColoring(coord, iResolution);
-    } else if (int(iColorMappingMode) == 2) {
-        // Velocity field
-        color = velocityColoring(coord, iResolution);
-    }
-    // Mode 3 is multi-layer (already handled above)
-    
-    // Add trail effects
-    color = addTrailEffect(color, coord);
-    
-    // Add generation counter
-    color = addGenerationCounter(color, uv);
-    
-    // Cell size effect (anti-aliasing at borders)
-    vec2 cellUV = fract(coord / iCellSize);
-    float cellBorder = 1.0 - smoothstep(0.85, 1.0, max(cellUV.x, cellUV.y)) * 
-                            smoothstep(0.0, 0.15, min(cellUV.x, cellUV.y));
-    color *= cellBorder;
-    
-    // Evolution speed affects brightness
-    color *= 0.7 + 0.3 * iEvolutionSpeed;
-    
-    fragColor = vec4(color, 1.0);
+float getBit(float mask, int bit) {
+  float v = floor(mask / pow(2.0, float(bit)));
+  return mod(v, 2.0);
 }
 
 void main() {
-    mainImage(gl_FragColor, gl_FragCoord.xy);
+  ivec2 cell = ivec2(floor(gl_FragCoord.xy));
+  vec4 prev = fetchCell(cell);
+
+  float alive = step(0.5, prev.r);
+  float nextAlive = 0.0;
+  float brianPhase = prev.b; // 0 off, 0.5 dying, 1 on
+
+  int neigh = countNeighbors(cell);
+
+  if (int(iAutomatonRule) == 3) {
+    // Brian's Brain: Off -> On if exactly 2 neighbors On, On -> Dying, Dying -> Off
+    float isOn = step(0.9, brianPhase);
+    float isDying = step(0.4, brianPhase) * (1.0 - step(0.9, brianPhase));
+    float willTurnOn = float(neigh == 2);
+    if (isOn > 0.5) {
+      nextAlive = 0.0; // becomes dying
+      brianPhase = 0.5;
+    } else if (isDying > 0.5) {
+      nextAlive = 0.0; // becomes off
+      brianPhase = 0.0;
+    } else {
+      nextAlive = willTurnOn;
+      brianPhase = willTurnOn;
+    }
+  } else if (int(iAutomatonRule) == 5) {
+    // Custom outer-totalistic via bitmasks
+    float survive = getBit(iSurvivalRule, neigh);
+    float birth = getBit(iBirthRule, neigh);
+    nextAlive = mix(birth, survive, alive);
+    brianPhase = 0.0;
+  } else {
+    // Conway's Game of Life (default)
+    float survive = float(neigh == 2 || neigh == 3);
+    float birth = float(neigh == 3);
+    nextAlive = mix(birth, survive, alive);
+    brianPhase = 0.0;
+  }
+
+  // Age/trail update: increase when alive, decay when dead
+  float decay = mix(0.96, 0.80, clamp(iTrailEffect, 0.0, 2.0) * 0.5);
+  float age = prev.g;
+  age = mix(age * decay, min(1.0, age + 0.15), nextAlive);
+
+  // Entropy: random births to prevent stagnation (uniform across grid)
+  float rnd = fract(sin(dot((vec2(cell) + vec2(37.0, 17.0)), vec2(12.9898,78.233))) * 43758.5453 + iAutomatonRule);
+  if (rnd < iEntropy * 0.02) {
+    nextAlive = 1.0;
+    age = max(age, 0.3);
+  }
+
+  gl_FragColor = vec4(nextAlive, age, brianPhase, 1.0);
+}
+`
+
+// Display shader: maps state to color with artistic palettes and effects
+const displayFragmentShader = `
+precision mediump float;
+
+uniform sampler2D uState;
+uniform vec2 iResolution;    // canvas resolution
+uniform vec2 uGridSize;      // grid resolution of state
+uniform float iTime;
+uniform float iColorMappingMode; // 0..3
+uniform float iCellSize;
+uniform float iTrailEffect;
+uniform float iRgbChannelMode;
+uniform float iMultiLayerDepth;
+uniform float iGenerationCounter;
+uniform float iVisualStyle;      // 0..4
+uniform float iPsychedelia;      // 0..1
+
+// IQ-style palette generator
+vec3 palette(vec3 a, vec3 b, vec3 c, vec3 d, float t){
+  return a + b*cos(6.28318*(c*t + d));
+}
+
+// Sample the state texture using the nearest cell for this fragment
+vec4 sampleState(vec2 fragCoord){
+  vec2 cell = floor(fragCoord * (uGridSize / iResolution));
+  vec2 uv = (cell + 0.5)/uGridSize;
+  return texture2D(uState, uv);
+}
+
+int localPopulation(vec2 fragCoord){
+  vec2 cell = floor(fragCoord * (uGridSize / iResolution));
+  int n = 0;
+  for(int dy=-2; dy<=2; dy++){
+    for(int dx=-2; dx<=2; dx++){
+      vec2 uv = (cell + vec2(dx,dy) + 0.5)/uGridSize;
+      n += int(texture2D(uState, uv).r > 0.5);
+    }
+  }
+  return n;
+}
+
+void main(){
+  vec2 fragCoord = gl_FragCoord.xy;
+  // Psychedelic camera motion: slow zoom + pan + rotation
+  float p = iPsychedelia;
+  float pp = p * p;
+  float zoom = 1.0 + pp * 1.0 * sin(iTime * 0.15);
+  float angle = pp * 0.6 * sin(iTime * 0.11);
+  vec2 center = iResolution * 0.5 + vec2(sin(iTime*0.17), cos(iTime*0.13)) * (pp * 200.0);
+  vec2 fc = fragCoord - center;
+  float ca = cos(angle), sa = sin(angle);
+  vec2 rot = vec2(ca*fc.x - sa*fc.y, sa*fc.x + ca*fc.y);
+  // Add gentle swirl based on radius
+  float r = length(fc) / max(iResolution.x, iResolution.y);
+  float swirl = pp * 1.2 * sin(iTime * 0.5 + r * 6.0);
+  float cs = cos(swirl), ss = sin(swirl);
+  rot = vec2(cs*rot.x - ss*rot.y, ss*rot.x + cs*rot.y);
+  fragCoord = rot / zoom + center;
+
+  // Kaleidoscopic mirroring for style 4 before sampling
+  if (int(iVisualStyle) == 4) {
+    vec2 ccenter = iResolution * 0.5;
+    vec2 dv = fragCoord - ccenter;
+    fragCoord = abs(dv) + ccenter;
+  }
+  vec4 s = sampleState(fragCoord);
+  float alive = step(0.5, s.r);
+  float age = s.g;
+
+  // Palettes
+  float t = iTime * 0.08;
+  vec3 aurora = palette(vec3(0.5), vec3(0.5), vec3(1.0, 0.5, 0.25), vec3(0.00, 0.15, 0.20), age*1.5 + t);
+  vec3 sunset = palette(vec3(0.6,0.4,0.3), vec3(0.4,0.4,0.4), vec3(1.0,0.5,0.2), vec3(0.2,0.3,0.4), age*1.2 + t*0.7);
+  vec3 cyber  = palette(vec3(0.25,0.2,0.3), vec3(0.7,0.8,0.9), vec3(0.9,0.3,0.2), vec3(0.3,0.2,0.1), age*1.8 + t*1.1);
+  vec3 icefire= palette(vec3(0.2,0.3,0.5), vec3(0.8,0.6,0.4), vec3(0.1,0.7,1.0), vec3(0.2,0.1,0.0), age*1.4 + t*0.9);
+
+  vec3 baseColor;
+  if (int(iColorMappingMode) == 0) {
+    // Age-based with palette cycling
+    baseColor = mix(aurora, cyber, 0.5 + 0.5*sin(iTime*0.15));
+    baseColor *= smoothstep(0.0, 0.15, age) * (0.6 + 0.4*age);
+  } else if (int(iColorMappingMode) == 1) {
+    // Population heat-map
+    int pop = localPopulation(fragCoord);
+    float d = float(pop)/25.0;
+    baseColor = mix(icefire, sunset, d);
+  } else if (int(iColorMappingMode) == 2) {
+    // Velocity-ish: use local gradient of age
+    vec2 px = 1.0 / iResolution;
+    float ax = sampleState(fragCoord + vec2(px.x,0.0)).g - sampleState(fragCoord - vec2(px.x,0.0)).g;
+    float ay = sampleState(fragCoord + vec2(0.0,px.y)).g - sampleState(fragCoord - vec2(0.0,px.y)).g;
+    float m = length(vec2(ax,ay));
+    baseColor = mix(aurora, cyber, clamp(m*4.0, 0.0, 1.0));
+    } else {
+    // Multi-layer vibe: shimmer with depth parameter
+    float layers = max(1.0, iMultiLayerDepth);
+    float k = fract(age*layers + iTime*0.2);
+    baseColor = mix(sunset, icefire, k);
+  }
+
+  // Channel mode
+  if (int(iRgbChannelMode) == 1) {
+    // Cross-channel: rotate hues subtly
+    baseColor = baseColor.bgr;
+  } else if (int(iRgbChannelMode) == 2) {
+    // Unified: desaturate slightly and boost brightness
+    float g = dot(baseColor, vec3(0.299,0.587,0.114));
+    baseColor = mix(vec3(g), baseColor, 0.6) * 1.1;
+  }
+
+  // Emissive look for alive cells, retain faint trails for dead cells via age
+  vec3 color = mix(baseColor * age * 0.35, baseColor, alive);
+
+  // Stylized cell edges
+  vec2 cellUV = fract(fragCoord * (1.0 / iCellSize));
+  float border = smoothstep(0.0, 0.08, max(abs(cellUV.x-0.5), abs(cellUV.y-0.5)) - 0.46);
+  color *= (1.0 - 0.35*border);
+
+  // Curated visual styles
+  if (int(iVisualStyle) == 1) {
+    // Sunset Bloom: warmer bias and soft glow
+    color *= vec3(1.08, 1.03, 0.95);
+  } else if (int(iVisualStyle) == 2) {
+    // Cyber Flux: subtle channel rotation
+    color = mix(color, color.bgr, 0.25 + 0.25*sin(iTime*0.8));
+  } else if (int(iVisualStyle) == 3) {
+    // Ice & Fire: contrast push
+    float l = dot(color, vec3(0.299,0.587,0.114));
+    color = mix(vec3(l*0.8), color*1.2, 0.7);
+  } else if (int(iVisualStyle) == 4) {
+    // Kaleido Zoom: mirrored quadrants
+    vec2 uvn = (gl_FragCoord.xy / iResolution) * 2.0 - 1.0;
+    uvn = abs(uvn);
+    float k = smoothstep(0.3, 1.2, 1.0 - length(uvn)) * 0.5;
+    color = mix(color, color.bgr * 1.1, k);
+  }
+
+  // Chromatic aberration shimmer tied to psychedelia
+  if (p > 0.001) {
+    float off = 0.5 * p + 1.2 * pp;
+    vec2 dir = normalize(vec2(cos(iTime*0.7), sin(iTime*0.9)));
+    vec3 ca;
+    ca.r = texture2D(uState, ((floor((gl_FragCoord.xy + dir*off) * (uGridSize / iResolution)) + 0.5) / uGridSize)).r;
+    ca.g = texture2D(uState, ((floor((gl_FragCoord.xy - dir*off) * (uGridSize / iResolution)) + 0.5) / uGridSize)).r;
+    ca.b = texture2D(uState, ((floor((gl_FragCoord.xy + dir.yx*off) * (uGridSize / iResolution)) + 0.5) / uGridSize)).r;
+    vec3 tint = mix(vec3(1.0), vec3(0.9,1.05,1.1), 0.25 + 0.5*age);
+    color = mix(color, clamp(color + 0.55*ca*tint, 0.0, 1.0), 0.45*pp + 0.2*p);
+  }
+
+  gl_FragColor = vec4(color, 1.0);
 }
 `
 
@@ -442,6 +288,24 @@ void main() {
     name: 'Cellular Automaton RGB',
 })
 export class CellularAutomatonEffect extends WebGLEffect<CellularAutomatonControls> {
+    // Rendering pipeline
+    private webgl: WebGLContext | null = null
+    private simMaterial: THREE.ShaderMaterial | null = null
+    private displayMaterial: THREE.ShaderMaterial | null = null
+    private quad: THREE.Mesh | null = null
+    private rtA: THREE.WebGLRenderTarget | null = null
+    private rtB: THREE.WebGLRenderTarget | null = null
+    private usingA = true
+
+    // Dynamics
+    private lastTime = 0
+    private simAccumulator = 0
+    private simRate = 12
+
+    // Cached controls for reallocation/seed
+    private lastCellSize = -1
+    private lastInitialPattern = -1
+    private lastRule = -1
     private readonly automatonRules = [
         "Conway's Game of Life",
         'Rule 30 (Chaos)',
@@ -456,6 +320,8 @@ export class CellularAutomatonEffect extends WebGLEffect<CellularAutomatonContro
     private readonly colorMappingModes = ['Age-Based', 'Population Density', 'Velocity Field', 'Multi-Layer RGB']
 
     private readonly rgbChannelModes = ['Independent Evolution', 'Cross-Channel Interaction', 'Unified State']
+
+    private readonly visualStyles = ['Aurora Dream', 'Sunset Bloom', 'Cyber Flux', 'Ice & Fire', 'Kaleido Zoom']
 
     @ComboboxControl({
         default: "Conway's Game of Life",
@@ -564,10 +430,36 @@ export class CellularAutomatonEffect extends WebGLEffect<CellularAutomatonContro
     })
     multiLayerDepth!: number
 
+    @ComboboxControl({
+        default: 'Aurora Dream',
+        label: 'Visual Style',
+        tooltip: 'Curated palette and post-processing style',
+        values: ['Aurora Dream', 'Sunset Bloom', 'Cyber Flux', 'Ice & Fire', 'Kaleido Zoom'],
+    })
+    visualStyle!: string
+
+    @NumberControl({
+        default: 20,
+        label: 'Psychedelia',
+        max: 100,
+        min: 0,
+        tooltip: 'Zoom, pan, and chromatic flair intensity',
+    })
+    psychedelia!: number
+
+    @NumberControl({
+        default: 5,
+        label: 'Entropy',
+        max: 100,
+        min: 0,
+        tooltip: 'Chance per step to spawn chaos seeds (prevents stagnation)',
+    })
+    entropy!: number
+
     constructor() {
         super({
             debug: true,
-            fragmentShader,
+            fragmentShader: displayFragmentShader,
             id: 'cellular-automaton',
             name: 'Cellular Automaton RGB',
         })
@@ -587,8 +479,201 @@ export class CellularAutomatonEffect extends WebGLEffect<CellularAutomatonContro
         w.generationCounter = 1
         w.rgbChannelMode = 'Independent Evolution'
         w.multiLayerDepth = 3
+        w.visualStyle = 'Aurora Dream'
+        w.psychedelia = 20
+        w.entropy = 5
     }
 
+    // Custom renderer: create ping-pong simulation pipeline
+    protected async initializeRenderer(): Promise<void> {
+        if (!this.canvas) throw new Error('Canvas not available for WebGL initialization')
+
+        // Initialize context
+        this.webgl = initializeWebGL({
+            canvasHeight: this.canvasHeight,
+            canvasId: this.canvas.id,
+            canvasWidth: this.canvasWidth,
+        })
+        const uniforms = createStandardUniforms(this.webgl.canvas)
+
+        // Display material and quad
+        this.displayMaterial = new THREE.ShaderMaterial({
+            fragmentShader: displayFragmentShader,
+            uniforms: {
+                ...uniforms,
+                iCellSize: { value: 8.0 },
+                iColorMappingMode: { value: 0.0 },
+                iGenerationCounter: { value: 1.0 },
+                iMultiLayerDepth: { value: 3.0 },
+                iPsychedelia: { value: 0.0 },
+                iRgbChannelMode: { value: 0.0 },
+                iTrailEffect: { value: 0.8 },
+                iVisualStyle: { value: 0.0 },
+                uGridSize: { value: new THREE.Vector2(64, 40) },
+                uState: { value: null },
+            },
+            vertexShader: THREE.ShaderLib.basic.vertexShader,
+        })
+        const geometry = new THREE.PlaneGeometry(2, 2)
+        this.quad = new THREE.Mesh(geometry, this.displayMaterial)
+        this.webgl.scene.add(this.quad)
+        // Ensure base class update() path runs our updateUniforms()
+        this.material = this.displayMaterial
+
+        // Sim material
+        this.simMaterial = new THREE.ShaderMaterial({
+            fragmentShader: simFragmentShader,
+            uniforms: {
+                iAutomatonRule: { value: 0.0 },
+                iBirthRule: { value: 8.0 },
+                iEntropy: { value: 0.02 },
+                iSurvivalRule: { value: 12.0 },
+                iTrailEffect: { value: 0.8 },
+                iWrapAround: { value: 1.0 },
+                uGridSize: { value: new THREE.Vector2(64, 40) },
+                uPrevState: { value: null },
+            },
+            vertexShader: THREE.ShaderLib.basic.vertexShader,
+        })
+
+        // Allocate and seed
+        this.allocateRenderTargets({ cellSize: 8 } as CellularAutomatonControls)
+        this.seedState({
+            automatonRule: 0,
+            birthRule: 8,
+            cellSize: 8,
+            colorMappingMode: 0,
+            entropy: 0.02,
+            evolutionSpeed: 0.6,
+            generationCounter: true,
+            initialPattern: 0,
+            multiLayerDepth: 3,
+            psychedelia: 0.2,
+            rgbChannelMode: 0,
+            survivalRule: 12,
+            trailEffect: 0.8,
+            visualStyle: 0,
+            wrapAround: true,
+        })
+    }
+
+    protected render(time: number): void {
+        if (!this.webgl || !this.simMaterial || !this.displayMaterial || !this.rtA || !this.rtB || !this.quad) return
+
+        // Update time
+        this.displayMaterial.uniforms.iTime.value = time
+
+        // Fixed-step simulation accumulator (derive rate from evolutionSpeed via last set uniforms)
+        if (this.lastTime === 0) this.lastTime = time
+        const dt = Math.max(0, Math.min(0.1, time - this.lastTime))
+        this.lastTime = time
+        this.simAccumulator += dt * this.simRate
+
+        // Use the same quad but swap materials for sim pass
+        const { renderer, scene, camera } = this.webgl
+        const originalMaterial = this.quad.material
+        this.quad.material = this.simMaterial
+
+        while (this.simAccumulator >= 1.0) {
+            const read = this.usingA ? this.rtA : this.rtB
+            const write = this.usingA ? this.rtB : this.rtA
+            this.simMaterial.uniforms.uPrevState.value = read.texture
+            renderer.setRenderTarget(write)
+            renderer.render(scene, camera)
+            this.usingA = !this.usingA
+            this.simAccumulator -= 1.0
+        }
+
+        // Display pass with subtle camera jitter for visual interest (scaled by psychedelia)
+        this.quad.material = originalMaterial
+        const current = this.usingA ? this.rtA : this.rtB
+        this.displayMaterial.uniforms.uState.value = current.texture
+        renderer.setRenderTarget(null)
+        const jitter = 0.0025 * (this.displayMaterial.uniforms.iPsychedelia.value as number)
+        const ox = (Math.random() - 0.5) * jitter
+        const oy = (Math.random() - 0.5) * jitter
+        this.quad.position.set(ox, oy, 0)
+        renderer.render(scene, camera)
+        this.quad.position.set(0, 0, 0)
+    }
+
+    private getGridSize(controls: Pick<CellularAutomatonControls, 'cellSize'>): { x: number; y: number } {
+        const canvas = this.webgl?.canvas
+        const size = Math.max(2, Math.floor(controls.cellSize))
+        const w = canvas ? Math.max(2, Math.floor(canvas.width / size)) : 64
+        const h = canvas ? Math.max(2, Math.floor(canvas.height / size)) : 40
+        return { x: w, y: h }
+    }
+
+    private allocateRenderTargets(controls: Pick<CellularAutomatonControls, 'cellSize'>): void {
+        if (!this.webgl) return
+        const { x: gw, y: gh } = this.getGridSize(controls)
+        const params: THREE.RenderTargetOptions = {
+            depthBuffer: false,
+            magFilter: THREE.NearestFilter,
+            minFilter: THREE.NearestFilter,
+            stencilBuffer: false,
+        }
+        this.rtA?.dispose()
+        this.rtB?.dispose()
+        this.rtA = new THREE.WebGLRenderTarget(gw, gh, params)
+        this.rtB = new THREE.WebGLRenderTarget(gw, gh, params)
+        if (this.simMaterial) this.simMaterial.uniforms.uGridSize.value = new THREE.Vector2(gw, gh)
+        if (this.displayMaterial) this.displayMaterial.uniforms.uGridSize.value = new THREE.Vector2(gw, gh)
+        this.usingA = true
+    }
+
+    private seedState(controls: CellularAutomatonControls): void {
+        if (!this.webgl || !this.simMaterial || !this.rtA || !this.rtB || !this.quad) return
+        const { renderer, scene, camera } = this.webgl
+
+        const seedMat = new THREE.ShaderMaterial({
+            fragmentShader: `
+            precision mediump float;
+            uniform vec2 uGridSize;
+            uniform float iInitialPattern;
+            uniform float iTime;
+            float rand(vec2 co){ return fract(sin(dot(co, vec2(12.9898,78.233))) * 43758.5453); }
+            void main(){
+              vec2 cell = floor(gl_FragCoord.xy);
+              vec2 uv = (cell+0.5)/uGridSize;
+              float alive = 0.0;
+              if (int(iInitialPattern)==0) {
+                alive = step(0.76, rand(uv*vec2(983.2,127.5)));
+              } else if (int(iInitialPattern)==1) {
+                vec2 c = cell - (uGridSize*0.5);
+                alive = float((c==vec2(0.0,1.0))||(c==vec2(1.0,2.0))||(c==vec2(2.0,0.0))||(c==vec2(2.0,1.0))||(c==vec2(2.0,2.0)));
+              } else if (int(iInitialPattern)==2) {
+                alive = step(0.5, step(0.0, mod(cell.x, 6.0)-2.5) * step(0.0, 2.5-mod(cell.y,6.0)));
+              } else if (int(iInitialPattern)==3) {
+                vec2 d = cell - (uGridSize*0.5 + vec2(sin(iTime)*8.0, cos(iTime*1.2)*6.0));
+                alive = step(length(d), 4.5);
+              } else {
+                float w = sin(cell.x*0.21)+cos(cell.y*0.17);
+                alive = step(1.2, w);
+              }
+              float age = alive * 0.3;
+              gl_FragColor = vec4(alive, age, 0.0, 1.0);
+            }
+            `,
+            uniforms: {
+                iInitialPattern: { value: controls.initialPattern },
+                iTime: { value: 0 },
+                uGridSize: { value: this.simMaterial.uniforms.uGridSize.value },
+            },
+            vertexShader: THREE.ShaderLib.basic.vertexShader,
+        })
+
+        const oldMat = this.quad.material
+        this.quad.material = seedMat
+        renderer.setRenderTarget(this.rtA)
+        renderer.render(scene, camera)
+        renderer.setRenderTarget(this.rtB)
+        renderer.render(scene, camera)
+        renderer.setRenderTarget(null)
+        this.quad.material = oldMat
+        seedMat.dispose()
+    }
     protected getControlValues(): CellularAutomatonControls {
         const w = window as Record<string, unknown>
 
@@ -616,23 +701,33 @@ export class CellularAutomatonEffect extends WebGLEffect<CellularAutomatonContro
             0,
         )
 
+        const styleIndex = comboboxValueToIndex(
+            (w.visualStyle as string | number | undefined) ?? 'Aurora Dream',
+            this.visualStyles,
+            0,
+        )
+
         return {
             automatonRule: automatonIndex,
             birthRule: Math.round((((w.birthRule as number) ?? 8) / 100) * 255), // 0-255
             cellSize: 2 + normalizePercentage((w.cellSize as number) ?? 8, 10, 0.2) * 18, // 2-20 range
             colorMappingMode: colorModeIndex,
+            entropy: normalizePercentage((w.entropy as number) ?? 5, 100, 0.0),
             evolutionSpeed: normalizePercentage((w.evolutionSpeed as number) ?? 30, 100, 0.05) * 2.0,
             generationCounter: Boolean(boolToInt((w.generationCounter as number | boolean | undefined) ?? true)),
             initialPattern: patternIndex,
             multiLayerDepth: Math.round(1 + ((((w.multiLayerDepth as number) ?? 3) - 1) / 7) * 7), // 1-8 range
+            psychedelia: normalizePercentage((w.psychedelia as number) ?? 20, 100, 0.0),
             rgbChannelMode: channelModeIndex,
             survivalRule: Math.round((((w.survivalRule as number) ?? 12) / 100) * 255), // 0-255
             trailEffect: normalizePercentage((w.trailEffect as number) ?? 40, 100, 0.0) * 2.0,
+            visualStyle: styleIndex,
             wrapAround: Boolean(boolToInt((w.wrapAround as number | boolean | undefined) ?? true)),
         }
     }
 
     protected createUniforms(): Record<string, THREE.IUniform> {
+        // Unused by overridden renderer but required by base class
         return {
             iAutomatonRule: { value: 0.0 },
             iBirthRule: { value: 8.0 },
@@ -650,20 +745,49 @@ export class CellularAutomatonEffect extends WebGLEffect<CellularAutomatonContro
     }
 
     protected updateUniforms(controls: CellularAutomatonControls): void {
-        if (!this.material) return
+        // Map evolutionSpeed (0..2) to sim steps/sec range ~ 4..48
+        this.simRate = Math.round(4 + controls.evolutionSpeed * 22)
+        // Allocate or resize render targets on cell size change
+        if (this.webgl && (this.lastCellSize <= 0 || Math.abs(this.lastCellSize - controls.cellSize) > 0.5)) {
+            this.allocateRenderTargets(controls)
+            this.seedState(controls)
+            this.lastCellSize = controls.cellSize
+        }
 
-        this.material.uniforms.iAutomatonRule.value = controls.automatonRule
-        this.material.uniforms.iEvolutionSpeed.value = controls.evolutionSpeed
-        this.material.uniforms.iInitialPattern.value = controls.initialPattern
-        this.material.uniforms.iColorMappingMode.value = controls.colorMappingMode
-        this.material.uniforms.iCellSize.value = controls.cellSize
-        this.material.uniforms.iWrapAround.value = controls.wrapAround ? 1.0 : 0.0
-        this.material.uniforms.iBirthRule.value = controls.birthRule
-        this.material.uniforms.iSurvivalRule.value = controls.survivalRule
-        this.material.uniforms.iTrailEffect.value = controls.trailEffect
-        this.material.uniforms.iGenerationCounter.value = controls.generationCounter ? 1.0 : 0.0
-        this.material.uniforms.iRgbChannelMode.value = controls.rgbChannelMode
-        this.material.uniforms.iMultiLayerDepth.value = controls.multiLayerDepth
+        // Reseed on pattern or rule change
+        if (controls.initialPattern !== this.lastInitialPattern || controls.automatonRule !== this.lastRule) {
+            this.seedState(controls)
+            this.lastInitialPattern = controls.initialPattern
+            this.lastRule = controls.automatonRule
+        }
+
+        // Update sim uniforms
+        if (this.simMaterial && this.webgl) {
+            const gs = this.getGridSize(controls)
+            this.simMaterial.uniforms.uGridSize.value = new THREE.Vector2(gs.x, gs.y)
+            this.simMaterial.uniforms.iAutomatonRule.value = controls.automatonRule
+            this.simMaterial.uniforms.iBirthRule.value = controls.birthRule
+            this.simMaterial.uniforms.iSurvivalRule.value = controls.survivalRule
+            this.simMaterial.uniforms.iTrailEffect.value = controls.trailEffect
+            this.simMaterial.uniforms.iWrapAround.value = controls.wrapAround ? 1.0 : 0.0
+            this.simMaterial.uniforms.iEntropy.value = controls.entropy
+        }
+
+        // Update display uniforms
+        if (this.displayMaterial && this.webgl) {
+            const gs = this.getGridSize(controls)
+            this.displayMaterial.uniforms.uGridSize.value = new THREE.Vector2(gs.x, gs.y)
+            this.displayMaterial.uniforms.iCellSize.value = controls.cellSize
+            this.displayMaterial.uniforms.iColorMappingMode.value = controls.colorMappingMode
+            this.displayMaterial.uniforms.iTrailEffect.value = controls.trailEffect
+            this.displayMaterial.uniforms.iRgbChannelMode.value = controls.rgbChannelMode
+            this.displayMaterial.uniforms.iMultiLayerDepth.value = controls.multiLayerDepth
+            this.displayMaterial.uniforms.iGenerationCounter.value = controls.generationCounter ? 1.0 : 0.0
+            this.displayMaterial.uniforms.iVisualStyle.value = controls.visualStyle
+            this.displayMaterial.uniforms.iPsychedelia.value = controls.psychedelia
+            // push time to ensure visualStyle changes take effect immediately in palettes
+            this.displayMaterial.uniforms.iTime.value = this.displayMaterial.uniforms.iTime.value
+        }
     }
 }
 
