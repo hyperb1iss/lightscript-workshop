@@ -8,12 +8,12 @@ vi.mock('../src/index', () => {
     return {
         effects: [
             {
-                entry: './effects/simple-wave/main.ts',
-                id: 'simple-wave',
-            },
-            {
                 entry: './effects/puff-stuff/main.ts',
                 id: 'puff-stuff',
+            },
+            {
+                entry: './effects/glow-particles/main.ts',
+                id: 'glow-particles',
             },
         ],
     }
@@ -106,7 +106,7 @@ describe('DevEngine', () => {
                 // If multiple effects, we need to load the effect from URL param
                 if (indexModule.effects.length > 1) {
                     // Call loadEffect for the URL param effect
-                    await engine.loadEffect('simple-wave')
+                    await engine.loadEffect('puff-stuff')
                     return true
                 }
                 if (indexModule.effects.length === 1) {
@@ -142,7 +142,7 @@ describe('DevEngine', () => {
 
         // Mock URL params
         delete (window as any).location
-        ;(window as any).location = { search: '?effect=simple-wave' }
+        ;(window as any).location = { search: '?effect=puff-stuff' }
 
         // Mock fetch with a more complete response
         global.fetch = vi
@@ -176,8 +176,8 @@ describe('DevEngine', () => {
             // Temporarily replace effects with a single effect array
             vi.mocked(indexModule.effects).splice(0)
             vi.mocked(indexModule.effects).push({
-                entry: './effects/simple-wave/main.ts',
-                id: 'simple-wave',
+                entry: './effects/puff-stuff/main.ts',
+                id: 'puff-stuff',
             })
 
             await engine.initialize()
@@ -189,14 +189,14 @@ describe('DevEngine', () => {
 
     describe('effect loading', () => {
         it('should parse controls when loading an effect', async () => {
-            await engine.loadEffect('simple-wave')
+            await engine.loadEffect('puff-stuff')
 
             expect(extractControlsFromClass).toHaveBeenCalled()
             expect(generateControlUI).toHaveBeenCalled()
         })
 
         it('should set global variables from control defaults', async () => {
-            await engine.loadEffect('simple-wave')
+            await engine.loadEffect('puff-stuff')
 
             // Check if global variables were set from control defaults
             expect((window as any).speed).toBe(5)

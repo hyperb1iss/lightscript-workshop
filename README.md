@@ -98,7 +98,6 @@ We've created comprehensive documentation to help you get the most out of LightS
 
 ### ✨ Classic Effects
 - **Puff Stuff Tunnel** - Ray-marched psychedelic tunnel
-- **Simple Wave** - Smooth sine wave animations
 - **Glow Particles** - Vibrant particle system with trails
 
 ## 💻 Development Workflow

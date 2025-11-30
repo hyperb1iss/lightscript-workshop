@@ -77,13 +77,7 @@ export class MyEffect extends WebGLEffect<MyControls> {
    - 9 color modes with advanced palette controls
    - Twist, warp, and pulse effects
 
-4. **Simple Wave** (WebGL)
-
-   - Minimalist wave animations
-   - Efficient implementation for basic patterns
-   - Reversible direction control
-
-5. **Puff Stuff** (WebGL)
+4. **Puff Stuff** (WebGL)
    - Raymarched tunnel with distortions
    - 16 color schemes
    - 5 effect styles (Wireframe, Glitch, Hologram, etc.)

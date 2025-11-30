@@ -56,12 +56,12 @@ npm install
 npm run dev
 ```
 
-After running the development server, visit http://localhost:3000 in your browser. You'll see the default effect running in the development environment.
+After running the development server, visit http://localhost:4096 in your browser. You'll see the default effect running in the development environment.
 
 To view a specific effect, add its ID to the URL:
 
 ```
-http://localhost:3000?effect=simple-wave
+http://localhost:4096?effect=puff-stuff
 ```
 
 ## 🧩 Project Structure
@@ -465,7 +465,7 @@ Run the development server and navigate to your effect:
 
 ```bash
 npm run dev
-# Then open: http://localhost:3000?effect=awesome-wave
+# Then open: http://localhost:4096?effect=awesome-wave
 ```
 
 ### Creating a Canvas 2D Effect
@@ -779,7 +779,7 @@ Run the development server and navigate to your effect:
 
 ```bash
 npm run dev
-# Then open: http://localhost:3000?effect=glow-particles
+# Then open: http://localhost:4096?effect=glow-particles
 ```
 
 ## 🔧 Development Workflow
