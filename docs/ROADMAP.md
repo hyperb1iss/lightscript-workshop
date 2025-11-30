@@ -1,8 +1,11 @@
-# 🛠️ Technical Recommendations - SignalRGB Lightscript Workshop
+# 🗺️ Roadmap - SignalRGB Lightscript Workshop
+
+> **Note:** This document outlines **future enhancements and proposed features** that are not yet implemented.
+> For current capabilities, see the [Developer Guide](developer-guide.md) and [API Reference](api-reference.md).
 
 ## Executive Summary
 
-This document provides actionable technical recommendations to transform the SignalRGB Lightscript Workshop into a world-class RGB effect creation platform. Focus areas include performance optimization, developer experience enhancement, and platform scalability.
+This roadmap outlines technical recommendations to transform the SignalRGB Lightscript Workshop into a world-class RGB effect creation platform. Focus areas include performance optimization, developer experience enhancement, and platform scalability.
 
 ---
 

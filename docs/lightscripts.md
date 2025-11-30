@@ -1,4 +1,12 @@
-# SignalRGB Lightscripts: Developer Guide
+# SignalRGB Lightscripts: Background Reference
+
+> **Note:** This document describes **vanilla SignalRGB Lightscripts** (the raw HTML/Canvas format).
+> The LightScript Workshop framework abstracts all of this complexity - see the [Developer Guide](developer-guide.md) instead.
+>
+> This reference is useful for:
+> - Understanding what SignalRGB expects under the hood
+> - Migrating existing vanilla Lightscripts to the framework
+> - Debugging build output
 
 ## Introduction
 
