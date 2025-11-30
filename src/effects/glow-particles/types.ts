@@ -16,6 +16,9 @@ export interface GlowParticlesControls {
     connectParticles: boolean
     connectionDistance: number
     connectorGlow: number
+    ambience: number // Background nebula clouds and ambient glow
+    nodeBrightness: number // How bright/intense nodes appear
+    ambienceShift: number // Hue shift for background colors
 }
 
 // Color modes - more dynamic and physics-reactive

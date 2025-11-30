@@ -191,130 +191,118 @@ export class Particle {
 
     /**
      * Set color based on mode, time, and particle state
+     * Uses energy, pulse, hub strength, and connections for dynamic colors
      */
     setColor(colorMode: number, time: number, saturation: number, intensity: number, colorReactivity: number): void {
-        const t = time * 0.3
-        // Combine kinetic energy with pulse energy for color reactivity
-        const totalEnergy = this.energy + this.pulseEnergy * 0.5
-        const energyBoost = totalEnergy * colorReactivity * 20
+        const t = time * 0.5
+
+        // Dynamic factors for color reactivity
+        const speed = this.energy
+        const pulse = this.pulseEnergy
+        const hub = this.hubStrength
+        const connected = Math.min(1, this.connectionCount / 5)
+
+        // Combined energy for reactivity
+        const energy = (speed + pulse * 2 + hub * 0.5) * colorReactivity
 
         let hue: number
         let sat: number
         let light: number
 
         switch (colorMode) {
-            case 0: // Plasma
-                // Swirling plasma based on position and velocity
-                hue = (this.x * 0.5 + this.y * 0.3 + t * 50 + this.getAngle() * 30 + energyBoost * 2) % 360
-                sat = Math.min(100, saturation + energyBoost * 5)
-                light = 50 + Math.sin(t + this.phase) * 10 + Math.min(20, energyBoost * 3)
+            case 0: // Plasma - full spectrum swirl (saturated, medium light)
+                hue = (this.x * 0.8 + this.y * 0.5 + t * 80 + this.getAngle() * 50 + pulse * 60) % 360
+                sat = Math.min(100, 90 + energy * 10)
+                light = 45 + pulse * 8 + Math.sin(t * 2 + this.phase) * 6
                 break
 
-            case 1: // Velocity Rainbow
-                // Color based on velocity direction
-                hue = ((this.getAngle() * 180) / Math.PI + 180 + t * 20) % 360
-                sat = Math.min(100, 70 + this.energy * 30)
-                light = 45 + Math.min(30, energyBoost * 4)
+            case 1: // Velocity Rainbow - direction = color (vivid)
+                hue = ((this.getAngle() * 180) / Math.PI + 180 + t * 30) % 360
+                sat = 100
+                light = 50 + speed * 6 + pulse * 4
                 break
 
-            case 2: // Fire
-                // Hot colors that intensify with speed
-                hue = 20 + Math.max(-20, Math.min(30, this.energy * 50 - 10))
-                sat = Math.min(100, saturation + 20)
-                light = 40 + Math.min(35, energyBoost * 5) + Math.sin(t * 3 + this.phase) * 5
+            case 2: // Fire - deep orange to bright red (smooth gradient)
+                hue = 5 + Math.max(0, Math.min(35, speed * 40)) + pulse * 8
+                sat = Math.min(100, 95 + energy * 5)
+                light = 45 + energy * 10 + Math.sin(t * 3 + this.phase) * 4
                 break
 
-            case 3: // Electric
-                // Cyan/blue with white hot spots at high energy
-                hue = 190 + Math.sin(t + this.phase) * 20
-                sat = Math.max(20, saturation - energyBoost * 10)
-                light = 50 + Math.min(40, energyBoost * 6)
+            case 3: // Electric - cyan base with yellow energy sparks
+                hue = 180 + Math.sin(t + this.phase) * 15 - energy * 80 - speed * 40
+                sat = 100
+                light = 48 + energy * 10 + connected * 5
                 break
 
-            case 4: // Toxic
-                // Greens and yellows
-                hue = 80 + Math.sin(t * 0.5 + this.x * 0.01) * 40 + energyBoost
-                sat = saturation
-                light = 45 + Math.sin(t * 2 + this.phase) * 10 + Math.min(20, energyBoost * 3)
+            case 4: // Toxic - vivid green/yellow, smooth magenta blend
+                hue = 90 + Math.sin(t * 0.7 + this.x * 0.02) * 40 + pulse * 180
+                sat = 100
+                light = 45 + Math.sin(t * 2.5 + this.phase) * 6 + energy * 8
                 break
 
-            case 5: // Nebula
-                // Deep space purples and pinks
-                hue = 270 + Math.sin(t * 0.3 + this.phase) * 40 + this.energy * 20
-                sat = Math.min(100, saturation * 0.8 + 20)
-                light = 35 + Math.sin(this.x * 0.02 + this.y * 0.02 + t) * 15 + Math.min(25, energyBoost * 3)
+            case 5: // Nebula - rich purple/pink/cyan
+                hue = 280 + Math.sin(t * 0.4 + this.phase) * 50 + speed * 25 - hub * 15
+                sat = Math.min(100, 85 + pulse * 15)
+                light = 42 + Math.sin(this.x * 0.03 + this.y * 0.03 + t) * 8 + energy * 10
                 break
 
-            case 6: // Ocean
-                // Blues and teals with foam (white) at high energy
-                hue = 200 + Math.sin(t + this.y * 0.01) * 30
-                sat = Math.max(30, saturation - energyBoost * 8)
-                light = 40 + Math.sin(t * 1.5 + this.phase) * 10 + Math.min(35, energyBoost * 5)
+            case 6: // Ocean - deep teal/blue (stays saturated)
+                hue = 190 + Math.sin(t * 0.8 + this.y * 0.02) * 25 + speed * 12
+                sat = Math.min(100, 85 + energy * 15)
+                light = 40 + energy * 10 + connected * 4
                 break
 
             case 7: {
-                // Sunset
-                // Warm gradient based on Y position
-                const yRatio = this.y / 200 // Assuming ~200px height
-                hue = 30 - yRatio * 40 + Math.sin(t * 0.5) * 10
-                sat = Math.min(100, saturation + 10)
-                light = 55 - yRatio * 15 + Math.min(15, energyBoost * 2)
+                // Sunset - warm gradient with smooth purple shift for hubs
+                const yNorm = this.y / 200
+                hue = 30 - yNorm * 35 + Math.sin(t * 0.6) * 8 - hub * 45
+                sat = 100
+                light = 50 - yNorm * 8 + pulse * 6
                 break
             }
 
             case 8: {
-                // Northern Lights
-                // Flowing aurora colors
-                const wave = Math.sin(this.x * 0.02 + t) * Math.cos(this.y * 0.01 + t * 0.5)
-                hue = 120 + wave * 60 + this.energy * 30
-                sat = Math.min(100, 70 + Math.abs(wave) * 30)
-                light = 45 + wave * 15 + Math.min(20, energyBoost * 3)
+                // Northern Lights - vivid green/cyan/purple waves
+                const wave = Math.sin(this.x * 0.03 + t * 1.2) * Math.cos(this.y * 0.02 + t * 0.7)
+                hue = 140 + wave * 60 + speed * 30 + pulse * 40
+                sat = 100
+                light = 45 + wave * 8 + energy * 8
                 break
             }
 
             case 9: {
-                // Cyberpunk
-                // Flowing pink/cyan/purple based on position and connections
-                // Creates gradient across the network topology
-                const cyberWave = Math.sin(this.x * 0.008 + this.y * 0.005 + t * 0.3) * 0.5 + 0.5
-                // Blend between cyan (180), pink (320), purple (270)
-                hue =
-                    cyberWave < 0.33
-                        ? 180 + cyberWave * 3 * 90 // cyan to purple
-                        : cyberWave < 0.66
-                          ? 270 + (cyberWave - 0.33) * 3 * 50 // purple to pink
-                          : 320 - (cyberWave - 0.66) * 3 * 140 // pink back to cyan
-                hue += energyBoost * 0.5
-                sat = Math.min(100, saturation + 15)
-                light = 50 + Math.min(25, energyBoost * 3)
+                // Cyberpunk - smooth pink/cyan oscillation
+                const cyberWave = Math.sin(this.x * 0.01 + this.y * 0.008 + t * 0.5 + this.phase)
+                // Smoothly interpolate between cyan (190) and pink (320)
+                hue = 255 + cyberWave * 65 + pulse * 15
+                sat = 100
+                light = 50 + energy * 8 + connected * 4
                 break
             }
 
-            case 10: // Monochrome Energy
-                // White/gray that brightens with speed
-                hue = 0
-                sat = 0
-                light = 30 + Math.min(60, energyBoost * 8 + this.energy * 40)
+            case 10: // Monochrome Energy - cool grays with smooth blue tint
+                hue = 210
+                sat = Math.min(25, 8 + pulse * 25 + energy * 10)
+                light = 40 + energy * 15 + connected * 6
                 break
 
-            case 11: // Rainbow Cycle
-                // Classic rainbow that cycles over time
-                hue = (t * 30 + this.phase * 60 + this.id * 10) % 360
-                sat = saturation
-                light = 50 + Math.min(20, energyBoost * 3)
+            case 11: // Rainbow Cycle - full saturation rainbow
+                hue = (t * 50 + this.phase * 80 + this.id * 15 + pulse * 40) % 360
+                sat = 100
+                light = 50 + energy * 6
                 break
 
             default:
-                hue = (t * 50 + this.phase * 100) % 360
+                hue = (t * 60 + this.phase * 120) % 360
                 sat = saturation
                 light = 50
         }
 
-        // Apply intensity adjustment
-        light = Math.max(20, Math.min(85, light * (intensity / 100)))
+        // Intensity adjustment - cap at 65 to prevent white washout
+        light = Math.max(30, Math.min(65, light * (intensity / 100)))
 
         this.hue = hue
-        this.alpha = 0.6 + Math.min(0.4, this.energy * 0.5)
+        this.alpha = 0.7 + Math.min(0.3, speed * 0.3 + pulse * 0.3)
         this.color = `hsl(${hue}, ${Math.min(100, sat)}%, ${light}%)`
     }
 }
