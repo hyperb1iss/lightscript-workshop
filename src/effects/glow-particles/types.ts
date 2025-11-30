@@ -1,46 +1,45 @@
 /**
  * GlowParticles - Types and Constants
- * Defines interfaces, types, and constants used by the GlowParticles effect
+ * Physics-based particle system configuration
  */
 
-// Define control interface
+// Define control interface - simplified but powerful
 export interface GlowParticlesControls {
     speed: number
     particleCount: number
     particleSize: number
+    chaos: number // Combines turbulence + vortex
+    clustering: number // Combines attraction + charge influence
+    networkActivity: number
     glowIntensity: number
     colorMode: number
-    flowDirection: number
     connectParticles: boolean
-    particleBounce: boolean
-    colorSaturation: number
-    colorIntensity: number
+    connectionDistance: number
     connectorGlow: number
 }
 
-// Color modes in alphabetical order
+// Color modes - more dynamic and physics-reactive
 export const COLOR_MODES = [
-    'Aurora',
-    'Cyberpunk',
-    'Fire and Ice',
-    'Galaxy',
-    'Heat Map',
-    'Neon',
-    'Ocean',
-    'Pastel',
-    'Prism',
-    'Rainbow',
-    'Sunset',
-    'Synthwave',
+    'Plasma', // Swirling plasma based on position + velocity
+    'Velocity Rainbow', // Color = direction of movement
+    'Fire', // Hot colors intensify with speed
+    'Electric', // Cyan/white lightning
+    'Toxic', // Greens and yellows
+    'Nebula', // Deep space purples
+    'Ocean', // Blues with foam at high energy
+    'Sunset', // Warm gradient
+    'Northern Lights', // Aurora flow
+    'Cyberpunk', // Pink/cyan/purple
+    'Monochrome Energy', // White intensity = speed
+    'Rainbow Cycle', // Classic cycling rainbow
 ]
 
-// Flow directions
-export const FLOW_DIRECTIONS = [
-    'Outward',
-    'Circular',
-    'Left to Right',
-    'Right to Left',
-    'Top to Bottom',
-    'Bottom to Top',
-    'Random',
-]
+// Gravity presets (angles in degrees)
+export const GRAVITY_PRESETS = {
+    CENTER: -1, // Special value for center attraction
+    DOWN: 0,
+    LEFT: 270,
+    NONE: -2, // Special value for no gravity direction
+    RIGHT: 90,
+    UP: 180,
+}

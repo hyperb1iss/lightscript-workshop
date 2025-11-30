@@ -1,13 +1,19 @@
 /**
- * GlowParticles - Main Effect Class
- * Implements the GlowParticles effect
+ * GlowParticles - Physics-Based Particle System
+ * Real forces: gravity, attraction/repulsion, turbulence, vortex
  */
 
 import { BooleanControl, ComboboxControl, Effect, NumberControl } from '../../core/controls/decorators'
 import { boolToInt, normalizePercentage } from '../../core/controls/helpers'
 import { CanvasEffect } from '../../core/effects/canvas-effect'
 import { Particle } from './particle'
-import { COLOR_MODES, FLOW_DIRECTIONS, GlowParticlesControls } from './types'
+import { COLOR_MODES, GlowParticlesControls } from './types'
+
+// Simplex-like noise for turbulence
+function noise2D(x: number, y: number, seed: number): number {
+    const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453
+    return (n - Math.floor(n)) * 2 - 1
+}
 
 // Interface with window properties for type-safety
 declare global {
@@ -15,338 +21,344 @@ declare global {
         speed: number
         particleCount: number
         particleSize: number
+        chaos: number
+        clustering: number
+        networkActivity: number
         glowIntensity: number
         colorMode: string | number
-        flowDirection: string | number
         connectParticles: boolean | number
-        particleBounce: boolean | number
-        colorSaturation: number
-        colorIntensity: number
+        connectionDistance: number
         connectorGlow: number
     }
 }
 
 /**
- * GlowParticles effect implementation using Canvas 2D
+ * Physics-based GlowParticles effect
  */
 @Effect({
     author: 'hyperb1iss',
-    description: 'A colorful particle system with glowing effects using Canvas 2D',
+    description: 'Cyberpunk network visualization with physics-based nodes and reactive connections',
     name: 'Glow Particles',
 })
 export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
-    // Effect state
     private particles: Particle[] = []
     private currentControls: GlowParticlesControls | null = null
-    private lastParticleSize = 0
+    private noiseTime = 0
+
+    // ═══════════════════════════════════════════════════════════════
+    // CORE CONTROLS - Keep it simple but powerful
+    // ═══════════════════════════════════════════════════════════════
 
     @NumberControl({
-        default: 3,
-        label: 'Animation Speed',
+        default: 7,
+        label: 'Speed',
         max: 10,
         min: 1,
-        tooltip: 'Controls the speed of the particles (1=Slow, 10=Fast)',
+        tooltip: 'Simulation speed',
     })
     speed!: number
 
     @NumberControl({
-        default: 100,
-        label: 'Particle Count',
+        default: 120,
+        label: 'Nodes',
         max: 300,
-        min: 10,
-        tooltip: 'Number of particles to display',
+        min: 30,
+        tooltip: 'Number of network nodes',
     })
     particleCount!: number
 
     @NumberControl({
-        default: 20,
-        label: 'Particle Size',
-        max: 40,
-        min: 1,
-        tooltip: 'Size of particles',
+        default: 5,
+        label: 'Node Size',
+        max: 20,
+        min: 2,
+        tooltip: 'Base node size',
     })
     particleSize!: number
 
     @NumberControl({
-        default: 100,
-        label: 'Glow Intensity',
-        max: 200,
-        min: 1,
-        tooltip: 'Controls the intensity of the glow effect',
+        default: 8,
+        label: 'Chaos',
+        max: 10,
+        min: 0,
+        tooltip: 'Motion intensity (0=calm flow, 10=wild chaos)',
+    })
+    chaos!: number
+
+    @NumberControl({
+        default: 4,
+        label: 'Clustering',
+        max: 10,
+        min: 0,
+        tooltip: 'How much nodes group together (0=spread, 10=tight clusters)',
+    })
+    clustering!: number
+
+    @NumberControl({
+        default: 8,
+        label: 'Activity',
+        max: 10,
+        min: 0,
+        tooltip: 'Network energy pulses (0=dormant, 10=hyperactive)',
+    })
+    networkActivity!: number
+
+    @NumberControl({
+        default: 70,
+        label: 'Glow',
+        max: 150,
+        min: 20,
+        tooltip: 'Overall glow intensity',
     })
     glowIntensity!: number
 
     @ComboboxControl({
-        default: 'Rainbow',
+        default: 'Cyberpunk',
         label: 'Color Mode',
-        tooltip: 'Color palette for particles',
+        tooltip: 'Network color scheme',
         values: COLOR_MODES,
     })
     colorMode!: string
 
-    @ComboboxControl({
-        default: 'Outward',
-        label: 'Flow Direction',
-        tooltip: 'Primary direction of particle movement',
-        values: FLOW_DIRECTIONS,
-    })
-    flowDirection!: string
-
     @BooleanControl({
         default: true,
-        label: 'Connect Particles',
-        tooltip: 'Draw lines between nearby particles',
+        label: 'Connections',
+        tooltip: 'Show network links',
     })
     connectParticles!: boolean
 
     @NumberControl({
-        default: 100,
-        label: 'Connector Intensity',
+        default: 110,
+        label: 'Link Distance',
         max: 200,
-        min: 1,
-        tooltip: 'Controls the intensity and thickness of particle connections',
+        min: 30,
+        tooltip: 'Maximum connection range',
+    })
+    connectionDistance!: number
+
+    @NumberControl({
+        default: 90,
+        label: 'Link Glow',
+        max: 150,
+        min: 20,
+        tooltip: 'Connection brightness',
     })
     connectorGlow!: number
 
-    @BooleanControl({
-        default: true,
-        label: 'Bounce Off Edges',
-        tooltip: 'Particles bounce off edges instead of wrapping around',
-    })
-    particleBounce!: boolean
-
-    @NumberControl({
-        default: 100,
-        label: 'Color Saturation',
-        max: 200,
-        min: 1,
-        tooltip: 'Adjust color saturation level (100=Normal)',
-    })
-    colorSaturation!: number
-
-    @NumberControl({
-        default: 100,
-        label: 'Color Intensity',
-        max: 200,
-        min: 1,
-        tooltip: 'Adjust color intensity/brightness (100=Normal)',
-    })
-    colorIntensity!: number
-
     constructor() {
         super({
-            backgroundColor: 'rgba(0, 0, 0, 0.98)', // Slight transparency for motion blur
-            debug: true, // Enable debug mode
+            backgroundColor: 'rgba(5, 5, 15, 0.95)',
+            debug: false,
             id: 'glow-particles',
             name: 'GlowParticles',
         })
-
-        // Add direct console log to verify constructor is called
-        console.log('👋 GlowParticlesEffect constructor called')
     }
 
-    /**
-     * Initialize the controls and their default values
-     */
     protected initializeControls(): void {
-        console.log('🎛️ Initializing controls')
-        // Set default values to make them available globally for SignalRGB
-        window.speed = 3
-        window.particleCount = 100
-        window.particleSize = 20
-        window.glowIntensity = 100
-        window.colorMode = 'Rainbow'
-        window.flowDirection = 'Outward'
+        window.speed = 7
+        window.particleCount = 120
+        window.particleSize = 5
+        window.chaos = 8
+        window.clustering = 4
+        window.networkActivity = 8
+        window.glowIntensity = 70
+        window.colorMode = 'Cyberpunk'
         window.connectParticles = 1
-        window.particleBounce = 1
-        window.colorSaturation = 100
-        window.colorIntensity = 100
-        window.connectorGlow = 100
+        window.connectionDistance = 110
+        window.connectorGlow = 90
     }
 
-    /**
-     * Get current control values from global scope
-     */
     protected getControlValues(): GlowParticlesControls {
-        // Create a speed scale that varies from 0.5 to 3.0 based on control value (1-10)
-        // This gives a better range for visible speed differences
-        const rawSpeed = window.speed ?? 3
-        const smoothSpeed = 0.5 + (rawSpeed - 1) * 0.28
-
-        // Get colorMode as index for shader
         let colorMode: number
         if (typeof window.colorMode === 'string') {
             const modeIndex = COLOR_MODES.indexOf(window.colorMode)
-            colorMode = modeIndex === -1 ? 9 : modeIndex // Default to Rainbow (index 9)
+            colorMode = modeIndex === -1 ? 0 : modeIndex
         } else {
-            colorMode = Number(window.colorMode || 9)
-        }
-
-        // Get flowDirection as index
-        let flowDirection: number
-        if (typeof window.flowDirection === 'string') {
-            const directionIndex = FLOW_DIRECTIONS.indexOf(window.flowDirection)
-            flowDirection = directionIndex === -1 ? 0 : directionIndex
-        } else {
-            flowDirection = Number(window.flowDirection || 0)
+            colorMode = Number(window.colorMode || 0)
         }
 
         return {
-            colorIntensity: normalizePercentage(window.colorIntensity ?? 100) * 100,
+            chaos: Number(window.chaos ?? 6),
+            clustering: Number(window.clustering ?? 5),
             colorMode,
-            colorSaturation: normalizePercentage(window.colorSaturation ?? 100) * 100,
-            connectorGlow: normalizePercentage(window.connectorGlow ?? 100) * 100,
+            connectionDistance: Number(window.connectionDistance ?? 100),
+            connectorGlow: Number(window.connectorGlow ?? 80) / 100,
             connectParticles: Boolean(boolToInt(window.connectParticles ?? 1)),
-            flowDirection,
-            glowIntensity: normalizePercentage(window.glowIntensity ?? 100),
-            particleBounce: Boolean(boolToInt(window.particleBounce ?? 1)),
+            glowIntensity: normalizePercentage(window.glowIntensity ?? 80),
+            networkActivity: Number(window.networkActivity ?? 6) / 10,
             particleCount: Number(window.particleCount ?? 100),
-            particleSize: Number(window.particleSize ?? 20),
-            speed: smoothSpeed,
+            particleSize: Number(window.particleSize ?? 6),
+            speed: Number(window.speed ?? 5) / 5,
         }
     }
 
-    /**
-     * Apply control values to the effect parameters
-     */
     protected applyControls(controls: GlowParticlesControls): void {
-        // Check if essential properties changed that require recreating particles
         const needsRecreate =
-            !this.currentControls ||
-            !this.particles.length ||
-            this.particles.length !== controls.particleCount ||
-            this.currentControls.flowDirection !== controls.flowDirection
+            !this.currentControls || !this.particles.length || this.particles.length !== controls.particleCount
 
-        // Store new controls
         this.currentControls = controls
 
-        // Only recreate particles when necessary - this prevents jumpiness
         if (needsRecreate) {
             this.createParticles()
-        } else if (this.lastParticleSize !== controls.particleSize) {
-            // Update particle sizes without recreating them
-            this.updateParticleSizes(controls.particleSize)
-            this.lastParticleSize = controls.particleSize
+        } else {
+            // Update particle sizes
+            for (const p of this.particles) {
+                p.updateSize(controls.particleSize)
+            }
         }
     }
 
-    /**
-     * Update particle sizes without recreating them
-     */
-    private updateParticleSizes(newSize: number): void {
-        for (const particle of this.particles) {
-            particle.updateSize(newSize)
-        }
-    }
-
-    /**
-     * Create particles based on current settings
-     */
     private createParticles(): void {
         if (!this.canvas || !this.currentControls) return
 
-        this.debug('info', 'Creating particles', {
-            count: this.currentControls.particleCount,
-        })
+        const count = this.currentControls.particleCount
+        const oldCount = this.particles.length
 
-        // Keep existing particles when possible to prevent all particles from "jumping"
-        const oldParticleCount = this.particles.length
-        const newParticleCount = this.currentControls.particleCount
-
-        // Store the current particle size to track changes
-        this.lastParticleSize = this.currentControls.particleSize
-
-        // Keep existing particles if just adding more or adjusting flow direction
-        if (newParticleCount > oldParticleCount) {
-            // Add more particles while keeping existing ones
-            for (let i = oldParticleCount; i < newParticleCount; i++) {
+        if (count > oldCount) {
+            for (let i = oldCount; i < count; i++) {
                 this.particles.push(
-                    new Particle(
-                        this.canvas.width,
-                        this.canvas.height,
-                        this.currentControls.particleSize,
-                        this.currentControls.speed,
-                        this.currentControls.flowDirection,
-                    ),
+                    new Particle(this.canvas.width, this.canvas.height, this.currentControls.particleSize, i),
                 )
             }
-        } else if (newParticleCount < oldParticleCount) {
-            // Remove excess particles
-            this.particles = this.particles.slice(0, newParticleCount)
-        } else if (oldParticleCount === 0) {
-            // Create all new particles if none exist
+        } else if (count < oldCount) {
+            this.particles = this.particles.slice(0, count)
+        } else if (oldCount === 0) {
             this.particles = []
-            for (let i = 0; i < newParticleCount; i++) {
+            for (let i = 0; i < count; i++) {
                 this.particles.push(
-                    new Particle(
-                        this.canvas.width,
-                        this.canvas.height,
-                        this.currentControls.particleSize,
-                        this.currentControls.speed,
-                        this.currentControls.flowDirection,
-                    ),
-                )
-            }
-        } else {
-            // Only update flow direction for existing particles
-            for (const particle of this.particles) {
-                particle.setSpeedByDirection(
-                    this.canvas.width,
-                    this.canvas.height,
-                    this.currentControls.speed,
-                    this.currentControls.flowDirection,
+                    new Particle(this.canvas.width, this.canvas.height, this.currentControls.particleSize, i),
                 )
             }
         }
     }
 
     /**
-     * Draw the particles on the canvas
+     * Apply all physics forces to particles
+     * Derives internal physics from simplified controls
      */
-    protected draw(time: number, deltaTime: number): void {
-        if (!this.ctx || !this.canvas || !this.currentControls) {
-            console.log('❌ Draw called but context, canvas or controls missing', {
-                deltaTime,
-                hasCanvas: !!this.canvas,
-                hasControls: !!this.currentControls,
-                hasCtx: !!this.ctx,
-            })
-            return
+    private applyForces(controls: GlowParticlesControls): void {
+        if (!this.canvas) return
+
+        const { width, height } = this.canvas
+
+        // Derive physics from simplified controls
+        const turbulence = controls.chaos * 1.2
+        const attraction = controls.clustering * 0.6
+        const chargeWeight = controls.clustering * 0.1
+
+        // Update noise time - faster evolution
+        this.noiseTime += controls.speed * 0.04
+
+        for (const p of this.particles) {
+            // ─────────────────────────────────────────────────────────
+            // TURBULENCE - multi-scale noise for organic flow
+            // ─────────────────────────────────────────────────────────
+            if (turbulence > 0) {
+                // Large scale flow - sweeping currents
+                const scale1 = 0.003
+                const nx1 = noise2D(p.x * scale1, p.y * scale1, this.noiseTime * 0.8)
+                const ny1 = noise2D(p.x * scale1 + 100, p.y * scale1 + 100, this.noiseTime * 0.8)
+
+                // Medium scale - local swirls
+                const scale2 = 0.012
+                const nx2 = noise2D(p.x * scale2 + p.id * 0.1, p.y * scale2, this.noiseTime * 1.5)
+                const ny2 = noise2D(p.x * scale2 + 50, p.y * scale2 + p.id * 0.1, this.noiseTime * 1.5)
+
+                // Small scale - individual jitter
+                const scale3 = 0.04
+                const nx3 = noise2D(p.x * scale3 + p.phase, p.y * scale3, this.noiseTime * 3)
+                const ny3 = noise2D(p.x * scale3, p.y * scale3 + p.phase, this.noiseTime * 3)
+
+                const tForce = turbulence * 0.035
+                p.applyForce(
+                    (nx1 * 0.5 + nx2 * 0.35 + nx3 * 0.15) * tForce,
+                    (ny1 * 0.5 + ny2 * 0.35 + ny3 * 0.15) * tForce,
+                )
+            }
+
+            // Gentle center bias to prevent edge clustering
+            const edgePushX = (width / 2 - p.x) * 0.000015
+            const edgePushY = (height / 2 - p.y) * 0.000015
+            p.applyForce(edgePushX, edgePushY)
         }
+
+        // ─────────────────────────────────────────────────────────
+        // ATTRACTION/REPULSION with charge influence
+        // ─────────────────────────────────────────────────────────
+        if (attraction > 0 || chargeWeight > 0) {
+            const aForce = attraction * 0.001
+
+            for (let i = 0; i < this.particles.length; i++) {
+                const p1 = this.particles[i]
+
+                for (let j = i + 1; j < this.particles.length; j++) {
+                    const p2 = this.particles[j]
+                    const dx = p2.x - p1.x
+                    const dy = p2.y - p1.y
+                    const distSq = dx * dx + dy * dy
+
+                    if (distSq > 200 && distSq < 30000) {
+                        const dist = Math.sqrt(distSq)
+
+                        // Base attraction with falloff
+                        let force = aForce / (distSq * 0.001 + 1)
+
+                        // Charge modification - opposite attract, same repel
+                        const chargeProduct = p1.charge * p2.charge
+                        force *= 1 - chargeProduct * chargeWeight
+
+                        const fx = (dx / dist) * force
+                        const fy = (dy / dist) * force
+
+                        p1.applyForce(fx, fy)
+                        p2.applyForce(-fx, -fy)
+                    }
+                }
+            }
+        }
+    }
+
+    protected draw(time: number, deltaTime: number): void {
+        if (!this.ctx || !this.canvas || !this.currentControls) return
 
         const ctx = this.ctx
         const { width, height } = this.canvas
         const controls = this.currentControls
+        const dt = Math.min(deltaTime, 0.05) * controls.speed
 
-        // If particles not created yet, create them
+        // Derive internal values from simplified controls
+        const friction = Math.max(0.05, (10 - controls.chaos) * 0.04) // More chaos = less friction
+        const colorReactivity = 0.4 + controls.networkActivity * 0.5
+
         if (this.particles.length === 0) {
-            console.log('🏗️ No particles found, creating them now')
             this.createParticles()
         }
 
-        // Clear canvas with semi-transparent background for motion trail
-        if (controls.glowIntensity > 1.2) {
-            // Using a transparent black for motion blur effect
-            ctx.fillStyle = `rgba(0, 0, 0, ${0.98 - (controls.glowIntensity - 1) * 0.05})`
-            ctx.fillRect(0, 0, width, height)
-        } else {
-            // Regular clear
-            this.clearCanvas()
+        // Clear with subtle trail
+        ctx.fillStyle = 'rgba(5, 5, 15, 0.15)'
+        ctx.fillRect(0, 0, width, height)
+
+        // Network activity - inject energy pulses
+        if (controls.networkActivity > 0 && Math.random() < controls.networkActivity * 0.15) {
+            const randomParticle = this.particles[Math.floor(Math.random() * this.particles.length)]
+            if (randomParticle) {
+                randomParticle.receivePulse(0.6 + Math.random() * 0.4)
+            }
         }
 
-        // Update and draw particles
-        ctx.globalCompositeOperation = 'lighter' // Additive blending for glow
+        // Apply physics
+        this.applyForces(controls)
 
-        // First pass - draw connections if enabled
+        // Update particles
+        for (const p of this.particles) {
+            p.update(width, height, dt, friction, true)
+            p.setColor(controls.colorMode, time, 100, 100, colorReactivity)
+        }
+
+        // Draw connections
         if (controls.connectParticles) {
-            // Set connector line thickness based on connector glow intensity, not particle size
-            const connectorOpacity = Math.min(1, controls.connectorGlow * 0.004) // Doubled for stronger effect
-            const connectorWidth = Math.max(0.5, controls.connectorGlow / 50) // Doubled for stronger effect
-
-            ctx.strokeStyle = `rgba(255, 255, 255, ${connectorOpacity})`
-            ctx.lineWidth = connectorWidth
-
-            const connectionDistance = Math.min(120, width / 2.5) // Increased distance for more connections
+            ctx.globalCompositeOperation = 'lighter'
+            const maxDist = controls.connectionDistance
 
             for (let i = 0; i < this.particles.length; i++) {
                 const p1 = this.particles[i]
@@ -355,13 +367,30 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
                     const p2 = this.particles[j]
                     const dx = p1.x - p2.x
                     const dy = p1.y - p2.y
-                    const distance = Math.sqrt(dx * dx + dy * dy)
+                    const dist = Math.sqrt(dx * dx + dy * dy)
 
-                    if (distance < connectionDistance) {
-                        // Draw line with opacity based on distance and connector glow
-                        const opacity = (1 - distance / connectionDistance) * 0.3 * (controls.connectorGlow / 100) // Doubled opacity factor
+                    if (dist < maxDist) {
+                        p1.connectionCount++
+                        p2.connectionCount++
+
+                        // Energy transfer
+                        if (controls.networkActivity > 0) {
+                            if (p1.canPulse(time) && p1.pulseEnergy > p2.pulseEnergy + 0.15) {
+                                p2.receivePulse(p1.sendPulse(time) * 0.7)
+                            } else if (p2.canPulse(time) && p2.pulseEnergy > p1.pulseEnergy + 0.15) {
+                                p1.receivePulse(p2.sendPulse(time) * 0.7)
+                            }
+                        }
+
+                        // Connection visuals
+                        const distFactor = 1 - dist / maxDist
+                        const pulseBoost = (p1.pulseEnergy + p2.pulseEnergy) * controls.networkActivity
+                        const alpha = Math.min(0.8, distFactor * controls.connectorGlow * 0.5 + pulseBoost * 0.4)
+                        const avgHue = (p1.hue + p2.hue) / 2
+
+                        ctx.strokeStyle = `hsla(${avgHue}, ${65 + pulseBoost * 20}%, ${50 + pulseBoost * 25}%, ${alpha})`
+                        ctx.lineWidth = Math.max(0.5, distFactor * 1.5 + pulseBoost * 1.5)
                         ctx.beginPath()
-                        ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`
                         ctx.moveTo(p1.x, p1.y)
                         ctx.lineTo(p2.x, p2.y)
                         ctx.stroke()
@@ -370,37 +399,32 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
             }
         }
 
-        // Second pass - draw particles
-        for (const particle of this.particles) {
-            // Update particle position with current speed
-            particle.update(width, height, controls.speed, controls.particleBounce)
+        // Draw particles - simple and clean
+        ctx.globalCompositeOperation = 'lighter'
 
-            // Update color based on time and position
-            particle.setColor(controls.colorMode, time, controls.colorSaturation, controls.colorIntensity)
+        for (const p of this.particles) {
+            const pulseScale = 1 + p.pulseEnergy * 0.25
+            const glowSize = p.size * pulseScale * (1 + controls.glowIntensity * 1.2)
 
-            // Set blend mode for this particle
-            ctx.globalCompositeOperation = particle.blendMode
-
-            // Draw glow effect
-            const glowSize = particle.size * (1 + controls.glowIntensity)
-            const gradient = ctx.createRadialGradient(particle.x, particle.y, 0, particle.x, particle.y, glowSize)
-
-            gradient.addColorStop(0, particle.color)
+            // Glow
+            const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowSize)
+            gradient.addColorStop(0, p.color)
+            gradient.addColorStop(0.4, p.color.replace(')', ', 0.5)').replace('hsl', 'hsla'))
             gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
 
             ctx.beginPath()
             ctx.fillStyle = gradient
-            ctx.arc(particle.x, particle.y, glowSize, 0, Math.PI * 2)
+            ctx.arc(p.x, p.y, glowSize, 0, Math.PI * 2)
             ctx.fill()
 
-            // Draw particle core
+            // Core
+            const coreSize = p.size * pulseScale * 0.35
             ctx.beginPath()
-            ctx.fillStyle = `rgba(255, 255, 255, ${particle.alpha})`
-            ctx.arc(particle.x, particle.y, particle.size / 2, 0, Math.PI * 2)
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + p.pulseEnergy * 0.4})`
+            ctx.arc(p.x, p.y, coreSize, 0, Math.PI * 2)
             ctx.fill()
         }
 
-        // Reset composite operation
         ctx.globalCompositeOperation = 'source-over'
     }
 }
