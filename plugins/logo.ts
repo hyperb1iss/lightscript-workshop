@@ -1,55 +1,33 @@
 import type { Plugin } from 'vite'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
-function ansiColor(r: number, g: number, b: number): string {
-    return `\x1b[38;2;${r};${g};${b}m`
-}
-
-const ANSI = {
+// SilkCircuit Neon palette
+const C = {
+    purple: '\x1b[38;2;225;53;255m',
+    cyan: '\x1b[38;2;128;255;234m',
+    dim: '\x1b[38;2;100;100;120m',
     bold: '\x1b[1m',
     reset: '\x1b[0m',
 }
 
-function printStartupLogo(): void {
-    const lines = [
-        { rgb: [255, 96, 164] as const, text: '╔──────────────────────────────────────────────────────────╗' },
-        { rgb: [255, 170, 64] as const, text: '│   ✨ LightScript Workshop — Radiant by Design, Real‑Time  │' },
-        { rgb: [96, 200, 255] as const, text: '│      WebGL · Shaders · Effects · SignalRGB Integration    │' },
-        { rgb: [160, 128, 255] as const, text: '╚──────────────────────────────────────────────────────────╝' },
-    ]
-
-    const title = 'LIGHTSCRIPT WORKSHOP'
-    const subtitle = 'Create dazzling lighting effects. Build boldly. ✨'
-
-    const gradient = [
-        [255, 96, 164], // pink
-        [255, 170, 64], // amber
-        [96, 200, 255], // sky
-        [160, 128, 255], // violet
-    ] as const
-
-    // Render header box
-    for (const line of lines) {
-        const [r, g, b] = line.rgb
-        // eslint-disable-next-line no-console
-        console.log(`${ansiColor(r, g, b)}${line.text}${ANSI.reset}`)
+function getVersion(): string {
+    try {
+        const pkg = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8'))
+        return pkg.version || '0.0.0'
+    } catch {
+        return '0.0.0'
     }
+}
 
-    // Render big title
-    const titleColor = ansiColor(...(gradient[0] as unknown as [number, number, number]))
+function printStartupLogo(): void {
+    const version = getVersion()
     // eslint-disable-next-line no-console
-    console.log(`${ANSI.bold}${titleColor}${title}${ANSI.reset}`)
-
-    // Render subtitle with soft gradient blocks
-    const blocks = ['■■■', '■■■', '■■■', '■■■']
-    const coloredBlocks = blocks
-        .map((b, i) => `${ansiColor(...(gradient[i] as unknown as [number, number, number]))}${b}`)
-        .join(`${ANSI.reset} `)
-    // eslint-disable-next-line no-console
-    console.log(`${coloredBlocks}${ANSI.reset}  ${subtitle}`)
-
-    // Spacer
-    // eslint-disable-next-line no-console
-    console.log('')
+    console.log(`
+${C.dim}─────────────────────────────────────────${C.reset}
+${C.bold}${C.purple}◈${C.reset} ${C.bold}${C.cyan}LightScript Workshop${C.reset}  ${C.dim}v${version}${C.reset}
+${C.dim}─────────────────────────────────────────${C.reset}
+`)
 }
 
 export function startupLogoPlugin(): Plugin {
