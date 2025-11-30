@@ -178,20 +178,21 @@ export class RealityExeSafeEffect extends WebGLEffect<RealitySafeControls> {
     }
 
     protected getControlValues(): RealitySafeControls {
-        const modeIndex = comboboxValueToIndex(window.mode ?? 'Mixed', this.modes, 0)
+        const w = window as unknown as Record<string, unknown>
+        const modeIndex = comboboxValueToIndex((w.mode as string | number | undefined) ?? 'Mixed', this.modes, 0)
         return {
-            artifact: normalizePercentage(window.artifact ?? 50, 100, 0.0),
-            brightness: normalizePercentage(window.brightness ?? 110, 100, 0.1) * 2.0,
-            curvature: normalizePercentage(window.curvature ?? 20, 100, 0.0),
-            flashLimit: normalizePercentage(window.flashLimit ?? 30, 100, 0.0),
-            glitch: normalizePercentage(window.glitch ?? 35, 100, 0.0),
-            mixSpeed: normalizePercentage(window.mixSpeed ?? 80, 100, 0.0) * 2.0,
+            artifact: normalizePercentage((w.artifact as number) ?? 50, 100, 0.0),
+            brightness: normalizePercentage((w.brightness as number) ?? 110, 100, 0.1) * 2.0,
+            curvature: normalizePercentage((w.curvature as number) ?? 20, 100, 0.0),
+            flashLimit: normalizePercentage((w.flashLimit as number) ?? 30, 100, 0.0),
+            glitch: normalizePercentage((w.glitch as number) ?? 35, 100, 0.0),
+            mixSpeed: normalizePercentage((w.mixSpeed as number) ?? 80, 100, 0.0) * 2.0,
             mode: modeIndex,
-            motion: normalizePercentage(window.motion ?? 80, 100, 0.0) * 2.0,
-            parallax: normalizePercentage(window.parallax ?? 30, 100, 0.0),
-            safety: normalizePercentage(window.safety ?? 60, 100, 0.0),
-            saturation: normalizePercentage(window.saturation ?? 120, 100, 0.0) * 2.0,
-            severity: normalizePercentage(window.severity ?? 40, 100, 0.0),
+            motion: normalizePercentage((w.motion as number) ?? 80, 100, 0.0) * 2.0,
+            parallax: normalizePercentage((w.parallax as number) ?? 30, 100, 0.0),
+            safety: normalizePercentage((w.safety as number) ?? 60, 100, 0.0),
+            saturation: normalizePercentage((w.saturation as number) ?? 120, 100, 0.0) * 2.0,
+            severity: normalizePercentage((w.severity as number) ?? 40, 100, 0.0),
         }
     }
 

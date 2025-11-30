@@ -120,8 +120,9 @@ export class BlackHoleEffect extends WebGLEffect<BlackHoleControls> {
     }
 
     protected getControlValues(): BlackHoleControls {
+        const w = window as unknown as Record<string, unknown>
         const paletteIndex = comboboxValueToIndex(
-            window.palette ?? 'Aurora',
+            (w.palette as string | number | undefined) ?? 'Aurora',
             [
                 'Aurora',
                 'Rainbow',
@@ -143,17 +144,17 @@ export class BlackHoleEffect extends WebGLEffect<BlackHoleControls> {
             0,
         )
         return {
-            brightness: normalizePercentage(window.brightness ?? 110, 100, 0.1) * 2.0,
-            diskIntensity: normalizePercentage(window.diskIntensity ?? 130, 100, 0.0) * 2.0,
-            diskThickness: normalizePercentage(window.diskThickness ?? 50, 100, 0.0),
-            highlight: normalizePercentage(window.highlight ?? 35, 100, 0.0),
-            lensing: normalizePercentage(window.lensing ?? 100, 100, 0.0) * 2.0,
-            mass: normalizePercentage(window.mass ?? 120, 120, 0.2) * 2.0,
+            brightness: normalizePercentage((w.brightness as number) ?? 110, 100, 0.1) * 2.0,
+            diskIntensity: normalizePercentage((w.diskIntensity as number) ?? 130, 100, 0.0) * 2.0,
+            diskThickness: normalizePercentage((w.diskThickness as number) ?? 50, 100, 0.0),
+            highlight: normalizePercentage((w.highlight as number) ?? 35, 100, 0.0),
+            lensing: normalizePercentage((w.lensing as number) ?? 100, 100, 0.0) * 2.0,
+            mass: normalizePercentage((w.mass as number) ?? 120, 120, 0.2) * 2.0,
             palette: paletteIndex,
-            relativity: normalizePercentage(window.relativity ?? 70, 100, 0.0),
-            saturation: normalizePercentage(window.saturation ?? 120, 100, 0.0) * 2.0,
-            spin: normalizePercentage(window.spin ?? 60, 100, 0.0),
-            starDensity: normalizePercentage(window.starDensity ?? 80, 100, 0.0) * 2.0,
+            relativity: normalizePercentage((w.relativity as number) ?? 70, 100, 0.0),
+            saturation: normalizePercentage((w.saturation as number) ?? 120, 100, 0.0) * 2.0,
+            spin: normalizePercentage((w.spin as number) ?? 60, 100, 0.0),
+            starDensity: normalizePercentage((w.starDensity as number) ?? 80, 100, 0.0) * 2.0,
         }
     }
 
