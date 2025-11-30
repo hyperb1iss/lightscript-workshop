@@ -183,7 +183,7 @@ export class PreactDevEngine {
                 onControlChange: (id: string, value: unknown) => this.handleControlChange(id, value),
                 onEffectChange: (id: string) => this.loadEffect(id),
                 onResetControls: () => this.resetControls(),
-                onTakeScreenshot: () => this.takeScreenshot(),
+                onSavePreview: () => this.savePreview(),
             }),
             this.rootElement,
         )
@@ -497,44 +497,69 @@ export class PreactDevEngine {
         requestAnimationFrame(updateFPS)
     }
 
+    // takeScreenshot removed in favor of savePreview-only action
+
     /**
-     * Take a screenshot of the canvas
+     * Save a 1024x1024 preview image derived from the current canvas
      */
-    private takeScreenshot(): void {
+    private savePreview(): void {
         if (!this.canvas) return
 
         try {
-            // Get the current time for filename
-            const date = new Date()
-            const timestamp = `${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}_${date.getHours().toString().padStart(2, '0')}${date.getMinutes().toString().padStart(2, '0')}${date.getSeconds().toString().padStart(2, '0')}`
-
-            // Get effect name for filename
-            const effectName = this.currentEffect?.name || 'effect'
-            const safeEffectName = effectName.replace(/[^a-z0-9]/gi, '_').toLowerCase()
-
-            // Create download link
-            const link = document.createElement('a')
-            link.download = `lightscripts_${safeEffectName}_${timestamp}.png`
-
-            // Force a render frame to ensure content is current
+            // Force an immediate update for freshest frame
             if (typeof window.update === 'function') {
                 window.update()
             }
 
-            // Convert canvas to data URL
-            const dataUrl = this.canvas.toDataURL('image/png')
-            link.href = dataUrl
+            const src = this.canvas
+            const srcWidth = src.width
+            const srcHeight = src.height
 
-            // Trigger download
+            // Create offscreen target canvas 1024x1024
+            const targetSize = 1024
+            const off = document.createElement('canvas')
+            off.width = targetSize
+            off.height = targetSize
+            const ctx = off.getContext('2d')
+            if (!ctx) throw new Error('2D context unavailable')
+
+            // Fill with transparent background
+            ctx.clearRect(0, 0, off.width, off.height)
+
+            // Fit source into square, preserving aspect and centered
+            const srcAspect = srcWidth / srcHeight
+            const dstAspect = 1 // square
+            let drawWidth: number
+            let drawHeight: number
+
+            if (srcAspect > dstAspect) {
+                // Wider than tall → match width
+                drawWidth = targetSize
+                drawHeight = Math.round(targetSize / srcAspect)
+            } else {
+                // Taller than wide → match height
+                drawHeight = targetSize
+                drawWidth = Math.round(targetSize * srcAspect)
+            }
+
+            const dx = Math.floor((targetSize - drawWidth) / 2)
+            const dy = Math.floor((targetSize - drawHeight) / 2)
+            ctx.drawImage(src, 0, 0, srcWidth, srcHeight, dx, dy, drawWidth, drawHeight)
+
+            // Compose filename
+            const effectId = this.currentEffect?.id || 'effect'
+            const link = document.createElement('a')
+            link.download = `${effectId}.png`
+            link.href = off.toDataURL('image/png')
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
 
-            debug('success', 'Screenshot captured and saved')
-            this.showNotification('Screenshot saved!')
+            this.showNotification('Preview saved as 1024×1024 PNG')
+            debug('success', 'Preview image saved (1024x1024)')
         } catch (err) {
-            debug('error', 'Failed to capture screenshot:', err)
-            this.showNotification('Failed to take screenshot!', true)
+            debug('error', 'Failed to save preview:', err)
+            this.showNotification('Failed to save preview!', true)
         }
     }
 

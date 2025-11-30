@@ -48,6 +48,192 @@
     gap: 15px;
 }
 
+/* Tabs inside left panel */
+.panel-tabs {
+    display: flex;
+    gap: 6px;
+}
+
+.panel-tabs .tab {
+    flex: 1;
+    background: rgba(12, 12, 30, 0.6);
+    color: var(--neon-blue);
+    border: 1px solid rgba(1, 205, 254, 0.3);
+    border-radius: 3px;
+    padding: 6px 8px;
+    cursor: pointer;
+    font-family: "Rajdhani", sans-serif;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+.panel-tabs .tab.active {
+    color: var(--neon-green);
+    border-color: var(--neon-green);
+    box-shadow: 0 0 6px rgba(5, 255, 161, 0.4);
+}
+
+/* Effects header and docs button */
+.effects-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.docs-open {
+    background: transparent;
+    color: var(--neon-blue);
+    border: 1px solid var(--neon-blue);
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: "Rajdhani", sans-serif;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+.docs-open:hover {
+    background-color: rgba(1, 205, 254, 0.1);
+    box-shadow: 0 0 6px rgba(1, 205, 254, 0.4);
+}
+
+/* Docs panel */
+.docs-panel {
+    background-color: var(--darker-panel-bg);
+    border-radius: 3px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+}
+
+.docs-toolbar {
+    display: flex;
+    gap: 6px;
+}
+
+.docs-search {
+    flex: 1;
+    background-color: rgba(10, 10, 18, 0.7);
+    color: var(--neon-green);
+    border: 1px solid rgba(5, 255, 161, 0.3);
+    border-radius: 3px;
+    padding: 5px 8px;
+    font-family: "Rajdhani", sans-serif;
+    font-size: 12px;
+}
+
+.docs-select {
+    flex: 1;
+    background-color: rgba(10, 10, 18, 0.7);
+    color: var(--neon-green);
+    border: 1px solid rgba(1, 205, 254, 0.3);
+    border-radius: 3px;
+    padding: 5px 8px;
+    font-family: "Rajdhani", sans-serif;
+    font-size: 12px;
+}
+
+.docs-content {
+    flex: 1;
+    overflow: auto;
+    background: rgba(10, 10, 20, 0.5);
+    border: 1px solid rgba(255, 113, 206, 0.15);
+    border-radius: 3px;
+    padding: 8px;
+}
+
+.docs-content h1,
+.docs-content h2,
+.docs-content h3,
+.docs-content h4,
+.docs-content h5,
+.docs-content h6 {
+    color: var(--neon-pink);
+    margin: 6px 0;
+}
+
+.docs-content p {
+    color: #e0e0e0;
+    margin: 6px 0;
+    line-height: 1.4;
+}
+
+.docs-content a {
+    color: var(--neon-blue);
+    text-decoration: none;
+}
+
+.docs-content a:hover {
+    text-decoration: underline;
+}
+
+.md-inline-code {
+    background: rgba(12, 12, 30, 0.7);
+    border: 1px solid rgba(1, 205, 254, 0.3);
+    border-radius: 3px;
+    padding: 1px 3px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    color: var(--neon-green);
+}
+
+.md-code {
+    background: rgba(5, 255, 161, 0.06);
+    border: 1px solid rgba(5, 255, 161, 0.2);
+    border-radius: 3px;
+    padding: 8px;
+    overflow: auto;
+}
+
+/* Docs modal */
+.docs-modal {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    width: min(1100px, 70vw);
+    height: min(80vh, 820px);
+    background: var(--panel-bg);
+    border: 1px solid var(--neon-blue);
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(1, 205, 254, 0.35);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    pointer-events: auto;
+    resize: both;
+    z-index: 10000;
+}
+
+.docs-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(1, 205, 254, 0.25);
+}
+
+.docs-modal-header h2 {
+    margin: 0;
+    color: var(--neon-pink);
+}
+
+.docs-close {
+    background: transparent;
+    color: var(--neon-pink);
+    border: 1px solid var(--neon-pink);
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.docs-modal-body {
+    flex: 1;
+    display: flex;
+    padding: 10px;
+    overflow: auto;
+}
+
 .effects-header h3,
 .controls-header h3 {
     color: var(--neon-pink);

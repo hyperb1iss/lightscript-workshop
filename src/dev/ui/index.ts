@@ -5,6 +5,8 @@
 // Export all UI components
 export { App } from './components/App'
 export { ControlsPanel } from './components/ControlsPanel'
+export { DocsBrowser } from './components/DocsBrowser'
+export { DocsModal } from './components/DocsModal'
 export { EffectsPanel } from './components/EffectsPanel'
 export { Loader } from './components/Loader'
 export { Notification } from './components/Notification'
