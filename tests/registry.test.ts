@@ -1,6 +1,6 @@
+import { ControlDefinition } from '@lightscript/core'
+import { generateControlUI } from '@lightscript/dev'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ControlDefinition } from '../src/core/controls/definitions'
-import { generateControlUI } from '../src/dev/controls-registry'
 
 describe('control registry', () => {
     beforeEach(() => {

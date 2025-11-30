@@ -7,4 +7,4 @@ export {
     createDebugLogger,
     debug,
     printStartupBanner,
-} from '../core/utils/debug'
+} from '@lightscript/core/utils/debug'

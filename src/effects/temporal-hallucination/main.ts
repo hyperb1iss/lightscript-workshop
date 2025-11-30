@@ -3,10 +3,15 @@
  * Echo trails with rotational/offset feedback and phase-shifted colors
  */
 
-import { initializeEffect } from '../../core'
-import { Effect, NumberControl } from '../../core/controls/decorators'
-import { normalizePercentage, normalizeSpeed } from '../../core/controls/helpers'
-import { CanvasEffect, type CanvasEffectConfig } from '../../core/effects/canvas-effect'
+import {
+    CanvasEffect,
+    type CanvasEffectConfig,
+    Effect,
+    initializeEffect,
+    NumberControl,
+    normalizePercentage,
+    normalizeSpeed,
+} from '@lightscript/core'
 
 interface TemporalHallucinationControls {
     speed: number

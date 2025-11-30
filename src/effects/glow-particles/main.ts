@@ -2,7 +2,7 @@
  * GlowParticles - Entry Point
  * A colorful particle system with glowing effects using Canvas 2D
  */
-import { initializeEffect } from '../../core'
+import { initializeEffect } from '@lightscript/core'
 import { GlowParticlesEffect } from './glow-particles-effect'
 
 // Create effect instance

@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
     boolToInt,
     comboboxValueToIndex,
@@ -6,7 +5,8 @@ import {
     getControlValue,
     normalizePercentage,
     normalizeSpeed,
-} from '../src/core/controls/helpers'
+} from '@lightscript/core'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('controls utilities', () => {
     describe('normalizeSpeed', () => {

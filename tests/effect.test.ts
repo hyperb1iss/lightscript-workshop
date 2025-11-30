@@ -1,6 +1,6 @@
+import { BaseEffect } from '@lightscript/core'
 import * as THREE from 'three'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { BaseEffect } from '../src/core/effects'
 
 // Mock THREE.js
 vi.mock('three', () => {
@@ -27,7 +27,39 @@ vi.mock('three', () => {
 })
 
 // Mock the webgl module
-vi.mock('../src/core/utils/webgl', () => ({
+vi.mock('@lightscript/core', async (importOriginal) => {
+    const original = await importOriginal<typeof import('@lightscript/core')>()
+    return {
+        ...original,
+        createShaderQuad: vi.fn().mockReturnValue({
+            material: {
+                uniforms: {
+                    testUniform: { value: 'test' },
+                },
+            },
+            mesh: {},
+        }),
+        createStandardUniforms: vi.fn().mockReturnValue({
+            iResolution: { value: { x: 100, y: 100 } },
+            iTime: { value: 0 },
+        }),
+        initializeWebGL: vi.fn().mockReturnValue({
+            camera: {},
+            canvas: document.createElement('canvas'),
+            clock: {
+                getElapsedTime: vi.fn().mockReturnValue(0),
+            },
+            renderer: {
+                render: vi.fn(),
+            },
+            scene: {},
+        }),
+        startAnimationLoop: vi.fn().mockReturnValue(1),
+    }
+})
+
+// Legacy mock for backwards compatibility (tests may import this)
+vi.mock('../packages/core/src/utils/webgl', () => ({
     createShaderQuad: vi.fn().mockReturnValue({
         material: {
             uniforms: {
@@ -142,7 +174,7 @@ describe('BaseEffect', () => {
         document.body.innerHTML = '<canvas id="exCanvas"></canvas>'
 
         // Import the webgl module
-        webglModule = await import('../src/core/utils/webgl')
+        webglModule = await import('@lightscript/core')
 
         // Create effect instance
         effect = new TestEffect({

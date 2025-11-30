@@ -2,11 +2,17 @@
  * PuffStuff - Raymarched tunnel effect with dynamic colors and styles
  */
 
+import {
+    BooleanControl,
+    boolToInt,
+    ComboboxControl,
+    Effect,
+    initializeEffect,
+    NumberControl,
+    normalizeSpeed,
+    WebGLEffect,
+} from '@lightscript/core'
 import * as THREE from 'three'
-import { initializeEffect } from '../../core'
-import { BooleanControl, ComboboxControl, Effect, NumberControl } from '../../core/controls/decorators'
-import { boolToInt, normalizeSpeed } from '../../core/controls/helpers'
-import { WebGLEffect } from '../../core/effects/webgl-effect'
 
 // Import shaders
 import fragmentShader from './fragment.glsl'

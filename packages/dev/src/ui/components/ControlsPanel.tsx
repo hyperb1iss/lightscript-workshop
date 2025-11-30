@@ -1,7 +1,7 @@
+import { ControlDefinition, ControlValues } from '@lightscript/core/controls/definitions'
+import { debug } from '@lightscript/core/utils/debug'
 import { FunctionComponent } from 'preact'
 import { useEffect, useRef, useState } from 'preact/hooks'
-import { ControlDefinition, ControlValues } from '../../../core/controls/definitions'
-import { debug } from '../../../core/utils/debug'
 
 interface ControlsPanelProps {
     controlDefinitions: ControlDefinition[]

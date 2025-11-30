@@ -1,6 +1,6 @@
+import { extractControlsFromClass } from '@lightscript/core'
+import { generateControlUI } from '@lightscript/dev'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { extractControlsFromClass } from '../src/core/controls/decorators'
-import { generateControlUI } from '../src/dev/controls-registry'
 
 // Mock effect data for tests
 const mockEffects = [
@@ -21,7 +21,7 @@ vi.mock('../src/effects', () => ({
 }))
 
 // Mock the control-decorators module with inline controls definition
-vi.mock('../src/core/controls/decorators', () => ({
+vi.mock('@lightscript/core', () => ({
     extractControlsFromClass: vi.fn().mockReturnValue([
         {
             default: 5,
@@ -47,7 +47,7 @@ vi.mock('../src/core/controls/decorators', () => ({
 }))
 
 // Mock the registry module
-vi.mock('../src/dev/controls-registry', () => ({
+vi.mock('@lightscript/dev', () => ({
     generateControlUI: vi.fn().mockReturnValue(document.createElement('div')),
 }))
 

@@ -4,12 +4,21 @@
  * Watch digital life emerge and evolve in stunning patterns across your keyboard ✨
  */
 
+import {
+    BooleanControl,
+    boolToInt,
+    ComboboxControl,
+    comboboxValueToIndex,
+    createStandardUniforms,
+    Effect,
+    initializeEffect,
+    initializeWebGL,
+    NumberControl,
+    normalizePercentage,
+    WebGLContext,
+    WebGLEffect,
+} from '@lightscript/core'
 import * as THREE from 'three'
-import { initializeEffect } from '../core'
-import { BooleanControl, ComboboxControl, Effect, NumberControl } from '../core/controls/decorators'
-import { boolToInt, comboboxValueToIndex, normalizePercentage } from '../core/controls/helpers'
-import { WebGLEffect } from '../core/effects/webgl-effect'
-import { createStandardUniforms, initializeWebGL, WebGLContext } from '../core/utils/webgl'
 
 export interface CellularAutomatonControls {
     automatonRule: number // 0-5: Conway, Rule30, Rule110, Brian's Brain, Langton's Ant, Custom

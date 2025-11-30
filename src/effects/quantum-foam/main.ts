@@ -4,11 +4,18 @@
  * Designed to be vivid, performant, and highly controllable.
  */
 
+import {
+    BooleanControl,
+    boolToInt,
+    ComboboxControl,
+    comboboxValueToIndex,
+    Effect,
+    initializeEffect,
+    NumberControl,
+    normalizePercentage,
+    WebGLEffect,
+} from '@lightscript/core'
 import * as THREE from 'three'
-import { initializeEffect } from '../../core'
-import { BooleanControl, ComboboxControl, Effect, NumberControl } from '../../core/controls/decorators'
-import { boolToInt, comboboxValueToIndex, normalizePercentage } from '../../core/controls/helpers'
-import { WebGLEffect } from '../../core/effects/webgl-effect'
 
 import fragmentShader from './fragment.glsl'
 

@@ -3,11 +3,16 @@
  * Radial kaleidoscope tunnel with configurable symmetry and twist
  */
 
+import {
+    ComboboxControl,
+    comboboxValueToIndex,
+    Effect,
+    initializeEffect,
+    NumberControl,
+    normalizePercentage,
+    WebGLEffect,
+} from '@lightscript/core'
 import type * as THREE from 'three'
-import { initializeEffect } from '../../core'
-import { ComboboxControl, Effect, NumberControl } from '../../core/controls/decorators'
-import { comboboxValueToIndex, normalizePercentage } from '../../core/controls/helpers'
-import { WebGLEffect } from '../../core/effects/webgl-effect'
 
 // Shader
 import fragmentShader from './fragment.glsl'

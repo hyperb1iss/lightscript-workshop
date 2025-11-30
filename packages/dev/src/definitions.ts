@@ -7,4 +7,4 @@ export type {
     BaseControls,
     ControlDefinition,
     ControlValues,
-} from '../core/controls/definitions'
+} from '@lightscript/core/controls/definitions'

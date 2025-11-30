@@ -3,9 +3,15 @@
  * Real forces: gravity, attraction/repulsion, turbulence, vortex
  */
 
-import { BooleanControl, ComboboxControl, Effect, NumberControl } from '../../core/controls/decorators'
-import { boolToInt, normalizePercentage } from '../../core/controls/helpers'
-import { CanvasEffect } from '../../core/effects/canvas-effect'
+import {
+    BooleanControl,
+    boolToInt,
+    CanvasEffect,
+    ComboboxControl,
+    Effect,
+    NumberControl,
+    normalizePercentage,
+} from '@lightscript/core'
 import { Particle } from './particle'
 import { COLOR_MODES, GlowParticlesControls } from './types'
 

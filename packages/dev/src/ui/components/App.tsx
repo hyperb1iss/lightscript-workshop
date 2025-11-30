@@ -1,6 +1,6 @@
+import { ControlDefinition, ControlValues } from '@lightscript/core/controls/definitions'
 import { FunctionComponent } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
-import { ControlDefinition, ControlValues } from '../../../core/controls/definitions'
 import { ControlsPanel } from './ControlsPanel'
 import { EffectsPanel } from './EffectsPanel'
 import { Loader } from './Loader'

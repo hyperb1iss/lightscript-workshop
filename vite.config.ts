@@ -1,9 +1,10 @@
+import { resolve } from 'node:path'
 import swcPlugin from '@vitejs/plugin-react-swc'
 import type { ConfigEnv } from 'vite'
 import { defineConfig } from 'vite'
 import glsl from 'vite-plugin-glsl'
 
-// Import our custom plugins
+// Import our custom plugins (still from old location during refactor)
 import { getEffectBuildConfig, lightscriptDecoratorsPlugin, signalRGBPlugin, startupLogoPlugin } from './plugins'
 
 export default defineConfig(({ command }: ConfigEnv) => {
@@ -12,6 +13,7 @@ export default defineConfig(({ command }: ConfigEnv) => {
     return {
         // Build configuration specifically for effects
         build: getEffectBuildConfig(),
+
         // Enhance development experience
         define: {
             ...(isDevelopment && {
@@ -19,6 +21,7 @@ export default defineConfig(({ command }: ConfigEnv) => {
                 __EFFECT_ID__: JSON.stringify(process.env.EFFECT || 'default'),
             }),
         },
+
         plugins: [
             // React SWC with Preact compatibility - enabling decorator support
             swcPlugin({
@@ -34,23 +37,28 @@ export default defineConfig(({ command }: ConfigEnv) => {
             // Only add lightscript plugins for development mode
             ...(isDevelopment ? [lightscriptDecoratorsPlugin(), startupLogoPlugin()] : []),
         ],
+
         resolve: {
-            // Add Preact aliases for compatibility
             alias: {
+                // Package aliases - resolve to local source during development
+                '@lightscript/core': resolve(__dirname, 'packages/core/src'),
+                '@lightscript/dev': resolve(__dirname, 'packages/dev/src'),
+
+                // Preact compatibility
                 react: 'preact/compat',
                 'react-dom': 'preact/compat',
             },
         },
+
         server: {
             hmr: {
                 // Enable fast refresh for shaders and effects
                 overlay: true,
             },
             open: true,
-            // Optimize deps for faster cold starts
             optimizeDeps: {
                 exclude: ['@vite/client', '@vite/env'],
-                include: ['preact', 'preact/compat', 'three'],
+                include: ['preact', 'preact/compat', 'three', 'reflect-metadata'],
             },
             port: 4096,
         },

@@ -3,11 +3,11 @@
  * Provides a UI for controlling and testing effects
  */
 
+import { extractControlsFromClass, extractEffectMetadata } from '@lightscript/core/controls/decorators'
+import { ControlDefinition, ControlValues } from '@lightscript/core/controls/definitions'
+import { createDebugLogger, printStartupBanner } from '@lightscript/core/utils/debug'
 import { h, render } from 'preact'
-import { extractControlsFromClass, extractEffectMetadata } from '../../core/controls/decorators'
-import { ControlDefinition, ControlValues } from '../../core/controls/definitions'
-import { createDebugLogger, printStartupBanner } from '../../core/utils/debug'
-import { discoverEffects } from '../../effects'
+import { discoverEffects } from '../../../../src/effects'
 import { App } from '../ui/components/App'
 
 // Debug helper
@@ -40,20 +40,7 @@ export interface EffectMetadata {
     author: string
 }
 
-// Add the global window properties
-declare global {
-    interface Window {
-        update?: (force?: boolean) => void
-        showNotification: (message: string, isError?: boolean) => void
-        effectInstance?: {
-            stop: () => void
-            _preventInitialization?: boolean // Flag to prevent automatic initialization
-        }
-        currentAnimationFrame?: number
-        controlsCount: number
-        [key: string]: unknown // For dynamic control properties
-    }
-}
+// Window interface is now defined in @lightscript/core
 
 /**
  * Development engine for running and controlling effects

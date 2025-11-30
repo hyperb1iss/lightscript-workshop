@@ -3,9 +3,8 @@
  * Implements the Cyber Descent effect using WebGL
  */
 
+import { ComboboxControl, Effect, NumberControl, WebGLEffect } from '@lightscript/core'
 import * as THREE from 'three'
-import { ComboboxControl, Effect, NumberControl } from '../../core/controls/decorators'
-import { WebGLEffect } from '../../core/effects/webgl-effect'
 // Import shader code
 import fragmentShader from './fragment.glsl'
 import { CYBERPUNK_MODES, CyberDescentControls } from './types'

@@ -1,24 +1,24 @@
 /**
  * BaseEffect - Core class for all SignalRGB effects
- * Provides standardized initialization, control handling, and rendering
+ *
+ * Provides standardized initialization, control handling, and rendering.
+ * Extend this class to create custom effects with any rendering approach.
+ *
+ * @example
+ * ```typescript
+ * class MyEffect extends BaseEffect<MyControls> {
+ *   protected async initializeRenderer(): Promise<void> {
+ *     // Set up your rendering context
+ *   }
+ *
+ *   protected render(time: number): void {
+ *     // Render a frame
+ *   }
+ * }
+ * ```
  */
 
 import { createDebugLogger } from '../utils/debug'
-
-// Extend Window interface with effect properties
-declare global {
-    interface Window {
-        update?: (force?: boolean) => void
-        showNotification: (message: string, isError?: boolean) => void
-        effectInstance?: {
-            stop: () => void
-            _preventInitialization?: boolean
-        }
-        currentAnimationFrame?: number
-        controlsCount: number
-        [key: string]: unknown
-    }
-}
 
 /**
  * Configuration for BaseEffect

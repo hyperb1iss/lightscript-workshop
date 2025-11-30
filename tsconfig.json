@@ -28,8 +28,17 @@
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
 
+    /* Path aliases for monorepo packages */
+    "baseUrl": ".",
+    "paths": {
+      "@lightscript/core": ["packages/core/src"],
+      "@lightscript/core/*": ["packages/core/src/*"],
+      "@lightscript/dev": ["packages/dev/src"],
+      "@lightscript/dev/*": ["packages/dev/src/*"]
+    },
+
     /* GLSL shader imports */
     "types": ["vite-plugin-glsl/ext"]
   },
-  "include": ["src", "tests", "plugins"]
+  "include": ["src", "tests", "plugins", "packages"]
 }

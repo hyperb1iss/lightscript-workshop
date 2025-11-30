@@ -5,6 +5,8 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': resolve(__dirname, 'src'),
+            '@lightscript/core': resolve(__dirname, 'packages/core/src'),
+            '@lightscript/dev': resolve(__dirname, 'packages/dev/src'),
         },
     },
     test: {

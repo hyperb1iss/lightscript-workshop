@@ -3,7 +3,7 @@
  * Defines interfaces, types, and constants used by the Cyber Descent effect
  */
 
-import { BaseControls } from '../../core/controls'
+import { BaseControls } from '@lightscript/core'
 
 // Define control interface
 export interface CyberDescentControls extends BaseControls {

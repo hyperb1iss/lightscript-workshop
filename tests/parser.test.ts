@@ -1,13 +1,13 @@
-import { describe, expect, it } from 'vitest'
 import {
     BooleanControl,
     ComboboxControl,
+    ControlDefinition,
     Effect,
     extractControlsFromClass,
     extractEffectMetadata,
     NumberControl,
-} from '../src/core/controls/decorators'
-import { ControlDefinition } from '../src/core/controls/definitions'
+} from '@lightscript/core'
+import { describe, expect, it } from 'vitest'
 
 // Note: We're testing the decorator API directly
 describe('control-decorators', () => {
