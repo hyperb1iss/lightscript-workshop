@@ -2,15 +2,15 @@
 layout: home
 
 hero:
-  name: "✨ LightScript Workshop"
+  name: "LightScript Workshop"
   text: Mind-bending RGB effects
   tagline: For the chronically creative
   actions:
     - theme: brand
-      text: 🚀 Get Started
+      text: Get Started
       link: /getting-started/
     - theme: alt
-      text: 💡 Examples
+      text: Examples
       link: /examples/
     - theme: alt
       text: GitHub
@@ -32,7 +32,7 @@ features:
   - icon: 📦
     title: Monorepo Architecture
     details: Clean separation — @lightscript/core for the API, @lightscript/dev for tooling. Use what you need.
-  - icon: 🚀
+  - icon: ⚡
     title: One-Click Deploy
     details: Build optimized single-file HTML effects ready to drop into SignalRGB.
 ---
@@ -103,7 +103,7 @@ Reference src/effects/black-hole/main.ts for the pattern.
 
 Works with Claude, Cursor, Copilot — any AI that can read code.
 
-## 🚀 Ready?
+## ▸ Ready?
 
 <div class="tip custom-block" style="padding-top: 8px;">
 

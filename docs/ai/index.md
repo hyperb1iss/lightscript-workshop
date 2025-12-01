@@ -48,7 +48,7 @@ Changes needed:
 4. Add iSpeed uniform for animation control
 ```
 
-### Common Shadertoy → LightScript Conversions
+### Common Conversions
 
 | Shadertoy | LightScript |
 |-----------|-------------|

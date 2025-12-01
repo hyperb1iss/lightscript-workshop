@@ -352,47 +352,47 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
         const timeSpeedFactor = normalizePercentage((w.timeSpeed as number) ?? 50, 100, 0.0)
 
         return {
+            bandSharpness: lerp(0.5, 2.0, bandFactor ** 0.8),
             bassPull: lerp(0.0, 2.4, bassFactor ** 1.1),
+            colorAccent: lerp(0.6, 1.6, accentFactor ** 0.9),
+            colorContrast: lerp(0.7, 2.0, contrastFactor ** 0.8),
             colorScheme: comboboxValueToIndex(
                 (w.colorScheme as string | number | undefined) ?? 'Gold & Blue',
                 colorSchemes,
                 0,
             ),
+            corePulse: lerp(0.2, 2.8, coreFactor ** 0.95),
+            flowDrive: lerp(0.2, 2.5, flowFactor ** 0.9),
             glowIntensity: lerp(0.12, 1.2, glowFactor),
+            irisStrength: lerp(0.3, 3.2, irisFactor ** 0.85),
+            particleColorMix: lerp(0.05, 1.2, particleColorFactor ** 0.9),
+            particleDensity: lerp(0.05, 3.0, particleDensityFactor ** 0.8),
+            particleSize: lerp(0.2, 2.0, particleSizeFactor ** 0.8),
             rotationSpeed: lerp(0.0, 2.4, rotationFactor ** 1.2),
             scale: lerp(2.0, 5.0, scaleFactor ** 0.7),
             timeSensitivity: lerp(0.35, 2.8, timeFactor ** 0.9),
+            timeSpeed: lerp(0.3, 2.5, timeSpeedFactor ** 0.8),
             treblePull: lerp(0.0, 2.0, trebleFactor ** 1.05),
             wanderSpeed: lerp(0.15, 2.2, wanderFactor ** 0.9),
-            irisStrength: lerp(0.3, 3.2, irisFactor ** 0.85),
-            corePulse: lerp(0.2, 2.8, coreFactor ** 0.95),
-            flowDrive: lerp(0.2, 2.5, flowFactor ** 0.9),
-            colorAccent: lerp(0.6, 1.6, accentFactor ** 0.9),
-            colorContrast: lerp(0.7, 2.0, contrastFactor ** 0.8),
-            bandSharpness: lerp(0.5, 2.0, bandFactor ** 0.8),
-            particleDensity: lerp(0.05, 3.0, particleDensityFactor ** 0.8),
-            particleSize: lerp(0.2, 2.0, particleSizeFactor ** 0.8),
-            particleColorMix: lerp(0.05, 1.2, particleColorFactor ** 0.9),
-            timeSpeed: lerp(0.3, 2.5, timeSpeedFactor ** 0.8),
         }
     }
 
     protected createUniforms(): Record<string, THREE.IUniform> {
         return {
             iAudioTime: { value: 0.0 },
+            iBandSharpness: { value: 1.0 },
             iBeatRotation: { value: 0.0 },
             iBeatZoom: { value: 1.0 },
-            iColorScheme: { value: 0 },
-            iGlowIntensity: { value: 1.0 },
-            iIrisStrength: { value: 1.0 },
-            iCorePulse: { value: 0.6 },
-            iFlowDrive: { value: 1.0 },
             iColorAccent: { value: 1.0 },
             iColorContrast: { value: 1.0 },
-            iBandSharpness: { value: 1.0 },
+            iColorScheme: { value: 0 },
+            iCorePulse: { value: 0.6 },
+            iFlowDrive: { value: 1.0 },
+            iGlowIntensity: { value: 1.0 },
+            iIrisStrength: { value: 1.0 },
+            iParticleColorMix: { value: 0.5 },
             iParticleDensity: { value: 1.0 },
             iParticleSize: { value: 0.8 },
-            iParticleColorMix: { value: 0.5 },
             iRotationSpeed: { value: 0.0 },
             iScale: { value: 1.6 },
             iSmoothMouse: { value: new THREE.Vector2(0, 0) },
@@ -439,12 +439,7 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
         // Smooth rotation and zoom - responsive but smooth
         const rotationLambda = 3.2 + audio.beatPulse * 4.5 + Math.abs(audio.momentum) * 2.0
         const zoomLambda = 6 + audio.beatPulse * 6
-        this.state.smoothRotation = smoothApproach(
-            this.state.smoothRotation,
-            targetRotation,
-            rotationLambda,
-            safeDelta,
-        )
+        this.state.smoothRotation = smoothApproach(this.state.smoothRotation, targetRotation, rotationLambda, safeDelta)
         this.state.smoothZoom = smoothApproach(this.state.smoothZoom, targetZoom, zoomLambda, safeDelta)
 
         // Wandering path
@@ -476,18 +471,8 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
 
         // Responsive smoothing
         const wanderResponse = 2.2 + audio.beatPulse * 2.4 + c.wanderSpeed * 1.4
-        this.state.smoothMouseX = smoothApproach(
-            this.state.smoothMouseX,
-            clampedX,
-            wanderResponse,
-            safeDelta,
-        )
-        this.state.smoothMouseY = smoothApproach(
-            this.state.smoothMouseY,
-            clampedY,
-            wanderResponse,
-            safeDelta,
-        )
+        this.state.smoothMouseX = smoothApproach(this.state.smoothMouseX, clampedX, wanderResponse, safeDelta)
+        this.state.smoothMouseY = smoothApproach(this.state.smoothMouseY, clampedY, wanderResponse, safeDelta)
 
         // Update uniforms
         this.material.uniforms.iScale.value = c.scale

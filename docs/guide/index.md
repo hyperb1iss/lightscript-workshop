@@ -1,8 +1,8 @@
-# 📖 Guide
+# Guide
 
 Everything you need to know about building effects with LightScript Workshop.
 
-## 🎮 Two Ways to Render
+## Two Ways to Render
 
 LightScript gives you two rendering approaches. Pick the one that fits your vision:
 
@@ -60,7 +60,7 @@ export class MyEffect extends CanvasEffect<MyControls> {
 }
 ```
 
-## 🎛️ The Control System
+## The Control System
 
 Controls are defined with decorators. They automatically:
 - Generate UI in the dev environment
@@ -107,7 +107,7 @@ export class MyEffect extends WebGLEffect<MyControls> {
 }
 ```
 
-## 🔧 Control Helpers
+## Control Helpers
 
 Raw control values often need transformation. LightScript provides helpers:
 
@@ -132,7 +132,7 @@ const paletteIndex = comboboxValueToIndex(
 const glowEnabled = boolToInt(window.glowEnabled ?? true)
 ```
 
-## 🎵 Audio Reactivity
+## Audio Reactivity
 
 Make your effects respond to music. LightScript provides seamless integration with SignalRGB's audio engine.
 
@@ -215,7 +215,7 @@ In the dev environment, you can test audio reactivity using:
 
 Click the audio panel in the dev UI to select your source.
 
-## 🔥 Development Workflow
+## Development Workflow
 
 ### Start the Dev Server
 
@@ -242,7 +242,7 @@ Copy from `dist/` to your SignalRGB effects folder:
 - **Windows**: `~/Documents/WhirlwindFX/Effects/`
 - **macOS**: `~/Documents/SignalRGB/Effects/`
 
-## 📦 Common Imports
+## Common Imports
 
 ```typescript
 // Everything you need from one place
@@ -274,7 +274,7 @@ import {
 } from '@lightscript/core'
 ```
 
-## 🎯 Next Steps
+## Next Steps
 
 - Check out the [Examples](/examples/) for complete, working patterns
 - Browse the [API Reference](/reference/) for detailed documentation
