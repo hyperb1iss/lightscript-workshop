@@ -50,6 +50,10 @@ export interface AudioData {
     trebleEnv: number
     /** Tempo estimate (BPM) */
     tempo: number
+    /** Level momentum (-1 to 1) based on short vs long envelopes */
+    momentum: number
+    /** Positive swell (0-1) indicating how much energy is building */
+    swell: number
 }
 
 /**
@@ -132,6 +136,8 @@ export function getAudioData(): AudioData {
             levelShort: silentBeat.levelShort,
             mid: 0,
             midEnv: silentBeat.midEnv,
+            momentum: silentBeat.momentum,
+            swell: silentBeat.swell,
             tempo: silentBeat.tempo,
             treble: 0,
             trebleEnv: silentBeat.trebleEnv,
@@ -176,6 +182,8 @@ export function getAudioData(): AudioData {
         levelShort: beat.levelShort,
         mid,
         midEnv: beat.midEnv,
+        momentum: beat.momentum,
+        swell: beat.swell,
         tempo: beat.tempo,
         treble,
         trebleEnv: beat.trebleEnv,
@@ -270,13 +278,23 @@ function computeBeat(bass: number, mid: number, treble: number, level: number) {
     const midEnv = Math.max(0, beatState.midShort - beatState.midLong)
     const trebleEnv = Math.max(0, beatState.trebleShort - beatState.trebleLong)
 
+    const levelTrend = beatState.levelShort - beatState.levelLong
+    const spectralTrend =
+        (beatState.bassShort + beatState.midShort + beatState.trebleShort) / 3 -
+        (beatState.bassLong + beatState.midLong + beatState.trebleLong) / 3
+    const combinedTrend = levelTrend * 0.6 + spectralTrend * 0.4
+    const momentum = Math.max(-1, Math.min(1, combinedTrend * 3.0))
+    const swell = Math.max(0, Math.min(1, (levelTrend + spectralTrend) * 2.2))
+
     return {
         bassEnv,
         beat,
         levelLong: beatState.levelLong,
         levelShort: beatState.levelShort,
         midEnv,
+        momentum,
         pulse: beatState.impulse,
+        swell,
         tempo: beatState.tempo,
         trebleEnv,
     }
@@ -405,6 +423,8 @@ export function createAudioUniforms(): Record<string, THREE.IUniform> {
         iAudioMid: { value: 0.0 },
         /** Mid envelope */
         iAudioMidEnv: { value: 0.0 },
+        /** Audio momentum (level trend) */
+        iAudioMomentum: { value: 0.0 },
         /** Full frequency spectrum (200 elements, sampled to texture) */
         iAudioSpectrum: {
             value: new THREE.DataTexture(
@@ -415,6 +435,8 @@ export function createAudioUniforms(): Record<string, THREE.IUniform> {
                 THREE.UnsignedByteType,
             ),
         },
+        /** Audio swell (0-1) */
+        iAudioSwell: { value: 0.0 },
         /** Beat tempo estimate (BPM) */
         iAudioTempo: { value: 120.0 },
         /** Treble frequency level (0-1) */
@@ -440,6 +462,8 @@ export function updateAudioUniforms(uniforms: Record<string, THREE.IUniform>, au
     if (uniforms.iAudioDensity) uniforms.iAudioDensity.value = audio.density
     if (uniforms.iAudioBeat) uniforms.iAudioBeat.value = audio.beat
     if (uniforms.iAudioBeatPulse) uniforms.iAudioBeatPulse.value = audio.beatPulse
+    if (uniforms.iAudioMomentum) uniforms.iAudioMomentum.value = audio.momentum
+    if (uniforms.iAudioSwell) uniforms.iAudioSwell.value = audio.swell
     if (uniforms.iAudioTempo) uniforms.iAudioTempo.value = audio.tempo
     if (uniforms.iAudioWidth) uniforms.iAudioWidth.value = audio.width
     if (uniforms.iAudioBass) uniforms.iAudioBass.value = audio.bass
