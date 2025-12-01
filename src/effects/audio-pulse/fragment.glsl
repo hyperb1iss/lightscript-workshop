@@ -28,6 +28,14 @@ uniform float iAudioBass;
 uniform float iAudioMid;
 uniform float iAudioTreble;
 uniform float iAudioDensity;
+uniform float iAudioBeat;
+uniform float iAudioBeatPulse;
+uniform float iAudioTempo;
+uniform float iAudioBassEnv;
+uniform float iAudioMidEnv;
+uniform float iAudioTrebleEnv;
+uniform float iAudioLevelShort;
+uniform float iAudioLevelLong;
 uniform sampler2D iAudioSpectrum;
 
 #define PI 3.14159265359
@@ -212,7 +220,9 @@ vec3 pulseFieldStyle(vec2 uv, float time) {
     float midPulse = iAudioMid;
     float treblePulse = iAudioTreble;
     float glowGain = getGlowGain();
-    float flow = clamp(iFlow, -1.0, 1.0);
+    float baseFlow = clamp(iFlow, -1.0, 1.0);
+    float beatOffset = iAudioBeatPulse * (baseFlow >= 0.0 ? 1.0 : -1.0);
+    float flow = clamp(baseFlow + beatOffset, -1.5, 1.5);
     float flowAbs = abs(flow);
     float dir = iDirection * PI;
     float bend = clamp(iBend, -2.0, 2.0);
@@ -228,7 +238,7 @@ vec3 pulseFieldStyle(vec2 uv, float time) {
     ro.xy += vec2(sin(time * 0.3 + bend * 0.2), cos(time * 0.27 - bend * 0.1)) * 0.4;
     ro += vec3(0.0, 0.0, travelSign * (0.5 + bassPulse * 0.8));
 
-    float zoom = 1.0 + bassPulse * 0.5 + vol * 0.2;
+    float zoom = 1.0 + bassPulse * 0.4 + vol * 0.2 + iAudioBeatPulse * 0.8;
     vec3 rd = normalize(vec3(uv * (0.9 + bassPulse * 0.1), zoom));
     rd.xy = rotate2d(time * 0.06 + vol * 0.08 + dir) * rd.xy;
     rd.y += sin(time * 0.15 + uv.x * 2.0) * 0.04;
@@ -302,14 +312,16 @@ vec3 gridStyle(vec2 uv, float time) {
     vec3 col = vec3(0.0);
     float vol = getVol(8.0);
     float glowGain = getGlowGain();
+    float beatDrive = 1.0 + iAudioBeatPulse * 0.6;
+    float tempoPhase = (iAudioTempo / 180.0) * time;
 
     // Ray direction (constant for this pixel)
-    vec3 rd = normalize(vec3(uv, 1.0));
-    rd.xy = rotate2d(time * 0.1 + iAudioDensity * 0.3) * rd.xy;
+    vec3 rd = normalize(vec3(uv * (0.85 + iAudioBeat * 0.15), 1.0));
+    rd.xy = rotate2d(time * 0.1 + iAudioDensity * 0.3 + tempoPhase * 0.2) * rd.xy;
 
     // Camera flies forward through the grid
-    vec3 ro = vec3(0.0, 0.0, time * 3.0);
-    ro.xy += vec2(sin(time * 0.25), cos(time * 0.18)) * (0.25 + vol * 0.35);
+    vec3 ro = vec3(0.0, 0.0, time * 2.5 * beatDrive);
+    ro.xy += vec2(sin(time * 0.25 + tempoPhase), cos(time * 0.18 - tempoPhase)) * (0.2 + vol * 0.25 + iAudioBeat * 0.2);
 
     for (float i = 0.0, t = 0.0; i < 50.0; i++) {
         // Current position along ray
@@ -321,26 +333,27 @@ vec3 gridStyle(vec2 uv, float time) {
 
         // Each cube reacts to its own frequency band based on position
         float freqIdx = mod(abs(id.x) + abs(id.y) * 2.0 + abs(id.z) * 0.5, 16.0) / 16.0;
-        float amp = getPitch(freqIdx, 1.0 + vol * 0.3);
+        float env = mix(iAudioBassEnv, iAudioMidEnv, freqIdx);
+        float amp = mix(getPitch(freqIdx, 1.0 + vol * 0.25), env, 0.6);
 
         // Box size pulses with amplitude
         float boxSize = 0.25 + amp * 0.15;
         float d = sdBox(q, vec3(boxSize));
 
         // Distance fade
-        float fade = smoothstep(30.0, 5.0, t);
+        float fade = smoothstep(28.0, 5.0, t) * (0.85 + iAudioBeat * 0.15);
 
         // Color varies with cell position
-        vec3 schemeCol = getSchemeColor(id, time * iColorSpeed * 0.3);
+        vec3 schemeCol = getSchemeColor(id + vec3(0.0, 0.0, tempoPhase), time * iColorSpeed * 0.3);
 
         // Accumulate glow - sharper falloff to avoid over-blur
         float crisp = pow(max(0.0, 1.0 - max(d, 0.0) * (9.0 + amp * 5.0)), 2.3);
         float spark = exp(-max(d, 0.0) * (20.0 + amp * 25.0));
-        float glow = (crisp + spark * 0.6) * (0.35 + amp * 0.85);
-        col += schemeCol * glow * fade * (0.5 + vol * 0.6) * glowGain * 0.6;
+        float glow = (crisp + spark * 0.6) * (0.35 + amp * 0.7);
+        col += schemeCol * glow * fade * (0.5 + vol * 0.5) * glowGain * 0.6;
 
         // Step forward (minimum step prevents infinite loops)
-        t += max(d, 0.05 + 0.04 * amp);
+        t += max(d, 0.04 + 0.03 * amp) / beatDrive;
         if (t > 35.0) break;
     }
 

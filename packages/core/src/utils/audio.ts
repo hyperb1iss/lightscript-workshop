@@ -34,6 +34,22 @@ export interface AudioData {
     mid: number
     /** Treble level (0-1) - high frequencies */
     treble: number
+    /** Beat energy (0-1) */
+    beat: number
+    /** Decaying beat impulse (0-1) */
+    beatPulse: number
+    /** Short-term overall level */
+    levelShort: number
+    /** Long-term overall level */
+    levelLong: number
+    /** Bass envelope (short-long) */
+    bassEnv: number
+    /** Mid envelope */
+    midEnv: number
+    /** Treble envelope */
+    trebleEnv: number
+    /** Tempo estimate (BPM) */
+    tempo: number
 }
 
 /**
@@ -62,6 +78,23 @@ const MID_RANGE = { end: 80, start: 10 }
 /** Treble frequency range (~4kHz-20kHz) */
 const TREBLE_RANGE = { end: 200, start: 80 }
 
+const beatState = {
+    bassLong: 0,
+    bassShort: 0,
+    cooldown: 0,
+    impulse: 0,
+    lastBeatTime: 0,
+    levelLong: 0,
+    levelShort: 0,
+    longBass: 0,
+    midLong: 0,
+    midShort: 0,
+    shortBass: 0,
+    tempo: 120,
+    trebleLong: 0,
+    trebleShort: 0,
+}
+
 // ─────────────────────────────────────────────────────────────
 // Audio Data Access
 // ─────────────────────────────────────────────────────────────
@@ -84,15 +117,24 @@ export function getAudioData(): AudioData {
 
     if (!hasEngine) {
         // Return silent/empty data for development
+        const silentBeat = computeBeat(0, 0, 0, 0)
         return {
             bass: 0,
+            bassEnv: silentBeat.bassEnv,
+            beat: silentBeat.beat,
+            beatPulse: silentBeat.pulse,
             density: 0,
             frequency: new Float32Array(200),
             frequencyRaw: new Int8Array(200),
             level: 0,
+            levelLong: silentBeat.levelLong,
             levelRaw: -100,
+            levelShort: silentBeat.levelShort,
             mid: 0,
+            midEnv: silentBeat.midEnv,
+            tempo: silentBeat.tempo,
             treble: 0,
+            trebleEnv: silentBeat.trebleEnv,
             width: 0.5,
         }
     }
@@ -114,15 +156,29 @@ export function getAudioData(): AudioData {
         frequency[i] = (Math.abs(frequencyRaw[i]) - min) / (max - min || 1)
     }
 
+    const bass = getFrequencyRange(frequency, BASS_RANGE.start, BASS_RANGE.end)
+    const mid = getFrequencyRange(frequency, MID_RANGE.start, MID_RANGE.end)
+    const treble = getFrequencyRange(frequency, TREBLE_RANGE.start, TREBLE_RANGE.end)
+    const level = normalizeAudioLevel(levelRaw)
+    const beat = computeBeat(bass, mid, treble, level)
+
     return {
-        bass: getFrequencyRange(frequency, BASS_RANGE.start, BASS_RANGE.end),
+        bass,
+        bassEnv: beat.bassEnv,
+        beat: beat.beat,
+        beatPulse: beat.pulse,
         density: engine.audio.density,
         frequency,
         frequencyRaw,
-        level: normalizeAudioLevel(levelRaw),
+        level,
+        levelLong: beat.levelLong,
         levelRaw,
-        mid: getFrequencyRange(frequency, MID_RANGE.start, MID_RANGE.end),
-        treble: getFrequencyRange(frequency, TREBLE_RANGE.start, TREBLE_RANGE.end),
+        levelShort: beat.levelShort,
+        mid,
+        midEnv: beat.midEnv,
+        tempo: beat.tempo,
+        treble,
+        trebleEnv: beat.trebleEnv,
         width: engine.audio.width,
     }
 }
@@ -175,8 +231,59 @@ export function getScreenZoneData(): ScreenZoneData {
  * @returns Normalized level (0-1)
  */
 export function normalizeAudioLevel(levelDb: number): number {
-    // -100 dB = 0, 0 dB = 1
     return Math.max(0, Math.min(1, (levelDb + 100) / 100))
+}
+
+function computeBeat(bass: number, mid: number, treble: number, level: number) {
+    beatState.levelShort = lerp(beatState.levelShort, level, 0.3)
+    beatState.levelLong = lerp(beatState.levelLong, level, 0.05)
+
+    beatState.bassShort = lerp(beatState.bassShort, bass, 0.45)
+    beatState.bassLong = lerp(beatState.bassLong, bass, 0.08)
+    beatState.midShort = lerp(beatState.midShort, mid, 0.4)
+    beatState.midLong = lerp(beatState.midLong, mid, 0.06)
+    beatState.trebleShort = lerp(beatState.trebleShort, treble, 0.35)
+    beatState.trebleLong = lerp(beatState.trebleLong, treble, 0.05)
+
+    const diff = Math.max(0, beatState.bassShort - beatState.bassLong)
+    const threshold = 0.05 + level * 0.15
+
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+
+    if (diff > threshold && beatState.cooldown <= 0) {
+        beatState.impulse = 1
+        beatState.cooldown = 0.2
+        if (beatState.lastBeatTime !== 0) {
+            const interval = now - beatState.lastBeatTime
+            if (interval > 0) {
+                beatState.tempo = Math.max(60, Math.min(180, 60000 / interval))
+            }
+        }
+        beatState.lastBeatTime = now
+    }
+
+    beatState.impulse *= 0.9
+    beatState.cooldown = Math.max(0, beatState.cooldown - 0.02)
+
+    const beat = Math.min(1, diff / (0.2 + level * 0.4))
+    const bassEnv = Math.max(0, beatState.bassShort - beatState.bassLong)
+    const midEnv = Math.max(0, beatState.midShort - beatState.midLong)
+    const trebleEnv = Math.max(0, beatState.trebleShort - beatState.trebleLong)
+
+    return {
+        bassEnv,
+        beat,
+        levelLong: beatState.levelLong,
+        levelShort: beatState.levelShort,
+        midEnv,
+        pulse: beatState.impulse,
+        tempo: beatState.tempo,
+        trebleEnv,
+    }
+}
+
+function lerp(current: number, target: number, amount: number): number {
+    return current + (target - current) * amount
 }
 
 /**
@@ -278,14 +385,26 @@ export function createAudioUniforms(): Record<string, THREE.IUniform> {
     return {
         /** Bass frequency level (0-1) */
         iAudioBass: { value: 0.0 },
+        /** Bass envelope */
+        iAudioBassEnv: { value: 0.0 },
+        /** Beat energy (0-1) */
+        iAudioBeat: { value: 0.0 },
+        /** Beat impulse/zoom pulse */
+        iAudioBeatPulse: { value: 0.0 },
         /** Tone density (0-1) */
         iAudioDensity: { value: 0.0 },
         /** Overall audio level (0-1) */
         iAudioLevel: { value: 0.0 },
+        /** Long-term audio level */
+        iAudioLevelLong: { value: 0.0 },
         /** Audio level in dB (-100 to 0) */
         iAudioLevelRaw: { value: -100.0 },
+        /** Short-term audio level */
+        iAudioLevelShort: { value: 0.0 },
         /** Mid frequency level (0-1) */
         iAudioMid: { value: 0.0 },
+        /** Mid envelope */
+        iAudioMidEnv: { value: 0.0 },
         /** Full frequency spectrum (200 elements, sampled to texture) */
         iAudioSpectrum: {
             value: new THREE.DataTexture(
@@ -296,8 +415,12 @@ export function createAudioUniforms(): Record<string, THREE.IUniform> {
                 THREE.UnsignedByteType,
             ),
         },
+        /** Beat tempo estimate (BPM) */
+        iAudioTempo: { value: 120.0 },
         /** Treble frequency level (0-1) */
         iAudioTreble: { value: 0.0 },
+        /** Treble envelope */
+        iAudioTrebleEnv: { value: 0.0 },
         /** Stereo width (0-1) */
         iAudioWidth: { value: 0.5 },
     }
@@ -311,12 +434,20 @@ export function createAudioUniforms(): Record<string, THREE.IUniform> {
  */
 export function updateAudioUniforms(uniforms: Record<string, THREE.IUniform>, audio: AudioData): void {
     if (uniforms.iAudioLevel) uniforms.iAudioLevel.value = audio.level
+    if (uniforms.iAudioLevelShort) uniforms.iAudioLevelShort.value = audio.levelShort
+    if (uniforms.iAudioLevelLong) uniforms.iAudioLevelLong.value = audio.levelLong
     if (uniforms.iAudioLevelRaw) uniforms.iAudioLevelRaw.value = audio.levelRaw
     if (uniforms.iAudioDensity) uniforms.iAudioDensity.value = audio.density
+    if (uniforms.iAudioBeat) uniforms.iAudioBeat.value = audio.beat
+    if (uniforms.iAudioBeatPulse) uniforms.iAudioBeatPulse.value = audio.beatPulse
+    if (uniforms.iAudioTempo) uniforms.iAudioTempo.value = audio.tempo
     if (uniforms.iAudioWidth) uniforms.iAudioWidth.value = audio.width
     if (uniforms.iAudioBass) uniforms.iAudioBass.value = audio.bass
+    if (uniforms.iAudioBassEnv) uniforms.iAudioBassEnv.value = audio.bassEnv
     if (uniforms.iAudioMid) uniforms.iAudioMid.value = audio.mid
+    if (uniforms.iAudioMidEnv) uniforms.iAudioMidEnv.value = audio.midEnv
     if (uniforms.iAudioTreble) uniforms.iAudioTreble.value = audio.treble
+    if (uniforms.iAudioTrebleEnv) uniforms.iAudioTrebleEnv.value = audio.trebleEnv
 
     // Update spectrum texture
     if (uniforms.iAudioSpectrum?.value instanceof THREE.DataTexture) {
