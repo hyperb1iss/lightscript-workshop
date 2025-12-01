@@ -237,3 +237,87 @@ These are automatically provided to all WebGL effects:
 | `iTime` | `float` | Time in seconds since effect started |
 | `iResolution` | `vec2` | Canvas dimensions in pixels |
 | `iFrame` | `int` | Current frame number |
+
+## Audio Uniforms
+
+When `audioReactive: true` is set, these additional uniforms are available:
+
+| Uniform | Type | Description |
+|---------|------|-------------|
+| `iAudioLevel` | `float` | Overall volume (0-1, normalized from dB) |
+| `iAudioLevelRaw` | `float` | Raw level in decibels (-100 to 0) |
+| `iAudioBass` | `float` | Bass frequency band (0-1) |
+| `iAudioMid` | `float` | Mid frequency band (0-1) |
+| `iAudioTreble` | `float` | Treble frequency band (0-1) |
+| `iAudioDensity` | `float` | Tone density (0=pure tone, 1=noise) |
+| `iAudioWidth` | `float` | Stereo width (0-1) |
+| `iAudioSpectrum` | `sampler2D` | 200-band FFT as 256x1 texture |
+
+## Audio API
+
+Functions for manual audio control (most effects just use `audioReactive: true`).
+
+### getAudioData
+
+Fetch normalized audio data from SignalRGB.
+
+```typescript
+import { getAudioData } from '@lightscript/core'
+
+const audio = getAudioData()
+console.log(audio.level)      // 0-1 normalized level
+console.log(audio.bass)       // 0-1 bass intensity
+console.log(audio.mid)        // 0-1 mid intensity
+console.log(audio.treble)     // 0-1 treble intensity
+console.log(audio.frequency)  // Float32Array[200] - full spectrum
+```
+
+**Returns:** `AudioData`
+
+```typescript
+interface AudioData {
+  level: number         // Normalized level (0-1)
+  levelRaw: number      // Raw level in dB (-100 to 0)
+  density: number       // Tone density (0-1)
+  width: number         // Stereo width (0-1)
+  frequencyRaw: Int8Array   // Raw FFT (200 elements)
+  frequency: Float32Array   // Normalized FFT (200 elements, 0-1)
+  bass: number          // Bass level (0-1)
+  mid: number           // Mid level (0-1)
+  treble: number        // Treble level (0-1)
+}
+```
+
+### smoothValue
+
+Smooth audio values over time using exponential moving average.
+
+```typescript
+import { smoothValue } from '@lightscript/core'
+
+let smoothedBass = 0
+// In animation loop:
+smoothedBass = smoothValue(audio.bass, smoothedBass, 0.8)
+```
+
+**Parameters:**
+- `currentValue` — Current raw value
+- `previousValue` — Previous smoothed value
+- `smoothing` — Factor 0-1 (higher = smoother)
+
+### createAudioUniforms / updateAudioUniforms
+
+Manual uniform creation (for advanced use cases).
+
+```typescript
+import { createAudioUniforms, updateAudioUniforms, getAudioData } from '@lightscript/core'
+
+// In createUniforms():
+return {
+  ...createAudioUniforms(),
+  iMyCustomUniform: { value: 1.0 },
+}
+
+// In render loop:
+const audio = getAudioData()
+updateAudioUniforms(this.material.uniforms, audio)

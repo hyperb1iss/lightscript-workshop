@@ -19,6 +19,7 @@ interface AppProps {
     currentResolution: ResolutionPreset
     fps: number
     fpsCap: number
+    isAudioReactive: boolean
     controlDefinitions: ControlDefinition[]
     controlValues: ControlValues
     isLoading: boolean
@@ -40,6 +41,7 @@ export const App: FunctionComponent<AppProps> = ({
     currentResolution,
     fps,
     fpsCap,
+    isAudioReactive,
     controlDefinitions,
     controlValues,
     isLoading,
@@ -117,6 +119,7 @@ export const App: FunctionComponent<AppProps> = ({
                 fps={fps}
                 fpsCap={fpsCap}
                 fpsCapOptions={FPS_CAP_OPTIONS}
+                isAudioReactive={isAudioReactive}
                 onEffectChange={onEffectChange}
                 onFpsCapChange={onFpsCapChange}
                 onOpenDocs={() => {

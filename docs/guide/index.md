@@ -132,6 +132,89 @@ const paletteIndex = comboboxValueToIndex(
 const glowEnabled = boolToInt(window.glowEnabled ?? true)
 ```
 
+## 🎵 Audio Reactivity
+
+Make your effects respond to music. LightScript provides seamless integration with SignalRGB's audio engine.
+
+### Enable Audio in Your Effect
+
+Just add `audioReactive: true` to your WebGL effect:
+
+```typescript
+constructor() {
+  super({
+    id: 'my-visualizer',
+    name: 'My Visualizer',
+    fragmentShader,
+    audioReactive: true,  // ← This is all you need
+  })
+}
+```
+
+This automatically creates and updates audio uniforms every frame.
+
+### Available Audio Uniforms
+
+Once enabled, these uniforms are available in your GLSL shader:
+
+| Uniform | Type | Description |
+|---------|------|-------------|
+| `iAudioLevel` | `float` | Overall volume (0-1) |
+| `iAudioBass` | `float` | Bass intensity (0-1) |
+| `iAudioMid` | `float` | Mid frequency intensity (0-1) |
+| `iAudioTreble` | `float` | Treble intensity (0-1) |
+| `iAudioSpectrum` | `sampler2D` | Full 200-band FFT as texture |
+
+### Basic Audio Shader
+
+```glsl
+uniform float iAudioLevel;
+uniform float iAudioBass;
+uniform float iAudioMid;
+uniform float iAudioTreble;
+
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
+  vec2 uv = fragCoord / iResolution.xy;
+
+  // Pulse the whole screen with bass
+  float pulse = 1.0 + iAudioBass * 0.5;
+
+  // Color based on frequency bands
+  vec3 col = vec3(iAudioBass, iAudioMid, iAudioTreble);
+  col *= pulse;
+
+  fragColor = vec4(col, 1.0);
+}
+```
+
+### Reading the Spectrum Texture
+
+For per-frequency visualization, sample the spectrum texture:
+
+```glsl
+uniform sampler2D iAudioSpectrum;
+
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
+  vec2 uv = fragCoord / iResolution.xy;
+
+  // Sample frequency at this x position (0-200 bands mapped to 0-1)
+  float freq = texture2D(iAudioSpectrum, vec2(uv.x, 0.5)).r;
+
+  // Draw bar visualization
+  float bar = step(uv.y, freq);
+  fragColor = vec4(vec3(bar), 1.0);
+}
+```
+
+### Dev Studio Audio Sources
+
+In the dev environment, you can test audio reactivity using:
+
+- **Microphone** — Pick up ambient audio
+- **System Audio** — Capture your desktop audio (via screen share)
+
+Click the audio panel in the dev UI to select your source.
+
 ## 🔥 Development Workflow
 
 ### Start the Dev Server
@@ -181,6 +264,10 @@ import {
   normalizePercentage,
   comboboxValueToIndex,
   boolToInt,
+
+  // Audio (for manual control)
+  getAudioData,
+  smoothValue,
 
   // Initialization
   initializeEffect,

@@ -25,6 +25,8 @@ declare global {
         ringCount: number
         glowIntensity: number
         visualStyle: string | number
+        colorScheme: string | number
+        flow: number
     }
 }
 
@@ -36,43 +38,48 @@ export interface AudioPulseControls {
     ringCount: number
     glowIntensity: number
     visualStyle: number
+    colorScheme: number
+    direction: number
+    bend: number
+    flow: number
 }
 
 @Effect({
+    audioReactive: true,
     author: 'hyperb1iss',
-    description: 'Audio reactive pulsing rings and spectrum visualizer',
+    description: 'Cinematic audio visualizer with nebula, spectrum, waves, and kaleidoscope modes',
     name: 'Audio Pulse',
 })
 export class AudioPulseEffect extends WebGLEffect<AudioPulseControls> {
     @NumberControl({
-        default: 100,
+        default: 50,
         label: 'Sensitivity',
         max: 200,
         min: 10,
-        tooltip: 'Audio sensitivity multiplier',
+        tooltip: 'Audio sensitivity - lower for loud sources',
     })
     sensitivity!: number
 
     @NumberControl({
-        default: 50,
+        default: 70,
         label: 'Smoothing',
         max: 95,
         min: 0,
-        tooltip: 'Audio smoothing (higher = smoother)',
+        tooltip: 'Motion smoothing (higher = less jitter)',
     })
     smoothing!: number
 
     @NumberControl({
-        default: 150,
+        default: 80,
         label: 'Bass Boost',
-        max: 300,
+        max: 200,
         min: 0,
         tooltip: 'Bass frequency emphasis',
     })
     bassBoost!: number
 
     @NumberControl({
-        default: 50,
+        default: 30,
         label: 'Color Speed',
         max: 200,
         min: 0,
@@ -82,29 +89,64 @@ export class AudioPulseEffect extends WebGLEffect<AudioPulseControls> {
 
     @NumberControl({
         default: 8,
-        label: 'Ring Count',
+        label: 'Segments',
         max: 16,
-        min: 2,
-        tooltip: 'Number of frequency rings',
+        min: 4,
+        tooltip: 'Pattern complexity / bar count',
     })
     ringCount!: number
 
     @NumberControl({
-        default: 100,
-        label: 'Glow Intensity',
+        default: 80,
+        label: 'Glow',
         max: 200,
         min: 0,
-        tooltip: 'Glow/bloom effect intensity',
+        tooltip: 'Bloom and glow intensity',
     })
     glowIntensity!: number
 
+    @NumberControl({
+        default: 0,
+        label: 'Direction',
+        max: 360,
+        min: -360,
+        tooltip: 'Pulse Field camera yaw offset',
+    })
+    direction!: number
+
+    @NumberControl({
+        default: 0,
+        label: 'Bend',
+        max: 200,
+        min: -200,
+        tooltip: 'Pulse Field lattice bend strength',
+    })
+    bend!: number
+
+    @NumberControl({
+        default: 30,
+        label: 'Flow',
+        max: 100,
+        min: -100,
+        tooltip: 'Negative = inward pull, positive = outward burst',
+    })
+    flow!: number
+
     @ComboboxControl({
-        default: 'Radial',
-        label: 'Visual Style',
+        default: 'Pulse Field',
+        label: 'Style',
         tooltip: 'Visualization style',
-        values: ['Radial', 'Bars', 'Wave', 'Circular'],
+        values: ['Pulse Field', 'Grid', 'Waveform', 'Vortex'],
     })
     visualStyle!: string
+
+    @ComboboxControl({
+        default: 'Cyberpunk',
+        label: 'Colors',
+        tooltip: 'Color scheme preset',
+        values: ['Cyberpunk', 'Lava', 'Aurora', 'Vaporwave', 'Toxic', 'Prism'],
+    })
+    colorScheme!: string
 
     constructor() {
         super({
@@ -117,41 +159,64 @@ export class AudioPulseEffect extends WebGLEffect<AudioPulseControls> {
     }
 
     protected initializeControls(): void {
-        window.sensitivity = 100
-        window.smoothing = 50
-        window.bassBoost = 150
-        window.colorSpeed = 50
+        window.sensitivity = 50
+        window.smoothing = 70
+        window.bassBoost = 80
+        window.colorSpeed = 30
         window.ringCount = 8
-        window.glowIntensity = 100
-        window.visualStyle = 'Radial'
+        window.glowIntensity = 80
+        window.direction = 0
+        window.bend = 0
+        window.flow = 30
+        window.visualStyle = 'Pulse Field'
+        window.colorScheme = 'Cyberpunk'
     }
 
     protected getControlValues(): AudioPulseControls {
         const w = window as unknown as Record<string, unknown>
         const styleIndex = comboboxValueToIndex(
-            (w.visualStyle as string | number | undefined) ?? 'Radial',
-            ['Radial', 'Bars', 'Wave', 'Circular'],
+            (w.visualStyle as string | number | undefined) ?? 'Pulse Field',
+            ['Pulse Field', 'Grid', 'Waveform', 'Vortex'],
             0,
         )
+        const schemeIndex = comboboxValueToIndex(
+            (w.colorScheme as string | number | undefined) ?? 'Cyberpunk',
+            ['Cyberpunk', 'Lava', 'Aurora', 'Vaporwave', 'Toxic', 'Prism'],
+            0,
+        )
+        const glowFactor = normalizePercentage((w.glowIntensity as number) ?? 80, 100, 0.0)
+        const glowNormalized = Math.min(Math.max(glowFactor * 0.25, 0), 1)
+        const direction = ((w.direction as number) ?? 0) / 180
+        const bend = ((w.bend as number) ?? 0) / 100
+        const flow = Math.max(-1, Math.min(((w.flow as number) ?? 30) / 100, 1))
+
         return {
-            bassBoost: normalizePercentage((w.bassBoost as number) ?? 150, 150, 0.0) * 3.0,
-            colorSpeed: normalizePercentage((w.colorSpeed as number) ?? 50, 100, 0.0) * 2.0,
-            glowIntensity: normalizePercentage((w.glowIntensity as number) ?? 100, 100, 0.0) * 2.0,
+            bassBoost: normalizePercentage((w.bassBoost as number) ?? 80, 100, 0.0) * 2.0,
+            bend,
+            colorScheme: schemeIndex,
+            colorSpeed: normalizePercentage((w.colorSpeed as number) ?? 30, 100, 0.0) * 2.0,
+            direction,
+            flow,
+            glowIntensity: glowNormalized,
             ringCount: Math.floor((w.ringCount as number) ?? 8),
-            sensitivity: normalizePercentage((w.sensitivity as number) ?? 100, 100, 0.1) * 2.0,
-            smoothing: normalizePercentage((w.smoothing as number) ?? 50, 95, 0.0),
+            sensitivity: normalizePercentage((w.sensitivity as number) ?? 50, 100, 0.1) * 1.5,
+            smoothing: normalizePercentage((w.smoothing as number) ?? 70, 95, 0.0),
             visualStyle: styleIndex,
         }
     }
 
     protected createUniforms(): Record<string, THREE.IUniform> {
         return {
-            iBassBoost: { value: 1.5 },
-            iColorSpeed: { value: 0.5 },
-            iGlowIntensity: { value: 1.0 },
+            iBassBoost: { value: 1.6 },
+            iBend: { value: 0 },
+            iColorScheme: { value: 0 },
+            iColorSpeed: { value: 0.6 },
+            iDirection: { value: 0 },
+            iFlow: { value: 0.3 },
+            iGlowIntensity: { value: 0.4 },
             iRingCount: { value: 8 },
-            iSensitivity: { value: 1.0 },
-            iSmoothing: { value: 0.5 },
+            iSensitivity: { value: 0.75 },
+            iSmoothing: { value: 0.74 },
             iVisualStyle: { value: 0 },
         }
     }
@@ -164,7 +229,11 @@ export class AudioPulseEffect extends WebGLEffect<AudioPulseControls> {
         this.material.uniforms.iColorSpeed.value = c.colorSpeed
         this.material.uniforms.iRingCount.value = c.ringCount
         this.material.uniforms.iGlowIntensity.value = c.glowIntensity
+        this.material.uniforms.iDirection.value = c.direction
+        this.material.uniforms.iBend.value = c.bend
+        this.material.uniforms.iFlow.value = c.flow
         this.material.uniforms.iVisualStyle.value = c.visualStyle
+        this.material.uniforms.iColorScheme.value = c.colorScheme
     }
 }
 

@@ -8,6 +8,7 @@ import { ControlDefinition, ControlValues } from '@lightscript/core/controls/def
 import { createDebugLogger, printStartupBanner } from '@lightscript/core/utils/debug'
 import { h, render } from 'preact'
 import { discoverEffects } from '../../../../src/effects'
+import { getAudioAnalyzer } from '../audio/audio-analyzer'
 import { App } from '../ui/components/App'
 
 // Debug helper
@@ -91,6 +92,9 @@ export class PreactDevEngine {
     // Resolution and FPS settings
     private currentResolution: ResolutionPreset = 'hd'
     private fpsCap = 0 // 0 = unlimited
+
+    // Audio-reactive state
+    private isAudioReactive = false
 
     /**
      * Create a new PreactDevEngine instance
@@ -321,6 +325,7 @@ export class PreactDevEngine {
                 effects: effects as AppEffect[],
                 fps: this.fpsValue,
                 fpsCap: this.fpsCap,
+                isAudioReactive: this.isAudioReactive,
                 isLoading: this.isLoading,
                 onControlChange: (id: string, value: unknown) => this.handleControlChange(id, value),
                 onEffectChange: (id: string) => this.loadEffect(id),
@@ -436,6 +441,29 @@ export class PreactDevEngine {
                 effect.name = metadata.name
                 effect.description = metadata.description
                 effect.author = metadata.author
+
+                // Check for audio-reactive flag
+                const isAudioReactive = (metadata as unknown as Record<string, unknown>).audioReactive === true
+                this.isAudioReactive = isAudioReactive
+
+                if (isAudioReactive) {
+                    debug('info', `🎵 Effect ${effect.id} is audio-reactive`)
+
+                    // Auto-restore audio source if user had one selected
+                    const analyzer = getAudioAnalyzer()
+                    const savedSource = analyzer.getSavedSource()
+                    if (savedSource !== 'none') {
+                        debug('info', `🔊 Auto-restoring audio source: ${savedSource}`)
+                        if (savedSource === 'microphone') {
+                            analyzer.startMicrophone().catch((err) => {
+                                debug('warn', `Failed to auto-start microphone: ${err}`)
+                            })
+                        } else if (savedSource === 'system') {
+                            // Don't auto-start system audio - requires user interaction
+                            debug('info', 'System audio requires manual activation')
+                        }
+                    }
+                }
 
                 // Update the UI with the new metadata
                 this.renderUI()
@@ -591,6 +619,15 @@ export class PreactDevEngine {
             cancelAnimationFrame(window.currentAnimationFrame)
             window.currentAnimationFrame = undefined
         }
+
+        // Stop audio capture when switching effects
+        if (this.isAudioReactive) {
+            debug('info', '🔇 Stopping audio capture for effect change')
+            getAudioAnalyzer().stop()
+        }
+
+        // Reset audio-reactive state
+        this.isAudioReactive = false
 
         // Clear global variables to prevent conflicts
         this.clearGlobalVariables()

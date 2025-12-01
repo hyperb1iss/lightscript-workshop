@@ -247,6 +247,8 @@ export interface EffectOptions {
     name: string
     description: string
     author: string
+    /** Whether this effect uses audio input (enables audio panel in dev studio) */
+    audioReactive?: boolean
 }
 
 /**

@@ -57,6 +57,14 @@ export {
   boolToInt, // bool → 0|1
 } from "./controls/helpers";
 
+// Audio utilities
+export {
+  getAudioData, // Get normalized audio from SignalRGB
+  smoothValue, // Smooth values over time
+  createAudioUniforms, // Create audio uniforms for shaders
+  updateAudioUniforms, // Update audio uniforms each frame
+} from "./utils/audio";
+
 // Initialization
 export { initializeEffect } from "./index";
 ```
@@ -197,6 +205,53 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
 // Required: entry point
 void main() {
   mainImage(gl_FragColor, gl_FragCoord.xy);
+}
+```
+
+### Audio-Reactive WebGL Effect
+
+Enable audio reactivity with `audioReactive: true` in the constructor:
+
+```typescript
+constructor() {
+  super({
+    id: "audio-visualizer",
+    name: "Audio Visualizer",
+    fragmentShader,
+    audioReactive: true, // Enables audio uniforms
+  });
+}
+```
+
+This provides these uniforms automatically:
+
+| Uniform          | Type        | Description                    |
+| ---------------- | ----------- | ------------------------------ |
+| `iAudioLevel`    | `float`     | Overall volume (0-1)           |
+| `iAudioBass`     | `float`     | Bass intensity (0-1)           |
+| `iAudioMid`      | `float`     | Mid frequency intensity (0-1)  |
+| `iAudioTreble`   | `float`     | Treble intensity (0-1)         |
+| `iAudioSpectrum` | `sampler2D` | Full 200-band FFT as texture   |
+
+Example shader using audio:
+
+```glsl
+uniform float iAudioBass;
+uniform float iAudioMid;
+uniform float iAudioTreble;
+uniform sampler2D iAudioSpectrum;
+
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
+  vec2 uv = fragCoord / iResolution.xy;
+
+  // Sample frequency spectrum
+  float freq = texture2D(iAudioSpectrum, vec2(uv.x, 0.5)).r;
+
+  // Color by frequency bands
+  vec3 col = vec3(iAudioBass, iAudioMid, iAudioTreble);
+  col += vec3(freq);
+
+  fragColor = vec4(col, 1.0);
 }
 ```
 

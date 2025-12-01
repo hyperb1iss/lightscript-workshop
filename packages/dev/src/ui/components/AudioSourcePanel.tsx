@@ -9,6 +9,8 @@ import { useCallback, useEffect, useState } from 'preact/hooks'
 import { AudioSourceType, DevAudioAnalyzer, getAudioAnalyzer } from '../../audio/audio-analyzer'
 
 interface AudioSourcePanelProps {
+    /** Whether the current effect is audio-reactive */
+    isAudioReactive?: boolean
     onNotification?: (message: string, isError?: boolean) => void
 }
 
@@ -17,15 +19,31 @@ export const AudioSourcePanel: FunctionComponent<AudioSourcePanelProps> = ({ onN
     const [isLoading, setIsLoading] = useState(false)
     const [audioLevel, setAudioLevel] = useState(-100)
     const [error, setError] = useState<string | null>(null)
+    const [gain, setGain] = useState(1.0)
+    const [smoothing, setSmoothing] = useState(0.7)
 
     const analyzer = getAudioAnalyzer()
 
-    // Update audio level display
+    // Initialize state from analyzer - sync with actual audio state
+    useEffect(() => {
+        setGain(analyzer.getGain())
+        setSmoothing(analyzer.getSmoothing())
+        // Sync with actual analyzer source (may have been auto-restored)
+        setCurrentSource(analyzer.getSource())
+    }, [analyzer])
+
+    // Update audio level display and sync source state
     useEffect(() => {
         let animationId: number
 
         const updateLevel = () => {
-            if (currentSource !== 'none') {
+            // Sync source state with analyzer (handles auto-restore race condition)
+            const actualSource = analyzer.getSource()
+            if (actualSource !== currentSource) {
+                setCurrentSource(actualSource)
+            }
+
+            if (actualSource !== 'none') {
                 const data = analyzer.getAudioData()
                 setAudioLevel(data.level)
             }
@@ -136,6 +154,51 @@ export const AudioSourcePanel: FunctionComponent<AudioSourcePanelProps> = ({ onN
                         </div>
                     )}
 
+                    {currentSource !== 'none' && (
+                        <div className="audio-controls">
+                            <div className="audio-control-item">
+                                <div className="audio-control-label">
+                                    <span>Gain</span>
+                                    <span className="audio-control-value">{Math.round(gain * 100)}%</span>
+                                </div>
+                                <input
+                                    aria-label="Gain"
+                                    className="audio-slider"
+                                    max="3"
+                                    min="0"
+                                    onChange={(e: Event) => {
+                                        const val = Number((e.target as HTMLInputElement).value)
+                                        setGain(val)
+                                        analyzer.setGain(val)
+                                    }}
+                                    step="0.1"
+                                    type="range"
+                                    value={gain}
+                                />
+                            </div>
+                            <div className="audio-control-item">
+                                <div className="audio-control-label">
+                                    <span>Smoothing</span>
+                                    <span className="audio-control-value">{Math.round(smoothing * 100)}%</span>
+                                </div>
+                                <input
+                                    aria-label="Smoothing"
+                                    className="audio-slider"
+                                    max="0.95"
+                                    min="0"
+                                    onChange={(e: Event) => {
+                                        const val = Number((e.target as HTMLInputElement).value)
+                                        setSmoothing(val)
+                                        analyzer.setSmoothing(val)
+                                    }}
+                                    step="0.05"
+                                    type="range"
+                                    value={smoothing}
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     {error && <div className="audio-error">{error}</div>}
 
                     {isLoading && <div className="audio-loading">Starting audio...</div>}
@@ -143,4 +206,12 @@ export const AudioSourcePanel: FunctionComponent<AudioSourcePanelProps> = ({ onN
             )}
         </div>
     )
+}
+
+// Don't render at all if effect doesn't use audio
+export const ConditionalAudioSourcePanel: FunctionComponent<AudioSourcePanelProps> = (props) => {
+    if (!props.isAudioReactive) {
+        return null
+    }
+    return <AudioSourcePanel {...props} />
 }

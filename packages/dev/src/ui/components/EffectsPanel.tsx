@@ -1,6 +1,6 @@
 import { FunctionComponent } from 'preact'
 import type { FPS_CAP_OPTIONS, RESOLUTION_PRESETS, ResolutionPreset } from '../../engine/preact-engine'
-import { AudioSourcePanel } from './AudioSourcePanel'
+import { ConditionalAudioSourcePanel } from './AudioSourcePanel'
 
 interface EffectsPanelProps {
     effects: Array<{
@@ -13,6 +13,7 @@ interface EffectsPanelProps {
     currentResolution: ResolutionPreset
     fps: number
     fpsCap: number
+    isAudioReactive: boolean
     resolutionPresets: typeof RESOLUTION_PRESETS
     fpsCapOptions: typeof FPS_CAP_OPTIONS
     onEffectChange: (effectId: string) => void
@@ -28,6 +29,7 @@ export const EffectsPanel: FunctionComponent<EffectsPanelProps> = ({
     currentResolution,
     fps,
     fpsCap,
+    isAudioReactive,
     resolutionPresets,
     fpsCapOptions,
     onEffectChange,
@@ -111,7 +113,8 @@ export const EffectsPanel: FunctionComponent<EffectsPanelProps> = ({
                 </div>
             </div>
 
-            <AudioSourcePanel
+            <ConditionalAudioSourcePanel
+                isAudioReactive={isAudioReactive}
                 onNotification={(message, isError) => {
                     if (window.showNotification) {
                         window.showNotification(message, isError)
