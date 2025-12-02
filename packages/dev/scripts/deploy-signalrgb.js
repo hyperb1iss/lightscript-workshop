@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { copyFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs'
 import os from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -13,18 +13,47 @@ const pink = NEON('255,97,216')
 const yellow = NEON('255,240,0')
 const red = '\x1b[31m'
 
+function isWSL() {
+    if (os.platform() !== 'linux') return false
+    try {
+        const release = readFileSync('/proc/version', 'utf8').toLowerCase()
+        return release.includes('microsoft') || release.includes('wsl')
+    } catch {
+        return false
+    }
+}
+
 function getSignalRGBEffectsDir() {
     const platform = os.platform()
     const home = os.homedir()
-    // macOS default location
-    const macPath = join(home, 'Documents', 'SignalRGB', 'Effects')
-    // Legacy/Windows path for reference (user can set SIGRGB_DIR to override)
-    const winPath = join(home, 'Documents', 'WhirlwindFX', 'Effects')
 
     const override = process.env.SIGRGB_DIR
     if (override) return resolve(override)
 
+    // WSL: use Windows home directory from $W env var
+    if (isWSL()) {
+        const winHome = process.env.W
+        if (winHome) {
+            const winPath = join(winHome, 'Documents', 'SignalRGB', 'Effects')
+            const legacyWinPath = join(winHome, 'Documents', 'WhirlwindFX', 'Effects')
+            if (existsSync(legacyWinPath)) return legacyWinPath
+            return winPath
+        }
+        console.log(
+            `${yellow}[!]${RESET} WSL detected but $W not set. Set $W to your Windows home dir or use SIGRGB_DIR.`,
+        )
+    }
+
+    // macOS default location
+    const macPath = join(home, 'Documents', 'SignalRGB', 'Effects')
+    // Legacy/Windows path
+    const winPath = join(home, 'Documents', 'WhirlwindFX', 'Effects')
+
     if (platform === 'darwin') return macPath
+    if (platform === 'win32') {
+        if (existsSync(winPath)) return winPath
+        return join(home, 'Documents', 'SignalRGB', 'Effects')
+    }
     // Fallback
     if (existsSync(winPath)) return winPath
     return macPath
@@ -50,7 +79,9 @@ function main() {
         process.exit(0)
     }
 
-    console.log(`${pink}[⚡]${RESET} ${BOLD}Deploying${RESET} ${files.length} artifact(s) to SignalRGB Effects...`)
+    console.log(
+        `${pink}[⚡]${RESET} ${BOLD}Deploying${RESET} ${files.length} artifact(s) to ${cyan}${targetDir}${RESET}`,
+    )
     for (const file of files) {
         const src = join(distDir, file)
         const dst = join(targetDir, file)
