@@ -202,13 +202,28 @@ export function initializeEffect(initFunction: () => void, options: InitOptions 
 
 export type { AudioData, ScreenZoneData } from './utils/audio'
 export {
+    // Core audio functions
     createAudioUniforms,
     getAudioData,
+    // Frequency helpers
     getBassLevel,
+    // NEW: Beat utilities
+    getBeatAnticipation,
     getFrequencyRange,
+    // NEW: Color utilities
+    getHarmonicColor,
+    // NEW: Mel band utilities
+    getMelRange,
     getMidLevel,
+    getMoodColor,
+    getPitchClassIndex,
+    // NEW: Harmonic / pitch utilities
+    getPitchClassName,
+    getPitchEnergy,
     getScreenZoneData,
     getTrebleLevel,
+    hslToRgb,
+    isOnBeat,
     normalizeAudioLevel,
     normalizeFrequencyBin,
     smoothValue,

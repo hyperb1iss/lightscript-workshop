@@ -1,8 +1,15 @@
 /**
- * Iris - Geometric Audio Visualizer
+ * Iris - Geometric Audio Visualizer v2
  *
- * A mesmerizing visualization featuring Möbius circle inversions,
+ * A mesmerizing visualization featuring Mobius circle inversions,
  * spiral dot patterns, and audio-reactive geometric waves.
+ *
+ * Now powered by SOTA audio analysis:
+ * - Spectral flux onset detection for tight beat sync
+ * - Circle of Fifths harmonic color mapping
+ * - Beat phase anticipation for "suck in" effects
+ * - Chord mood detection (major/minor color shifts)
+ * - Mel-band frequency analysis
  */
 
 import {
@@ -10,6 +17,7 @@ import {
     comboboxValueToIndex,
     Effect,
     getAudioData,
+    getBeatAnticipation,
     initializeEffect,
     NumberControl,
     normalizePercentage,
@@ -39,6 +47,7 @@ declare global {
         particleSize: number
         particleColorMix: number
         timeSpeed: number
+        harmonicColor: number
     }
 }
 
@@ -61,6 +70,7 @@ export interface IrisControls {
     particleSize: number
     particleColorMix: number
     timeSpeed: number
+    harmonicColor: number
 }
 
 interface WanderState {
@@ -70,6 +80,10 @@ interface WanderState {
     smoothRotation: number
     smoothZoom: number
     beatAccum: number
+    anticipation: number
+    harmonicHueSmooth: number
+    radialFlow: number // Accumulated outward flow distance
+    flowVelocity: number // Current flow speed (smoothed)
 }
 
 function hashNoise(x: number, seed: number): number {
@@ -109,13 +123,18 @@ function decay(value: number, lambda: number, deltaTime: number): number {
 @Effect({
     audioReactive: true,
     author: 'hyperb1iss',
-    description: 'Geometric audio visualizer with Möbius inversions and spiral patterns',
+    description:
+        'Geometric audio visualizer with Mobius inversions, harmonic color mapping, and spectral flux beat detection',
     name: 'Iris',
 })
 export class IrisEffect extends WebGLEffect<IrisControls> {
     private state: WanderState = {
+        anticipation: 0,
         audioTime: 0,
         beatAccum: 0,
+        flowVelocity: 0,
+        harmonicHueSmooth: 0,
+        radialFlow: 0,
         smoothMouseX: 0,
         smoothMouseY: 0,
         smoothRotation: 0,
@@ -129,12 +148,31 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
     // ═══════════════════════════════════════════════════════════════
 
     @ComboboxControl({
-        default: 'Gold & Blue',
+        default: 'Harmonic',
         label: 'Colors',
-        tooltip: 'Color scheme',
-        values: ['Gold & Blue', 'Cyberpunk', 'Aurora', 'Lava', 'Ice', 'Synesthesia', 'Phosphor', 'Vaporwave'],
+        tooltip: 'Color scheme (Harmonic uses Circle of Fifths)',
+        values: [
+            'Harmonic',
+            'Gold & Blue',
+            'Cyberpunk',
+            'Aurora',
+            'Lava',
+            'Ice',
+            'Synesthesia',
+            'Phosphor',
+            'Vaporwave',
+        ],
     })
     colorScheme!: string
+
+    @NumberControl({
+        default: 50,
+        label: 'Harmonic Mix',
+        max: 100,
+        min: 0,
+        tooltip: 'Blend harmonic colors with base palette',
+    })
+    harmonicColor!: number
 
     // ═══════════════════════════════════════════════════════════════
     // ANIMATION
@@ -327,7 +365,7 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
         window.treblePull = 60
         window.glowIntensity = 70
         window.rotationSpeed = 0
-        window.colorScheme = 'Gold & Blue'
+        window.colorScheme = 'Harmonic'
         window.irisStrength = 65
         window.corePulse = 60
         window.flowDrive = 50
@@ -337,12 +375,14 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
         window.particleDensity = 60
         window.particleSize = 50
         window.particleColorMix = 50
+        window.harmonicColor = 50
     }
 
     protected getControlValues(): IrisControls {
         const w = window as unknown as Record<string, unknown>
 
         const colorSchemes = [
+            'Harmonic',
             'Gold & Blue',
             'Cyberpunk',
             'Aurora',
@@ -374,6 +414,7 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
         const particleSizeFactor = normalizePercentage((w.particleSize as number) ?? 50, 100, 0.0)
         const particleColorFactor = normalizePercentage((w.particleColorMix as number) ?? 50, 100, 0.0)
         const timeSpeedFactor = normalizePercentage((w.timeSpeed as number) ?? 50, 100, 0.0)
+        const harmonicFactor = normalizePercentage((w.harmonicColor as number) ?? 50, 100, 0.0)
 
         return {
             bandSharpness: lerp(0.5, 2.0, bandFactor ** 0.8),
@@ -381,13 +422,14 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
             colorAccent: lerp(0.6, 1.6, accentFactor ** 0.9),
             colorContrast: lerp(0.7, 2.0, contrastFactor ** 0.8),
             colorScheme: comboboxValueToIndex(
-                (w.colorScheme as string | number | undefined) ?? 'Gold & Blue',
+                (w.colorScheme as string | number | undefined) ?? 'Harmonic',
                 colorSchemes,
                 0,
             ),
             corePulse: lerp(0.2, 2.8, coreFactor ** 0.95),
             flowDrive: lerp(0.2, 2.5, flowFactor ** 0.9),
             glowIntensity: lerp(0.12, 1.2, glowFactor),
+            harmonicColor: harmonicFactor,
             irisStrength: lerp(0.3, 3.2, irisFactor ** 0.85),
             particleColorMix: lerp(0.05, 1.2, particleColorFactor ** 0.9),
             particleDensity: lerp(0.05, 3.0, particleDensityFactor ** 0.8),
@@ -405,19 +447,33 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
         return {
             iAudioTime: { value: 0.0 },
             iBandSharpness: { value: 1.0 },
+            iBeatAnticipation: { value: 0.0 },
             iBeatRotation: { value: 0.0 },
             iBeatZoom: { value: 1.0 },
+            iBrightness: { value: 0.5 },
+            iChordMood: { value: 0.0 },
             iColorAccent: { value: 1.0 },
             iColorContrast: { value: 1.0 },
             iColorScheme: { value: 0 },
             iCorePulse: { value: 0.6 },
             iFlowDrive: { value: 1.0 },
+            iFlowVelocity: { value: 0.0 },
+            iFluxBass: { value: 0.0 },
+            iFluxMid: { value: 0.0 },
+            iFluxTreble: { value: 0.0 },
             iGlowIntensity: { value: 1.0 },
+            // Enhanced audio uniforms
+            iHarmonicHue: { value: 0.0 },
+            iHarmonicMix: { value: 0.5 },
             iIrisStrength: { value: 1.0 },
+            iOnsetPulse: { value: 0.0 },
             iParticleColorMix: { value: 0.5 },
             iParticleDensity: { value: 1.0 },
             iParticleSize: { value: 0.8 },
+            // Radial flow for tunnel effect
+            iRadialFlow: { value: 0.0 },
             iRotationSpeed: { value: 0.0 },
+            iRoughness: { value: 0.2 },
             iScale: { value: 1.6 },
             iSmoothMouse: { value: new THREE.Vector2(0, 0) },
         }
@@ -427,16 +483,31 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
         if (!this.material) return
 
         const audio = getAudioData()
-        const irisAudioBoost = 0.9 + audio.midEnv * 0.6 + audio.beatPulse * 0.4
-        const coreAudioBoost = 0.85 + audio.bassEnv * 0.6 + audio.beatPulse * 0.4
-        const flowAudioBoost = 0.7 + audio.momentum * 0.4 + audio.levelShort * 0.3
-        const flowBeatMod = flowAudioBoost * (0.8 + audio.beatPulse * 0.6)
-        const colorAudioAccent = 0.9 + audio.levelShort * 0.3
-        const colorAudioContrast = 0.9 + audio.momentum * 0.2
-        const bandAudioBoost = 0.8 + audio.beatPulse * 0.4
-        const particleAudioDensity = 0.8 + audio.beat * 0.3
-        const particleAudioSize = 0.9 + audio.level * 0.2
-        const particleAudioColor = 0.8 + audio.treble * 0.4
+
+        // Use new onset pulse for sharper beat detection
+        const onsetStrength = Math.max(audio.onsetPulse, audio.beatPulse * 0.7)
+
+        // Calculate anticipation (peaks just before beat)
+        const anticipation = getBeatAnticipation(audio, 0.25)
+        this.state.anticipation = lerp(this.state.anticipation, anticipation, 0.3)
+
+        // Smooth harmonic hue (handle wraparound)
+        let hueDiff = audio.harmonicHue - this.state.harmonicHueSmooth
+        if (hueDiff > 180) hueDiff -= 360
+        if (hueDiff < -180) hueDiff += 360
+        this.state.harmonicHueSmooth += hueDiff * 0.08
+
+        // Audio-driven boosts using new features
+        const irisAudioBoost = 0.9 + audio.midEnv * 0.5 + onsetStrength * 0.5 + audio.spectralFluxBands[1] * 0.3
+        const coreAudioBoost = 0.85 + audio.bassEnv * 0.5 + onsetStrength * 0.5 + audio.spectralFluxBands[0] * 0.4
+        const flowAudioBoost = 0.7 + audio.momentum * 0.4 + audio.levelShort * 0.3 + this.state.anticipation * 0.3
+        const flowBeatMod = flowAudioBoost * (0.8 + onsetStrength * 0.7)
+        const colorAudioAccent = 0.9 + audio.levelShort * 0.3 + Math.abs(audio.chordMood) * 0.2
+        const colorAudioContrast = 0.9 + audio.momentum * 0.2 + audio.brightness * 0.15
+        const bandAudioBoost = 0.8 + onsetStrength * 0.5 + audio.roughness * 0.2
+        const particleAudioDensity = 0.8 + audio.onset * 0.4 + audio.spectralFluxBands[2] * 0.3
+        const particleAudioSize = 0.9 + audio.level * 0.2 + audio.spread * 0.15
+        const particleAudioColor = 0.8 + audio.treble * 0.3 + audio.brightness * 0.2
         const bpm = audio.tempo
 
         const now = performance.now() / 1000
@@ -444,38 +515,52 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
         this.lastFrameTime = now
         const safeDelta = Math.min(deltaTime, 0.05)
 
-        const levelBoost = 0.45 + audio.levelShort * 0.9 + audio.beatPulse * 0.6
+        // Time warp influenced by onset and anticipation
+        const levelBoost = 0.45 + audio.levelShort * 0.8 + onsetStrength * 0.7 + this.state.anticipation * 0.4
         const timeWarp = (0.8 + c.timeSensitivity) * c.timeSpeed
         this.state.audioTime += safeDelta * timeWarp * levelBoost
 
-        // Accumulate beat energy for rotation - more responsive
-        this.state.beatAccum += audio.beatPulse * (0.35 + c.timeSensitivity * 0.05)
-        this.state.beatAccum = Math.max(0, decay(this.state.beatAccum, 2.6, safeDelta))
+        // Radial flow - the "flying through" effect
+        // Base velocity from flow control, boosted by bass and onsets
+        const baseFlowSpeed = c.flowDrive * 0.4
+        const audioFlowBoost = audio.bassEnv * 0.6 + onsetStrength * 0.8 + audio.momentum * 0.3
+        const targetVelocity = baseFlowSpeed * (1.0 + audioFlowBoost)
 
-        // Target rotation: base wander + beat accumulation + momentum sway
-        const spinAudio = audio.mid * 0.3 + audio.momentum * 0.4 + audio.beatPulse * 0.35
-        const rotationWander = Math.sin(this.state.audioTime * 0.25 + c.rotationSpeed) * 0.35
-        const targetRotation = rotationWander + this.state.beatAccum + spinAudio * c.rotationSpeed
+        // Smooth velocity changes but allow quick bursts on beats
+        const velocityLambda = 4.0 + onsetStrength * 8.0
+        this.state.flowVelocity = smoothApproach(this.state.flowVelocity, targetVelocity, velocityLambda, safeDelta)
 
-        // Target zoom: more pronounced pulse on beats
-        const targetZoom = 1.0 + audio.beatPulse * 0.25 + audio.swell * 0.12 + audio.levelShort * 0.12
+        // Accumulate flow distance (wraps naturally via shader fract())
+        this.state.radialFlow += this.state.flowVelocity * safeDelta
 
-        // Smooth rotation and zoom - responsive but smooth
-        const rotationLambda = 3.2 + audio.beatPulse * 4.5 + Math.abs(audio.momentum) * 2.0
-        const zoomLambda = 6 + audio.beatPulse * 6
-        this.state.smoothRotation = smoothApproach(this.state.smoothRotation, targetRotation, rotationLambda, safeDelta)
+        // Accumulate beat energy for rotation - now using spectral flux
+        this.state.beatAccum += onsetStrength * (0.4 + c.timeSensitivity * 0.06)
+        this.state.beatAccum = Math.max(0, decay(this.state.beatAccum, 2.8, safeDelta))
+
+        // Continuous forward rotation - direct accumulation, no oscillation
+        const spinAudio = audio.momentum * 0.3 + audio.level * 0.15
+        const rotationSpeed = c.rotationSpeed * (0.4 + spinAudio)
+        this.state.smoothRotation += rotationSpeed * safeDelta
+
+        // Target zoom: anticipation creates "suck in" before beat explosion
+        const anticipationZoom = 1.0 - this.state.anticipation * 0.15
+        const beatExplosion = onsetStrength * 0.3 + audio.swell * 0.12
+        const targetZoom = anticipationZoom + beatExplosion + audio.levelShort * 0.1
+
+        // Smooth zoom only
+        const zoomLambda = 8 + onsetStrength * 8
         this.state.smoothZoom = smoothApproach(this.state.smoothZoom, targetZoom, zoomLambda, safeDelta)
 
-        // Wandering path
+        // Wandering path influenced by mel bands
         const wanderRate = 0.22 + c.wanderSpeed * 0.35 + spinAudio * 0.05
         const wanderAmplitude = 0.2 + c.wanderSpeed * 0.45
         const wanderTime = this.state.audioTime * wanderRate
         const pathX = smoothNoise(wanderTime, 0) * wanderAmplitude
         const pathY = smoothNoise(wanderTime, 123.45) * wanderAmplitude
 
-        // Audio pulls - blend raw + envelope for reactivity with smoothness
-        const bassBlend = audio.bass * 0.55 + audio.bassEnv * 0.45 + audio.beat * 0.2
-        const trebleBlend = audio.treble * 0.55 + audio.trebleEnv * 0.45 + audio.beat * 0.1
+        // Audio pulls - now using spectral flux for sharper response
+        const bassBlend = audio.bass * 0.4 + audio.bassEnv * 0.3 + audio.spectralFluxBands[0] * 0.3
+        const trebleBlend = audio.treble * 0.4 + audio.trebleEnv * 0.3 + audio.spectralFluxBands[2] * 0.3
 
         const wanderNormalized = Math.min(1, c.wanderSpeed / 2.2)
         const audioWanderScale = 0.35 + wanderNormalized * 0.65
@@ -493,8 +578,8 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
         const clampedX = Math.max(-clampRange, Math.min(clampRange, targetX))
         const clampedY = Math.max(-clampRange, Math.min(clampRange, targetY))
 
-        // Responsive smoothing
-        const wanderResponse = 2.2 + audio.beatPulse * 2.4 + c.wanderSpeed * 1.4
+        // Responsive smoothing - faster on onsets
+        const wanderResponse = 2.5 + onsetStrength * 3.0 + c.wanderSpeed * 1.4
         this.state.smoothMouseX = smoothApproach(this.state.smoothMouseX, clampedX, wanderResponse, safeDelta)
         this.state.smoothMouseY = smoothApproach(this.state.smoothMouseY, clampedY, wanderResponse, safeDelta)
 
@@ -517,6 +602,22 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
         this.material.uniforms.iBeatZoom.value = this.state.smoothZoom
         this.material.uniforms.iSmoothMouse.value.set(this.state.smoothMouseX, this.state.smoothMouseY)
         this.material.uniforms.iAudioTime.value = this.state.audioTime
+
+        // Radial flow uniforms
+        this.material.uniforms.iRadialFlow.value = this.state.radialFlow
+        this.material.uniforms.iFlowVelocity.value = this.state.flowVelocity
+
+        // Enhanced audio uniforms
+        this.material.uniforms.iHarmonicHue.value = this.state.harmonicHueSmooth
+        this.material.uniforms.iHarmonicMix.value = c.harmonicColor
+        this.material.uniforms.iChordMood.value = audio.chordMood
+        this.material.uniforms.iOnsetPulse.value = onsetStrength
+        this.material.uniforms.iBeatAnticipation.value = this.state.anticipation
+        this.material.uniforms.iBrightness.value = audio.brightness
+        this.material.uniforms.iRoughness.value = audio.roughness
+        this.material.uniforms.iFluxBass.value = audio.spectralFluxBands[0]
+        this.material.uniforms.iFluxMid.value = audio.spectralFluxBands[1]
+        this.material.uniforms.iFluxTreble.value = audio.spectralFluxBands[2]
     }
 }
 
