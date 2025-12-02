@@ -53,6 +53,30 @@ export class KaleidoTunnelEffect extends WebGLEffect<KaleidoTunnelControls> {
     ]
     private readonly styleModes = ['Standard', 'Glitch', 'Holo', 'Grain']
 
+    // ═══════════════════════════════════════════════════════════════
+    // STYLE
+    // ═══════════════════════════════════════════════════════════════
+
+    @ComboboxControl({
+        default: 'Rainbow',
+        label: 'Color Mode',
+        tooltip: 'Color palette',
+        values: ['Rainbow', 'Neon', 'Monochrome', 'Electric', 'Amethyst', 'Sunset', 'Toxic', 'Vaporwave', 'Deep Sea'],
+    })
+    colorMode!: string
+
+    @ComboboxControl({
+        default: 'Standard',
+        label: 'Style',
+        tooltip: 'Post style filter',
+        values: ['Standard', 'Glitch', 'Holo', 'Grain'],
+    })
+    style!: string
+
+    // ═══════════════════════════════════════════════════════════════
+    // ANIMATION
+    // ═══════════════════════════════════════════════════════════════
+
     @NumberControl({
         default: 5,
         label: 'Animation Speed',
@@ -61,24 +85,6 @@ export class KaleidoTunnelEffect extends WebGLEffect<KaleidoTunnelControls> {
         tooltip: 'Controls motion speed (1=Slow, 10=Fast)',
     })
     speed!: number
-
-    @NumberControl({
-        default: 120,
-        label: 'Color Intensity',
-        max: 200,
-        min: 10,
-        tooltip: 'Overall brightness of colors (100=Normal)',
-    })
-    colorIntensity!: number
-
-    @NumberControl({
-        default: 120,
-        label: 'Color Saturation',
-        max: 200,
-        min: 0,
-        tooltip: 'Color saturation (100=Normal)',
-    })
-    colorSaturation!: number
 
     @NumberControl({
         default: 6,
@@ -100,42 +106,6 @@ export class KaleidoTunnelEffect extends WebGLEffect<KaleidoTunnelControls> {
     twist!: number
 
     @NumberControl({
-        default: 80,
-        label: 'Depth Falloff',
-        max: 200,
-        min: 0,
-        tooltip: 'Controls tunnel fading with distance',
-    })
-    // Removed per user request (no radial falloff)
-    depthFalloff!: number
-
-    @ComboboxControl({
-        default: 'Rainbow',
-        label: 'Color Mode',
-        tooltip: 'Color palette',
-        values: ['Rainbow', 'Neon', 'Monochrome', 'Electric', 'Amethyst', 'Sunset', 'Toxic', 'Vaporwave', 'Deep Sea'],
-    })
-    colorMode!: string
-
-    @NumberControl({
-        default: 100,
-        label: 'Color Shift',
-        max: 200,
-        min: 0,
-        tooltip: 'Hue rotation intensity',
-    })
-    colorShift!: number
-
-    @NumberControl({
-        default: 20,
-        label: 'Aberration',
-        max: 100,
-        min: 0,
-        tooltip: 'Chromatic channel offset',
-    })
-    aberration!: number
-
-    @NumberControl({
         default: 30,
         label: 'Warp',
         max: 100,
@@ -153,13 +123,36 @@ export class KaleidoTunnelEffect extends WebGLEffect<KaleidoTunnelControls> {
     })
     pulse!: number
 
-    @ComboboxControl({
-        default: 'Standard',
-        label: 'Style',
-        tooltip: 'Post style filter',
-        values: ['Standard', 'Glitch', 'Holo', 'Grain'],
+    // ═══════════════════════════════════════════════════════════════
+    // COLOR
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({
+        default: 120,
+        label: 'Color Intensity',
+        max: 200,
+        min: 10,
+        tooltip: 'Overall brightness of colors (100=Normal)',
     })
-    style!: string
+    colorIntensity!: number
+
+    @NumberControl({
+        default: 120,
+        label: 'Color Saturation',
+        max: 200,
+        min: 0,
+        tooltip: 'Color saturation (100=Normal)',
+    })
+    colorSaturation!: number
+
+    @NumberControl({
+        default: 100,
+        label: 'Color Shift',
+        max: 200,
+        min: 0,
+        tooltip: 'Hue rotation intensity',
+    })
+    colorShift!: number
 
     @NumberControl({
         default: 60,
@@ -187,6 +180,28 @@ export class KaleidoTunnelEffect extends WebGLEffect<KaleidoTunnelControls> {
         tooltip: 'Distance between mixed hues',
     })
     spectrumSpread!: number
+
+    // ═══════════════════════════════════════════════════════════════
+    // ADVANCED
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({
+        default: 80,
+        label: 'Depth Falloff',
+        max: 200,
+        min: 0,
+        tooltip: 'Controls tunnel fading with distance',
+    })
+    depthFalloff!: number
+
+    @NumberControl({
+        default: 20,
+        label: 'Aberration',
+        max: 100,
+        min: 0,
+        tooltip: 'Chromatic channel offset',
+    })
+    aberration!: number
 
     constructor() {
         super({

@@ -41,6 +41,30 @@ declare global {
     name: 'Cyber Descent',
 })
 export class CyberDescentEffect extends WebGLEffect<CyberDescentControls> {
+    // ═══════════════════════════════════════════════════════════════
+    // STYLE
+    // ═══════════════════════════════════════════════════════════════
+
+    @ComboboxControl({
+        default: 'Standard',
+        label: 'City Style',
+        tooltip: 'Controls camera behavior and atmosphere',
+        values: CYBERPUNK_MODES,
+    })
+    cyberpunkMode!: string
+
+    @ComboboxControl({
+        default: 'Classic Cyber',
+        label: 'Color Palette',
+        tooltip: 'Color scheme for windows, signs, fog, and lights',
+        values: COLOR_PALETTES,
+    })
+    colorPalette!: string
+
+    // ═══════════════════════════════════════════════════════════════
+    // ANIMATION
+    // ═══════════════════════════════════════════════════════════════
+
     @NumberControl({
         default: 5,
         label: 'Flight Speed',
@@ -59,60 +83,8 @@ export class CyberDescentEffect extends WebGLEffect<CyberDescentControls> {
     })
     zoom!: number
 
-    @ComboboxControl({
-        default: 'Standard',
-        label: 'City Style',
-        tooltip: 'Controls camera behavior and atmosphere',
-        values: CYBERPUNK_MODES,
-    })
-    cyberpunkMode!: string
-
-    @ComboboxControl({
-        default: 'Classic Cyber',
-        label: 'Color Palette',
-        tooltip: 'Color scheme for windows, signs, fog, and lights',
-        values: COLOR_PALETTES,
-    })
-    colorPalette!: string
-
-    @NumberControl({
-        default: 100,
-        label: 'Fog Density',
-        max: 200,
-        min: 10,
-        tooltip: 'Controls the density of the atmospheric fog effect',
-    })
-    fogDensity!: number
-
-    @NumberControl({
-        default: 100,
-        label: 'Light Intensity',
-        max: 200,
-        min: 10,
-        tooltip: 'Controls the brightness of the city lights',
-    })
-    lightIntensity!: number
-
-    @NumberControl({
-        default: 100,
-        label: 'Color Saturation',
-        max: 200,
-        min: 0,
-        tooltip: 'Adjust color saturation level (0=B&W, 100=Normal)',
-    })
-    colorSaturation!: number
-
-    @NumberControl({
-        default: 100,
-        label: 'Color Intensity',
-        max: 200,
-        min: 10,
-        tooltip: 'Adjust color brightness (100=Normal)',
-    })
-    colorIntensity!: number
-
     // ═══════════════════════════════════════════════════════════════
-    // MOVEMENT CONTROLS
+    // CAMERA
     // ═══════════════════════════════════════════════════════════════
 
     @NumberControl({
@@ -143,7 +115,7 @@ export class CyberDescentEffect extends WebGLEffect<CyberDescentControls> {
     cameraYaw!: number
 
     // ═══════════════════════════════════════════════════════════════
-    // STYLE CONTROLS
+    // CITY
     // ═══════════════════════════════════════════════════════════════
 
     @NumberControl({
@@ -154,6 +126,15 @@ export class CyberDescentEffect extends WebGLEffect<CyberDescentControls> {
         tooltip: 'How tall the buildings are (1=Low, 10=Skyscrapers)',
     })
     buildingHeight!: number
+
+    @NumberControl({
+        default: 2,
+        label: 'Building Fill',
+        max: 10,
+        min: 0,
+        tooltip: 'Surface detail for RGB (0=Dark gaps, 10=Full glow)',
+    })
+    buildingFill!: number
 
     @NumberControl({
         default: 5,
@@ -173,14 +154,45 @@ export class CyberDescentEffect extends WebGLEffect<CyberDescentControls> {
     })
     streetLights!: number
 
+    // ═══════════════════════════════════════════════════════════════
+    // COLOR
+    // ═══════════════════════════════════════════════════════════════
+
     @NumberControl({
-        default: 2,
-        label: 'Building Fill',
-        max: 10,
-        min: 0,
-        tooltip: 'Surface detail for RGB (0=Dark gaps, 10=Full glow)',
+        default: 100,
+        label: 'Color Intensity',
+        max: 200,
+        min: 10,
+        tooltip: 'Adjust color brightness (100=Normal)',
     })
-    buildingFill!: number
+    colorIntensity!: number
+
+    @NumberControl({
+        default: 100,
+        label: 'Color Saturation',
+        max: 200,
+        min: 0,
+        tooltip: 'Adjust color saturation level (0=B&W, 100=Normal)',
+    })
+    colorSaturation!: number
+
+    @NumberControl({
+        default: 100,
+        label: 'Light Intensity',
+        max: 200,
+        min: 10,
+        tooltip: 'Controls the brightness of the city lights',
+    })
+    lightIntensity!: number
+
+    @NumberControl({
+        default: 100,
+        label: 'Fog Density',
+        max: 200,
+        min: 10,
+        tooltip: 'Controls the density of the atmospheric fog effect',
+    })
+    fogDensity!: number
 
     constructor() {
         super({

@@ -51,6 +51,10 @@ export interface RealitySafeControls {
 export class RealityExeSafeEffect extends WebGLEffect<RealitySafeControls> {
     private readonly modes = ['Mixed', 'Dialog', 'BSOD', 'Loading', 'Glitch']
 
+    // ═══════════════════════════════════════════════════════════════
+    // STYLE
+    // ═══════════════════════════════════════════════════════════════
+
     @ComboboxControl({
         default: 'Mixed',
         label: 'Mode',
@@ -58,6 +62,10 @@ export class RealityExeSafeEffect extends WebGLEffect<RealitySafeControls> {
         values: ['Mixed', 'Dialog', 'BSOD', 'Loading', 'Glitch'],
     })
     mode!: string
+
+    // ═══════════════════════════════════════════════════════════════
+    // ANIMATION
+    // ═══════════════════════════════════════════════════════════════
 
     @NumberControl({
         default: 40,
@@ -78,6 +86,28 @@ export class RealityExeSafeEffect extends WebGLEffect<RealitySafeControls> {
     glitch!: number
 
     @NumberControl({
+        default: 80,
+        label: 'Motion Amount',
+        max: 200,
+        min: 0,
+        tooltip: 'Envelope speed/amount for subtle camera motion',
+    })
+    motion!: number
+
+    @NumberControl({
+        default: 80,
+        label: 'Mode Mix Speed',
+        max: 200,
+        min: 0,
+        tooltip: 'Speed of blending between sub-elements in Mixed mode',
+    })
+    mixSpeed!: number
+
+    // ═══════════════════════════════════════════════════════════════
+    // COLOR
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({
         default: 120,
         label: 'Saturation',
         max: 200,
@@ -95,32 +125,9 @@ export class RealityExeSafeEffect extends WebGLEffect<RealitySafeControls> {
     })
     brightness!: number
 
-    @NumberControl({
-        default: 30,
-        label: 'Flash Limit',
-        max: 100,
-        min: 0,
-        tooltip: 'Caps flicker amplitude to reduce flashing',
-    })
-    flashLimit!: number
-
-    @NumberControl({
-        default: 60,
-        label: 'Safety Damping',
-        max: 100,
-        min: 0,
-        tooltip: 'Globally damps motion and intensity',
-    })
-    safety!: number
-
-    @NumberControl({
-        default: 80,
-        label: 'Motion Amount',
-        max: 200,
-        min: 0,
-        tooltip: 'Envelope speed/amount for subtle camera motion',
-    })
-    motion!: number
+    // ═══════════════════════════════════════════════════════════════
+    // EFFECTS
+    // ═══════════════════════════════════════════════════════════════
 
     @NumberControl({
         default: 30,
@@ -149,14 +156,27 @@ export class RealityExeSafeEffect extends WebGLEffect<RealitySafeControls> {
     })
     artifact!: number
 
+    // ═══════════════════════════════════════════════════════════════
+    // SAFETY
+    // ═══════════════════════════════════════════════════════════════
+
     @NumberControl({
-        default: 80,
-        label: 'Mode Mix Speed',
-        max: 200,
+        default: 30,
+        label: 'Flash Limit',
+        max: 100,
         min: 0,
-        tooltip: 'Speed of blending between sub-elements in Mixed mode',
+        tooltip: 'Caps flicker amplitude to reduce flashing',
     })
-    mixSpeed!: number
+    flashLimit!: number
+
+    @NumberControl({
+        default: 60,
+        label: 'Safety Damping',
+        max: 100,
+        min: 0,
+        tooltip: 'Globally damps motion and intensity',
+    })
+    safety!: number
 
     constructor() {
         super({

@@ -60,7 +60,19 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
     private ambientHueTarget = 0
 
     // ═══════════════════════════════════════════════════════════════
-    // CORE CONTROLS - Keep it simple but powerful
+    // STYLE
+    // ═══════════════════════════════════════════════════════════════
+
+    @ComboboxControl({
+        default: 'Cyberpunk',
+        label: 'Color Mode',
+        tooltip: 'Network color scheme',
+        values: COLOR_MODES,
+    })
+    colorMode!: string
+
+    // ═══════════════════════════════════════════════════════════════
+    // ANIMATION
     // ═══════════════════════════════════════════════════════════════
 
     @NumberControl({
@@ -71,24 +83,6 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
         tooltip: 'Simulation speed',
     })
     speed!: number
-
-    @NumberControl({
-        default: 120,
-        label: 'Nodes',
-        max: 300,
-        min: 30,
-        tooltip: 'Number of network nodes',
-    })
-    particleCount!: number
-
-    @NumberControl({
-        default: 5,
-        label: 'Node Size',
-        max: 20,
-        min: 2,
-        tooltip: 'Base node size',
-    })
-    particleSize!: number
 
     @NumberControl({
         default: 8,
@@ -117,6 +111,37 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
     })
     networkActivity!: number
 
+    // ═══════════════════════════════════════════════════════════════
+    // NODES
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({
+        default: 120,
+        label: 'Nodes',
+        max: 300,
+        min: 30,
+        tooltip: 'Number of network nodes',
+    })
+    particleCount!: number
+
+    @NumberControl({
+        default: 5,
+        label: 'Node Size',
+        max: 20,
+        min: 2,
+        tooltip: 'Base node size',
+    })
+    particleSize!: number
+
+    @NumberControl({
+        default: 60,
+        label: 'Node Brightness',
+        max: 100,
+        min: 10,
+        tooltip: 'How bright/intense the nodes appear (lower = softer bokeh)',
+    })
+    nodeBrightness!: number
+
     @NumberControl({
         default: 70,
         label: 'Glow',
@@ -126,13 +151,9 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
     })
     glowIntensity!: number
 
-    @ComboboxControl({
-        default: 'Cyberpunk',
-        label: 'Color Mode',
-        tooltip: 'Network color scheme',
-        values: COLOR_MODES,
-    })
-    colorMode!: string
+    // ═══════════════════════════════════════════════════════════════
+    // CONNECTIONS
+    // ═══════════════════════════════════════════════════════════════
 
     @BooleanControl({
         default: true,
@@ -159,6 +180,10 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
     })
     connectorGlow!: number
 
+    // ═══════════════════════════════════════════════════════════════
+    // AMBIENCE
+    // ═══════════════════════════════════════════════════════════════
+
     @NumberControl({
         default: 60,
         label: 'Ambience',
@@ -167,15 +192,6 @@ export class GlowParticlesEffect extends CanvasEffect<GlowParticlesControls> {
         tooltip: 'Background nebula clouds and ambient glow (0=off)',
     })
     ambience!: number
-
-    @NumberControl({
-        default: 60,
-        label: 'Node Brightness',
-        max: 100,
-        min: 10,
-        tooltip: 'How bright/intense the nodes appear (lower = softer bokeh)',
-    })
-    nodeBrightness!: number
 
     @NumberControl({
         default: 0,

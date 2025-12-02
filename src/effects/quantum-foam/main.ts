@@ -55,82 +55,9 @@ export interface QuantumFoamControls {
     name: 'Quantum Foam',
 })
 export class QuantumFoamEffect extends WebGLEffect<QuantumFoamControls> {
-    @NumberControl({
-        default: 100,
-        label: 'Foam Density',
-        max: 200,
-        min: 0,
-        tooltip: 'Overall foam complexity and depth',
-    })
-    density!: number
-
-    @NumberControl({
-        default: 60,
-        label: 'Fluctuation Speed',
-        max: 100,
-        min: 0,
-        tooltip: 'Speed of foam evolution',
-    })
-    fluctuationSpeed!: number
-
-    @NumberControl({
-        default: 120,
-        label: 'Energy (Brightness)',
-        max: 200,
-        min: 10,
-        tooltip: 'Brightness/energy of the foam',
-    })
-    energy!: number
-
-    @NumberControl({
-        default: 120,
-        label: 'Saturation',
-        max: 200,
-        min: 0,
-        tooltip: 'Color saturation of the foam',
-    })
-    saturation!: number
-
-    @NumberControl({
-        default: 100,
-        label: 'Foam Scale',
-        max: 400,
-        min: 50,
-        tooltip: 'Spatial scale of the foam pattern',
-    })
-    foamScale!: number
-
-    @NumberControl({
-        default: 80,
-        label: 'Turbulence',
-        max: 200,
-        min: 0,
-        tooltip: 'Warping intensity for flow field',
-    })
-    turbulence!: number
-
-    @NumberControl({
-        default: 30,
-        label: 'Collapse Rate',
-        max: 100,
-        min: 0,
-        tooltip: 'Frequency of collapse flashes',
-    })
-    collapseRate!: number
-
-    @BooleanControl({
-        default: false,
-        label: 'Observer Effect',
-        tooltip: 'Stabilize and sharpen when observed',
-    })
-    observer!: boolean
-
-    @BooleanControl({
-        default: true,
-        label: 'Virtual Particles',
-        tooltip: 'Enable particle pair pop-in/out',
-    })
-    virtualParticles!: boolean
+    // ═══════════════════════════════════════════════════════════════
+    // STYLE
+    // ═══════════════════════════════════════════════════════════════
 
     @ComboboxControl({
         default: 'Aurora',
@@ -155,6 +82,95 @@ export class QuantumFoamEffect extends WebGLEffect<QuantumFoamControls> {
         ],
     })
     palette!: string
+
+    // ═══════════════════════════════════════════════════════════════
+    // ANIMATION
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({
+        default: 60,
+        label: 'Fluctuation Speed',
+        max: 100,
+        min: 0,
+        tooltip: 'Speed of foam evolution',
+    })
+    fluctuationSpeed!: number
+
+    @NumberControl({
+        default: 80,
+        label: 'Turbulence',
+        max: 200,
+        min: 0,
+        tooltip: 'Warping intensity for flow field',
+    })
+    turbulence!: number
+
+    @NumberControl({
+        default: 30,
+        label: 'Collapse Rate',
+        max: 100,
+        min: 0,
+        tooltip: 'Frequency of collapse flashes',
+    })
+    collapseRate!: number
+
+    // ═══════════════════════════════════════════════════════════════
+    // FOAM
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({
+        default: 100,
+        label: 'Foam Density',
+        max: 200,
+        min: 0,
+        tooltip: 'Overall foam complexity and depth',
+    })
+    density!: number
+
+    @NumberControl({
+        default: 100,
+        label: 'Foam Scale',
+        max: 400,
+        min: 50,
+        tooltip: 'Spatial scale of the foam pattern',
+    })
+    foamScale!: number
+
+    @BooleanControl({
+        default: true,
+        label: 'Virtual Particles',
+        tooltip: 'Enable particle pair pop-in/out',
+    })
+    virtualParticles!: boolean
+
+    @BooleanControl({
+        default: false,
+        label: 'Observer Effect',
+        tooltip: 'Stabilize and sharpen when observed',
+    })
+    observer!: boolean
+
+    // ═══════════════════════════════════════════════════════════════
+    // COLOR
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({
+        default: 120,
+        label: 'Energy (Brightness)',
+        max: 200,
+        min: 10,
+        tooltip: 'Brightness/energy of the foam',
+    })
+    energy!: number
+
+    @NumberControl({
+        default: 120,
+        label: 'Saturation',
+        max: 200,
+        min: 0,
+        tooltip: 'Color saturation of the foam',
+    })
+    saturation!: number
 
     @NumberControl({
         default: 40,

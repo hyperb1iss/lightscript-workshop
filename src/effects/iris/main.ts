@@ -124,14 +124,52 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
 
     private lastFrameTime = 0
 
-    @NumberControl({
-        default: 80,
-        label: 'Scale',
-        max: 200,
-        min: 20,
-        tooltip: 'Zoom level',
+    // ═══════════════════════════════════════════════════════════════
+    // STYLE
+    // ═══════════════════════════════════════════════════════════════
+
+    @ComboboxControl({
+        default: 'Gold & Blue',
+        label: 'Colors',
+        tooltip: 'Color scheme',
+        values: ['Gold & Blue', 'Cyberpunk', 'Aurora', 'Lava', 'Ice', 'Synesthesia', 'Phosphor', 'Vaporwave'],
     })
-    scale!: number
+    colorScheme!: string
+
+    // ═══════════════════════════════════════════════════════════════
+    // ANIMATION
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({
+        default: 50,
+        label: 'Time Speed',
+        max: 100,
+        min: 0,
+        tooltip: 'Control animation speed',
+    })
+    timeSpeed!: number
+
+    @NumberControl({
+        default: 0,
+        label: 'Rotation',
+        max: 100,
+        min: 0,
+        tooltip: 'Pattern rotation speed',
+    })
+    rotationSpeed!: number
+
+    @NumberControl({
+        default: 50,
+        label: 'Flow',
+        max: 100,
+        min: 0,
+        tooltip: 'Continuous outward flow strength',
+    })
+    flowDrive!: number
+
+    // ═══════════════════════════════════════════════════════════════
+    // AUDIO
+    // ═══════════════════════════════════════════════════════════════
 
     @NumberControl({
         default: 30,
@@ -169,31 +207,18 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
     })
     treblePull!: number
 
-    @NumberControl({
-        default: 70,
-        label: 'Glow',
-        max: 100,
-        min: 0,
-        tooltip: 'Center glow intensity',
-    })
-    glowIntensity!: number
+    // ═══════════════════════════════════════════════════════════════
+    // PATTERN
+    // ═══════════════════════════════════════════════════════════════
 
     @NumberControl({
-        default: 0,
-        label: 'Rotation',
-        max: 100,
-        min: 0,
-        tooltip: 'Pattern rotation speed',
+        default: 80,
+        label: 'Scale',
+        max: 200,
+        min: 20,
+        tooltip: 'Zoom level',
     })
-    rotationSpeed!: number
-
-    @ComboboxControl({
-        default: 'Gold & Blue',
-        label: 'Colors',
-        tooltip: 'Color scheme',
-        values: ['Gold & Blue', 'Cyberpunk', 'Aurora', 'Lava', 'Ice', 'Synesthesia', 'Phosphor', 'Vaporwave'],
-    })
-    colorScheme!: string
+    scale!: number
 
     @NumberControl({
         default: 65,
@@ -215,12 +240,25 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
 
     @NumberControl({
         default: 50,
-        label: 'Flow',
+        label: 'Bands',
         max: 100,
         min: 0,
-        tooltip: 'Continuous outward flow strength',
+        tooltip: 'Sharpen or soften band edges',
     })
-    flowDrive!: number
+    bandSharpness!: number
+
+    // ═══════════════════════════════════════════════════════════════
+    // COLOR
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({
+        default: 70,
+        label: 'Glow',
+        max: 100,
+        min: 0,
+        tooltip: 'Center glow intensity',
+    })
+    glowIntensity!: number
 
     @NumberControl({
         default: 65,
@@ -240,14 +278,9 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
     })
     colorContrast!: number
 
-    @NumberControl({
-        default: 50,
-        label: 'Bands',
-        max: 100,
-        min: 0,
-        tooltip: 'Sharpen or soften band edges',
-    })
-    bandSharpness!: number
+    // ═══════════════════════════════════════════════════════════════
+    // TEXTURE
+    // ═══════════════════════════════════════════════════════════════
 
     @NumberControl({
         default: 60,
@@ -275,15 +308,6 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
         tooltip: 'Texture color mixing',
     })
     particleColorMix!: number
-
-    @NumberControl({
-        default: 50,
-        label: 'Time Speed',
-        max: 100,
-        min: 0,
-        tooltip: 'Control animation speed',
-    })
-    timeSpeed!: number
 
     constructor() {
         super({

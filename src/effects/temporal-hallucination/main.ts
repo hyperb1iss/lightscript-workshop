@@ -32,7 +32,10 @@ interface TemporalHallucinationControls {
     name: 'Temporal Hallucination',
 })
 export class TemporalHallucinationEffect extends CanvasEffect<TemporalHallucinationControls> {
-    // Controls
+    // ═══════════════════════════════════════════════════════════════
+    // ANIMATION
+    // ═══════════════════════════════════════════════════════════════
+
     @NumberControl({
         default: 5,
         label: 'Speed',
@@ -43,31 +46,17 @@ export class TemporalHallucinationEffect extends CanvasEffect<TemporalHallucinat
     speed!: number
 
     @NumberControl({
-        default: 120,
-        label: 'Color Intensity',
-        max: 200,
-        min: 10,
-        tooltip: 'Brightness multiplier for colors',
-    })
-    colorIntensity!: number
-
-    @NumberControl({
-        default: 120,
-        label: 'Color Saturation',
+        default: 60,
+        label: 'Hue Shift Speed',
         max: 200,
         min: 0,
-        tooltip: 'Saturation multiplier',
+        tooltip: 'Speed of color cycling',
     })
-    colorSaturation!: number
+    hueShiftSpeed!: number
 
-    @NumberControl({
-        default: 70,
-        label: 'Echo Strength',
-        max: 100,
-        min: 0,
-        tooltip: 'Opacity of echo layers (higher = brighter echoes)',
-    })
-    echoStrength!: number
+    // ═══════════════════════════════════════════════════════════════
+    // ECHO
+    // ═══════════════════════════════════════════════════════════════
 
     @NumberControl({
         default: 3,
@@ -77,6 +66,15 @@ export class TemporalHallucinationEffect extends CanvasEffect<TemporalHallucinat
         tooltip: 'How many echo layers to draw each frame',
     })
     echoes!: number
+
+    @NumberControl({
+        default: 70,
+        label: 'Echo Strength',
+        max: 100,
+        min: 0,
+        tooltip: 'Opacity of echo layers (higher = brighter echoes)',
+    })
+    echoStrength!: number
 
     @NumberControl({
         default: 6,
@@ -97,6 +95,19 @@ export class TemporalHallucinationEffect extends CanvasEffect<TemporalHallucinat
     offset!: number
 
     @NumberControl({
+        default: 24,
+        label: 'Feedback Fade',
+        max: 70,
+        min: 5,
+        tooltip: 'Per-frame black fade (percent). Lower = longer trails, higher = shorter trails',
+    })
+    feedbackFade!: number
+
+    // ═══════════════════════════════════════════════════════════════
+    // PATTERN
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({
         default: 35,
         label: 'Motif Density',
         max: 200,
@@ -105,23 +116,27 @@ export class TemporalHallucinationEffect extends CanvasEffect<TemporalHallucinat
     })
     density!: number
 
-    @NumberControl({
-        default: 60,
-        label: 'Hue Shift Speed',
-        max: 200,
-        min: 0,
-        tooltip: 'Speed of color cycling',
-    })
-    hueShiftSpeed!: number
+    // ═══════════════════════════════════════════════════════════════
+    // COLOR
+    // ═══════════════════════════════════════════════════════════════
 
     @NumberControl({
-        default: 24,
-        label: 'Feedback Fade',
-        max: 70,
-        min: 5,
-        tooltip: 'Per-frame black fade (percent). Lower = longer trails, higher = shorter trails',
+        default: 120,
+        label: 'Color Intensity',
+        max: 200,
+        min: 10,
+        tooltip: 'Brightness multiplier for colors',
     })
-    feedbackFade!: number
+    colorIntensity!: number
+
+    @NumberControl({
+        default: 120,
+        label: 'Color Saturation',
+        max: 200,
+        min: 0,
+        tooltip: 'Saturation multiplier',
+    })
+    colorSaturation!: number
 
     // Internal state
     protected normalizedSpeed = 1.0

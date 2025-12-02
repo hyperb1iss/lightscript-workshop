@@ -51,6 +51,30 @@ export interface AudioPulseControls {
     name: 'Audio Pulse',
 })
 export class AudioPulseEffect extends WebGLEffect<AudioPulseControls> {
+    // ═══════════════════════════════════════════════════════════════
+    // STYLE
+    // ═══════════════════════════════════════════════════════════════
+
+    @ComboboxControl({
+        default: 'Pulse Field',
+        label: 'Style',
+        tooltip: 'Visualization style',
+        values: ['Pulse Field', 'Grid', 'Waveform', 'Vortex'],
+    })
+    visualStyle!: string
+
+    @ComboboxControl({
+        default: 'Cyberpunk',
+        label: 'Colors',
+        tooltip: 'Color scheme preset',
+        values: ['Cyberpunk', 'Lava', 'Aurora', 'Vaporwave', 'Toxic', 'Prism'],
+    })
+    colorScheme!: string
+
+    // ═══════════════════════════════════════════════════════════════
+    // AUDIO
+    // ═══════════════════════════════════════════════════════════════
+
     @NumberControl({
         default: 50,
         label: 'Sensitivity',
@@ -77,6 +101,10 @@ export class AudioPulseEffect extends WebGLEffect<AudioPulseControls> {
         tooltip: 'Bass frequency emphasis',
     })
     bassBoost!: number
+
+    // ═══════════════════════════════════════════════════════════════
+    // VISUAL
+    // ═══════════════════════════════════════════════════════════════
 
     @NumberControl({
         default: 30,
@@ -106,6 +134,19 @@ export class AudioPulseEffect extends WebGLEffect<AudioPulseControls> {
     glowIntensity!: number
 
     @NumberControl({
+        default: 30,
+        label: 'Flow',
+        max: 100,
+        min: -100,
+        tooltip: 'Negative = inward pull, positive = outward burst',
+    })
+    flow!: number
+
+    // ═══════════════════════════════════════════════════════════════
+    // ADVANCED
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({
         default: 0,
         label: 'Direction',
         max: 360,
@@ -122,31 +163,6 @@ export class AudioPulseEffect extends WebGLEffect<AudioPulseControls> {
         tooltip: 'Pulse Field lattice bend strength',
     })
     bend!: number
-
-    @NumberControl({
-        default: 30,
-        label: 'Flow',
-        max: 100,
-        min: -100,
-        tooltip: 'Negative = inward pull, positive = outward burst',
-    })
-    flow!: number
-
-    @ComboboxControl({
-        default: 'Pulse Field',
-        label: 'Style',
-        tooltip: 'Visualization style',
-        values: ['Pulse Field', 'Grid', 'Waveform', 'Vortex'],
-    })
-    visualStyle!: string
-
-    @ComboboxControl({
-        default: 'Cyberpunk',
-        label: 'Colors',
-        tooltip: 'Color scheme preset',
-        values: ['Cyberpunk', 'Lava', 'Aurora', 'Vaporwave', 'Toxic', 'Prism'],
-    })
-    colorScheme!: string
 
     constructor() {
         super({

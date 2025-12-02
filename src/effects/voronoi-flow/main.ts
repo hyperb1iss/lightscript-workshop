@@ -65,20 +65,9 @@ export class VoronoiFlowEffect extends WebGLEffect<VoronoiFlowControls> {
         'Magma',
     ]
 
-    @NumberControl({ default: 120, label: 'Scale', max: 400, min: 30, tooltip: 'Cell size' })
-    scale!: number
-
-    @NumberControl({ default: 70, label: 'Speed', max: 200, min: 0, tooltip: 'Flow speed' })
-    speed!: number
-
-    @NumberControl({ default: 110, label: 'Ridge', max: 200, min: 0, tooltip: 'Ridge sharpness' })
-    ridge!: number
-
-    @NumberControl({ default: 80, label: 'Swirl', max: 200, min: 0, tooltip: 'Domain warp amplitude' })
-    swirl!: number
-
-    @NumberControl({ default: 60, label: 'Shimmer', max: 200, min: 0, tooltip: 'Edge sparkle amount' })
-    shimmer!: number
+    // ═══════════════════════════════════════════════════════════════
+    // STYLE
+    // ═══════════════════════════════════════════════════════════════
 
     @ComboboxControl({
         default: 'Rainbow',
@@ -104,6 +93,33 @@ export class VoronoiFlowEffect extends WebGLEffect<VoronoiFlowControls> {
         ],
     })
     palette!: string
+
+    // ═══════════════════════════════════════════════════════════════
+    // ANIMATION
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({ default: 70, label: 'Speed', max: 200, min: 0, tooltip: 'Flow speed' })
+    speed!: number
+
+    @NumberControl({ default: 80, label: 'Swirl', max: 200, min: 0, tooltip: 'Domain warp amplitude' })
+    swirl!: number
+
+    // ═══════════════════════════════════════════════════════════════
+    // PATTERN
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({ default: 120, label: 'Scale', max: 400, min: 30, tooltip: 'Cell size' })
+    scale!: number
+
+    @NumberControl({ default: 110, label: 'Ridge', max: 200, min: 0, tooltip: 'Ridge sharpness' })
+    ridge!: number
+
+    @NumberControl({ default: 60, label: 'Shimmer', max: 200, min: 0, tooltip: 'Edge sparkle amount' })
+    shimmer!: number
+
+    // ═══════════════════════════════════════════════════════════════
+    // COLOR
+    // ═══════════════════════════════════════════════════════════════
 
     @NumberControl({ default: 130, label: 'Saturation', max: 200, min: 0, tooltip: 'Color saturation' })
     saturation!: number

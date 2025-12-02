@@ -91,21 +91,9 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
     // Effect style options for conversion
     private readonly effectStyles = ['Standard', 'Wireframe', 'Glitch', 'Hologram', 'Film Noir']
 
-    @NumberControl({
-        default: 5,
-        label: 'Animation Speed',
-        max: 10,
-        min: 1,
-        tooltip: 'Controls the speed of the animation effect (1=Slow, 10=Fast)',
-    })
-    speed!: number
-
-    @BooleanControl({
-        default: true,
-        label: 'Color Shift',
-        tooltip: 'Toggles additional color shifting effects',
-    })
-    colorShift!: boolean
+    // ═══════════════════════════════════════════════════════════════
+    // STYLE
+    // ═══════════════════════════════════════════════════════════════
 
     @ComboboxControl({
         default: 'Classic Blue',
@@ -140,23 +128,25 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
     })
     effectStyle!: string
 
-    @NumberControl({
-        default: 100,
-        label: 'Color Intensity',
-        max: 200,
-        min: 1,
-        tooltip: 'Adjust the intensity of colors (0=Muted, 100=Normal, 200=Vibrant)',
-    })
-    colorIntensity!: number
+    // ═══════════════════════════════════════════════════════════════
+    // ANIMATION
+    // ═══════════════════════════════════════════════════════════════
 
     @NumberControl({
-        default: 0,
-        label: 'Color Pulse',
+        default: 5,
+        label: 'Animation Speed',
         max: 10,
-        min: 0,
-        tooltip: 'Add rhythmic color pulsing (0=Off, 10=Intense)',
+        min: 1,
+        tooltip: 'Controls the speed of the animation effect (1=Slow, 10=Fast)',
     })
-    colorPulse!: number
+    speed!: number
+
+    @BooleanControl({
+        default: false,
+        label: 'Reverse Direction',
+        tooltip: 'Reverse the direction of tunnel movement',
+    })
+    motionReverse!: boolean
 
     @NumberControl({
         default: 0,
@@ -167,12 +157,18 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
     })
     motionWave!: number
 
-    @BooleanControl({
-        default: false,
-        label: 'Reverse Direction',
-        tooltip: 'Reverse the direction of tunnel movement',
+    // ═══════════════════════════════════════════════════════════════
+    // COLOR
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({
+        default: 100,
+        label: 'Color Intensity',
+        max: 200,
+        min: 1,
+        tooltip: 'Adjust the intensity of colors (0=Muted, 100=Normal, 200=Vibrant)',
     })
-    motionReverse!: boolean
+    colorIntensity!: number
 
     @NumberControl({
         default: 100,
@@ -183,8 +179,33 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
     })
     colorSaturation!: number
 
+    @BooleanControl({
+        default: true,
+        label: 'Color Shift',
+        tooltip: 'Toggles additional color shifting effects',
+    })
+    colorShift!: boolean
+
+    @NumberControl({
+        default: 5,
+        label: 'Color Cycle Speed',
+        max: 10,
+        min: 0,
+        tooltip: 'How fast colors shift and morph (0=Frozen, 10=Hyperdrive)',
+    })
+    colorCycleSpeed!: number
+
+    @NumberControl({
+        default: 0,
+        label: 'Color Pulse',
+        max: 10,
+        min: 0,
+        tooltip: 'Add rhythmic color pulsing (0=Off, 10=Intense)',
+    })
+    colorPulse!: number
+
     // ═══════════════════════════════════════════════════════════════
-    // NEW POWERFUL CONTROLS
+    // TUNNEL
     // ═══════════════════════════════════════════════════════════════
 
     @NumberControl({
@@ -195,15 +216,6 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
         tooltip: 'Claustrophobic tight (1) to vast cavernous (10)',
     })
     tunnelWidth!: number
-
-    @NumberControl({
-        default: 5,
-        label: 'Camera Tilt',
-        max: 10,
-        min: 0,
-        tooltip: 'How much the view rocks and sways (0=Stable, 10=Drunk)',
-    })
-    cameraTilt!: number
 
     @NumberControl({
         default: 5,
@@ -223,6 +235,10 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
     })
     fogDensity!: number
 
+    // ═══════════════════════════════════════════════════════════════
+    // CAMERA
+    // ═══════════════════════════════════════════════════════════════
+
     @NumberControl({
         default: 5,
         label: 'Zoom / FOV',
@@ -234,12 +250,12 @@ export class PuffStuffEffect extends WebGLEffect<PuffStuffControls> {
 
     @NumberControl({
         default: 5,
-        label: 'Color Cycle Speed',
+        label: 'Camera Tilt',
         max: 10,
         min: 0,
-        tooltip: 'How fast colors shift and morph (0=Frozen, 10=Hyperdrive)',
+        tooltip: 'How much the view rocks and sways (0=Stable, 10=Drunk)',
     })
-    colorCycleSpeed!: number
+    cameraTilt!: number
 
     constructor() {
         super({

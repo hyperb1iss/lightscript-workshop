@@ -51,35 +51,9 @@ export interface BlackHoleControls {
     name: 'Black Hole Spaghettification',
 })
 export class BlackHoleEffect extends WebGLEffect<BlackHoleControls> {
-    @NumberControl({ default: 120, label: 'Mass', max: 200, min: 20, tooltip: 'Gravitational strength' })
-    mass!: number
-
-    @NumberControl({ default: 60, label: 'Spin', max: 100, min: 0, tooltip: 'Frame dragging (swirl)' })
-    spin!: number
-
-    @NumberControl({ default: 130, label: 'Disk Intensity', max: 200, min: 0, tooltip: 'Accretion disk brightness' })
-    diskIntensity!: number
-
-    @NumberControl({ default: 50, label: 'Disk Thickness', max: 100, min: 0, tooltip: 'Accretion disk width' })
-    diskThickness!: number
-
-    @NumberControl({ default: 100, label: 'Lensing', max: 200, min: 0, tooltip: 'Warp amount' })
-    lensing!: number
-
-    @NumberControl({ default: 80, label: 'Star Density', max: 200, min: 0, tooltip: 'Background star density' })
-    starDensity!: number
-
-    @NumberControl({ default: 70, label: 'Relativity', max: 100, min: 0, tooltip: 'Relativistic effects strength' })
-    relativity!: number
-
-    @NumberControl({ default: 120, label: 'Saturation', max: 200, min: 0, tooltip: 'Color saturation' })
-    saturation!: number
-
-    @NumberControl({ default: 110, label: 'Brightness', max: 200, min: 10, tooltip: 'Overall brightness' })
-    brightness!: number
-
-    @NumberControl({ default: 35, label: 'Highlights', max: 100, min: 0, tooltip: 'Roll-off for bright highlights' })
-    highlight!: number
+    // ═══════════════════════════════════════════════════════════════
+    // STYLE
+    // ═══════════════════════════════════════════════════════════════
 
     @ComboboxControl({
         default: 'Aurora',
@@ -105,6 +79,48 @@ export class BlackHoleEffect extends WebGLEffect<BlackHoleControls> {
         ],
     })
     palette!: string
+
+    // ═══════════════════════════════════════════════════════════════
+    // BLACK HOLE
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({ default: 120, label: 'Mass', max: 200, min: 20, tooltip: 'Gravitational strength' })
+    mass!: number
+
+    @NumberControl({ default: 60, label: 'Spin', max: 100, min: 0, tooltip: 'Frame dragging (swirl)' })
+    spin!: number
+
+    @NumberControl({ default: 100, label: 'Lensing', max: 200, min: 0, tooltip: 'Warp amount' })
+    lensing!: number
+
+    @NumberControl({ default: 70, label: 'Relativity', max: 100, min: 0, tooltip: 'Relativistic effects strength' })
+    relativity!: number
+
+    // ═══════════════════════════════════════════════════════════════
+    // ACCRETION DISK
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({ default: 130, label: 'Disk Intensity', max: 200, min: 0, tooltip: 'Accretion disk brightness' })
+    diskIntensity!: number
+
+    @NumberControl({ default: 50, label: 'Disk Thickness', max: 100, min: 0, tooltip: 'Accretion disk width' })
+    diskThickness!: number
+
+    @NumberControl({ default: 80, label: 'Star Density', max: 200, min: 0, tooltip: 'Background star density' })
+    starDensity!: number
+
+    // ═══════════════════════════════════════════════════════════════
+    // COLOR
+    // ═══════════════════════════════════════════════════════════════
+
+    @NumberControl({ default: 120, label: 'Saturation', max: 200, min: 0, tooltip: 'Color saturation' })
+    saturation!: number
+
+    @NumberControl({ default: 110, label: 'Brightness', max: 200, min: 10, tooltip: 'Overall brightness' })
+    brightness!: number
+
+    @NumberControl({ default: 35, label: 'Highlights', max: 100, min: 0, tooltip: 'Roll-off for bright highlights' })
+    highlight!: number
 
     constructor() {
         super({ debug: true, fragmentShader, id: 'black-hole', name: 'Black Hole Spaghettification' })
