@@ -4,8 +4,13 @@ import type { ConfigEnv } from 'vite'
 import { defineConfig } from 'vite'
 import glsl from 'vite-plugin-glsl'
 
-// Import our custom plugins (still from old location during refactor)
-import { getEffectBuildConfig, lightscriptDecoratorsPlugin, signalRGBPlugin, startupLogoPlugin } from './plugins'
+// Import our custom plugins from the dev package
+import {
+    getEffectBuildConfig,
+    lightscriptDecoratorsPlugin,
+    signalRGBPlugin,
+    startupLogoPlugin,
+} from './packages/dev/plugins'
 
 export default defineConfig(({ command }: ConfigEnv) => {
     const isDevelopment = command === 'serve'
