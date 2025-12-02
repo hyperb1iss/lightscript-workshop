@@ -7,6 +7,7 @@
 
 import { execSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
+import { cpus } from 'node:os'
 import { resolve } from 'node:path'
 
 // SilkCircuit Neon palette
@@ -102,7 +103,7 @@ console.log(`${NEON_GREEN}[✓]${RESET} ${BOLD}TypeScript${RESET} compilation ${
 
 // Build all effects in parallel for faster builds
 const total = effects.length
-const maxConcurrency = Math.min(4, total) // Limit to 4 parallel builds
+const maxConcurrency = Math.min(cpus().length, total)
 
 console.log(
     `${NEON_PURPLE}[⚡]${RESET} ${BOLD}Building ${total} effects${RESET} with ${maxConcurrency} parallel workers...\n`,
