@@ -84,6 +84,13 @@ interface WanderState {
     harmonicHueSmooth: number
     radialFlow: number // Accumulated outward flow distance
     flowVelocity: number // Current flow speed (smoothed)
+    // Asymmetrically smoothed values (fast attack, slow decay)
+    glowEnergy: number
+    coreEnergy: number
+    irisEnergy: number
+    // Sub-bass displacement - visceral screen shake on deep bass hits
+    subBassEnergy: number
+    displacementAngle: number // Slowly rotating direction of displacement
 }
 
 function hashNoise(x: number, seed: number): number {
@@ -115,6 +122,22 @@ function smoothApproach(current: number, target: number, lambda: number, deltaTi
     return current + (target - current) * factor
 }
 
+/**
+ * Asymmetric smoothing - fast attack, slow decay
+ * Makes visuals feel organic: responsive to new sounds, lingering trails
+ */
+function smoothAsymmetric(
+    current: number,
+    target: number,
+    attackLambda: number,
+    decayLambda: number,
+    deltaTime: number,
+): number {
+    const lambda = target > current ? attackLambda : decayLambda
+    const factor = 1 - Math.exp(-lambda * Math.max(deltaTime, 0))
+    return current + (target - current) * factor
+}
+
 function decay(value: number, lambda: number, deltaTime: number): number {
     if (!Number.isFinite(lambda) || lambda <= 0) return value
     return value * Math.exp(-lambda * Math.max(deltaTime, 0))
@@ -132,13 +155,20 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
         anticipation: 0,
         audioTime: 0,
         beatAccum: 0,
+        coreEnergy: 0,
+        displacementAngle: 0,
         flowVelocity: 0,
+        // Asymmetric smoothed values
+        glowEnergy: 0,
         harmonicHueSmooth: 0,
+        irisEnergy: 0,
         radialFlow: 0,
         smoothMouseX: 0,
         smoothMouseY: 0,
         smoothRotation: 0,
         smoothZoom: 1,
+        // Sub-bass displacement
+        subBassEnergy: 0,
     }
 
     private lastFrameTime = 0
@@ -455,16 +485,20 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
             iColorAccent: { value: 1.0 },
             iColorContrast: { value: 1.0 },
             iColorScheme: { value: 0 },
+            iCoreEnergy: { value: 0.8 },
             iCorePulse: { value: 0.6 },
             iFlowDrive: { value: 1.0 },
             iFlowVelocity: { value: 0.0 },
             iFluxBass: { value: 0.0 },
             iFluxMid: { value: 0.0 },
             iFluxTreble: { value: 0.0 },
+            // Asymmetrically smoothed energies (fast attack, slow decay)
+            iGlowEnergy: { value: 0.7 },
             iGlowIntensity: { value: 1.0 },
             // Enhanced audio uniforms
             iHarmonicHue: { value: 0.0 },
             iHarmonicMix: { value: 0.5 },
+            iIrisEnergy: { value: 0.85 },
             iIrisStrength: { value: 1.0 },
             iOnsetPulse: { value: 0.0 },
             iParticleColorMix: { value: 0.5 },
@@ -476,6 +510,8 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
             iRoughness: { value: 0.2 },
             iScale: { value: 1.6 },
             iSmoothMouse: { value: new THREE.Vector2(0, 0) },
+            // Sub-bass displacement - visceral UV shake on deep bass
+            iSubBassDisplace: { value: new THREE.Vector2(0, 0) },
         }
     }
 
@@ -526,9 +562,14 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
         const audioFlowBoost = audio.bassEnv * 0.6 + onsetStrength * 0.8 + audio.momentum * 0.3
         const targetVelocity = baseFlowSpeed * (1.0 + audioFlowBoost)
 
-        // Smooth velocity changes but allow quick bursts on beats
-        const velocityLambda = 4.0 + onsetStrength * 8.0
-        this.state.flowVelocity = smoothApproach(this.state.flowVelocity, targetVelocity, velocityLambda, safeDelta)
+        // Asymmetric: fast surge on beats, slow coast down
+        this.state.flowVelocity = smoothAsymmetric(
+            this.state.flowVelocity,
+            targetVelocity,
+            18, // Fast attack - responsive to beats
+            3, // Slow decay - coast and linger
+            safeDelta,
+        )
 
         // Accumulate flow distance (wraps naturally via shader fract())
         this.state.radialFlow += this.state.flowVelocity * safeDelta
@@ -547,9 +588,37 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
         const beatExplosion = onsetStrength * 0.3 + audio.swell * 0.12
         const targetZoom = anticipationZoom + beatExplosion + audio.levelShort * 0.1
 
-        // Smooth zoom only
-        const zoomLambda = 8 + onsetStrength * 8
-        this.state.smoothZoom = smoothApproach(this.state.smoothZoom, targetZoom, zoomLambda, safeDelta)
+        // Asymmetric zoom: snap out on beats, settle slowly
+        this.state.smoothZoom = smoothAsymmetric(
+            this.state.smoothZoom,
+            targetZoom,
+            20, // Fast punch
+            4, // Slow settle
+            safeDelta,
+        )
+
+        // Asymmetric energy smoothing for visual elements
+        // Fast flash on transients, slow fade creates lingering trails
+        const targetGlow = 0.7 + audio.levelShort * 0.5 + onsetStrength * 0.6 + audio.brightness * 0.3
+        const targetCore = 0.8 + audio.bassEnv * 0.6 + onsetStrength * 0.5 + audio.spectralFluxBands[0] * 0.4
+        const targetIris = 0.85 + audio.midEnv * 0.5 + audio.spectralFluxBands[1] * 0.4
+
+        this.state.glowEnergy = smoothAsymmetric(this.state.glowEnergy, targetGlow, 25, 3, safeDelta)
+        this.state.coreEnergy = smoothAsymmetric(this.state.coreEnergy, targetCore, 20, 2.5, safeDelta)
+        this.state.irisEnergy = smoothAsymmetric(this.state.irisEnergy, targetIris, 15, 3, safeDelta)
+
+        // Sub-bass displacement - that visceral "thud" on deep bass
+        // Target from very low frequencies + onset for punch
+        const subBassTarget = audio.bassEnv * 0.6 + audio.spectralFluxBands[0] * 0.8 + onsetStrength * 0.4
+        this.state.subBassEnergy = smoothAsymmetric(
+            this.state.subBassEnergy,
+            subBassTarget,
+            30, // Very fast attack - snap to bass
+            2, // Slow decay - linger and settle
+            safeDelta,
+        )
+        // Slowly rotate displacement direction for organic feel (not static shake)
+        this.state.displacementAngle += safeDelta * 2.5 + audio.momentum * safeDelta * 3.0
 
         // Wandering path influenced by mel bands
         const wanderRate = 0.22 + c.wanderSpeed * 0.35 + spinAudio * 0.05
@@ -606,6 +675,17 @@ export class IrisEffect extends WebGLEffect<IrisControls> {
         // Radial flow uniforms
         this.material.uniforms.iRadialFlow.value = this.state.radialFlow
         this.material.uniforms.iFlowVelocity.value = this.state.flowVelocity
+
+        // Asymmetrically smoothed energy uniforms (fast attack, slow decay)
+        this.material.uniforms.iGlowEnergy.value = this.state.glowEnergy
+        this.material.uniforms.iCoreEnergy.value = this.state.coreEnergy
+        this.material.uniforms.iIrisEnergy.value = this.state.irisEnergy
+
+        // Sub-bass displacement vector (subtle but visceral)
+        const displaceStrength = this.state.subBassEnergy * 0.012 // Keep it subtle
+        const displaceX = Math.cos(this.state.displacementAngle) * displaceStrength
+        const displaceY = Math.sin(this.state.displacementAngle) * displaceStrength
+        this.material.uniforms.iSubBassDisplace.value.set(displaceX, displaceY)
 
         // Enhanced audio uniforms
         this.material.uniforms.iHarmonicHue.value = this.state.harmonicHueSmooth

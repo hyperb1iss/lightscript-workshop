@@ -45,6 +45,12 @@ uniform vec2 iSmoothMouse;
 uniform float iAudioTime;
 uniform float iRadialFlow;      // Accumulated radial distance for tunnel effect
 uniform float iFlowVelocity;    // Current flow speed
+// Asymmetrically smoothed energies (fast attack, slow decay for organic feel)
+uniform float iGlowEnergy;
+uniform float iCoreEnergy;
+uniform float iIrisEnergy;
+// Sub-bass displacement - visceral UV shake on deep bass hits
+uniform vec2 iSubBassDisplace;
 uniform float iCorePulse;
 uniform float iFlowDrive;
 uniform float iColorAccent;
@@ -373,6 +379,10 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
     vec2 uv = (fragCoord - 0.5 * R) / R.y * iScale * z;
     uv /= iBeatZoom;
 
+    // Sub-bass displacement - whole screen moves on deep bass hits
+    // Applied early so everything shifts together for that visceral "thud"
+    uv += iSubBassDisplace;
+
     // Beat anticipation: subtle "suck in" before the beat hits
     float anticipationScale = 1.0 + iBeatAnticipation * 0.08;
     uv *= anticipationScale;
@@ -494,10 +504,10 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
     vec3 ringColor = mix(rgb, getSchemeColor(fract(g * 0.5 + ringPhase), l, t), 0.4);
     c += ringColor * ring * (0.2 + iOnsetPulse * 0.5);
 
-    // Core pulse column driven by bass flux for tight kick response
+    // Core pulse with asymmetric smoothing - punchy attack, lingering decay
     float coreWidth = 0.12 + corePulse * 0.05;
     float core = exp(-pow(uv.x * corePulse, 2.0) / max(coreWidth, 0.05)) * exp(-l * 0.8);
-    float coreBeat = 0.8 + iOnsetPulse * 0.8 + iFluxBass * 0.6;
+    float coreBeat = iCoreEnergy; // Pre-smoothed for organic feel
     vec2 flowUv = uv * mat2(0.8, -0.6, 0.6, 0.8) + vec2(flowDrive * t * 0.2, t * (0.15 + beatPush * 0.05 + tempo * 0.02));
     float vascular = sin(flowUv.x * (8.0 + corePulse * 2.0) + t * (0.9 + iFluxBass)) *
         sin(flowUv.y * (6.0 + iFluxMid * 5.0) - t * (0.4 + flowDrive * 0.2));
@@ -515,9 +525,9 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
     float irisWave = sin((l + irisFlowOffset + irisAngleWarp + beatPush) * irisFrequency - t * irisTemporal - iBeatRotation * 0.35);
     float irisMask = smoothstep(0.35, 0.95, abs(irisWave));
     float irisFeather = exp(-abs(irisWave) * (2.0 + irisStrength));
-    float irisEnergy = (iFluxMid + iAudioMid * 0.25 + irisStrength * 0.1 + flowDrive * 0.2);
-    c += rgb * irisMask * 0.18 * irisEnergy;
-    c += rgb * irisFeather * 0.12 * (iFluxBass + 0.3);
+    // Use pre-smoothed iris energy for organic lingering trails
+    c += rgb * irisMask * 0.2 * iIrisEnergy;
+    c += rgb * irisFeather * 0.15 * iIrisEnergy;
 
     c = max(c, 0.0);
 
@@ -554,12 +564,12 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
     microSheen = smoothstep(-0.18 - microAA * 2.0, 0.18 + microAA * 2.0, microSheen) - 0.5;
     c += rgb * microSheen * 0.08 * (0.5 + energyMix * 0.5);
 
-    // Glow modulated by spectral brightness for shimmery high-frequency content
+    // Glow with asymmetric smoothing - fast flash, slow fade
     float glowGain = clamp(iGlowIntensity, 0.05, 0.8);
     float glowFalloff = mix(7.0, 3.0, glowGain);
     float glow = exp(-l * glowFalloff) * glowGain;
-    glow *= 0.35 + iOnsetPulse * 0.5 + iBrightness * 0.35 + fluxEnergy * 0.3;
-    c += rgb * glow * 0.8;
+    glow *= iGlowEnergy; // Pre-smoothed with fast attack, slow decay
+    c += rgb * glow * 0.9;
 
     c = preserveSaturation(c, saturate(fluxEnergy + iAudioMomentum * 0.5));
     // Limit luminance and re-saturate for RGB hardware
