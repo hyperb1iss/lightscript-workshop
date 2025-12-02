@@ -57,6 +57,13 @@ const logger = {
 }
 
 /**
+ * Escape HTML entities in a string for use in meta tag attributes
+ */
+function escapeHtml(str: string): string {
+    return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/**
  * Generate meta tags from control definitions extracted via reflect-metadata
  */
 function generateMetaTags(
@@ -74,39 +81,40 @@ function generateMetaTags(
 ): string {
     let metaTags = ''
 
-    // Effect metadata
-    metaTags += `<meta name="name" content="${effectMetadata.name}">\n`
+    // Effect metadata (SignalRGB format)
     if (effectMetadata.description) {
-        metaTags += `<meta name="description" content="${effectMetadata.description}">\n`
+        metaTags += `<meta description="${escapeHtml(effectMetadata.description)}"/>\n`
     }
     if (effectMetadata.author) {
-        metaTags += `<meta name="author" content="${effectMetadata.author}">\n`
+        metaTags += `<meta publisher="${escapeHtml(effectMetadata.author)}"/>\n`
     }
 
     // Control meta tags
     for (const control of controls) {
-        const tooltip = control.tooltip ? ` tooltip="${control.tooltip}"` : ''
+        const label = escapeHtml(control.label)
+        const tooltip = control.tooltip ? ` tooltip="${escapeHtml(control.tooltip)}"` : ''
+        const defaultVal = escapeHtml(String(control.default))
 
         switch (control.type) {
             case 'number':
-                metaTags += `<meta property="${control.id}" label="${control.label}" type="number" min="${control.min ?? 0}" max="${control.max ?? 100}" default="${control.default}"${tooltip}>\n`
+                metaTags += `<meta property="${control.id}" label="${label}" type="number" min="${control.min ?? 0}" max="${control.max ?? 100}" default="${defaultVal}"${tooltip}/>\n`
                 break
             case 'boolean':
-                metaTags += `<meta property="${control.id}" label="${control.label}" type="boolean" default="${control.default}"${tooltip}>\n`
+                metaTags += `<meta property="${control.id}" label="${label}" type="boolean" default="${defaultVal}"${tooltip}/>\n`
                 break
             case 'combobox': {
-                const values = (control.values ?? []).join(',')
-                metaTags += `<meta property="${control.id}" label="${control.label}" type="combobox" values="${values}" default="${control.default}"${tooltip}>\n`
+                const values = (control.values ?? []).map(escapeHtml).join(',')
+                metaTags += `<meta property="${control.id}" label="${label}" type="combobox" values="${values}" default="${defaultVal}"${tooltip}/>\n`
                 break
             }
             case 'hue':
-                metaTags += `<meta property="${control.id}" label="${control.label}" type="hue" min="${control.min ?? 0}" max="${control.max ?? 360}" default="${control.default}"${tooltip}>\n`
+                metaTags += `<meta property="${control.id}" label="${label}" type="hue" min="${control.min ?? 0}" max="${control.max ?? 360}" default="${defaultVal}"${tooltip}/>\n`
                 break
             case 'color':
-                metaTags += `<meta property="${control.id}" label="${control.label}" type="color" default="${control.default}"${tooltip}>\n`
+                metaTags += `<meta property="${control.id}" label="${label}" type="color" default="${defaultVal}"${tooltip}/>\n`
                 break
             case 'textfield':
-                metaTags += `<meta property="${control.id}" label="${control.label}" type="textfield" default="${control.default}"${tooltip}>\n`
+                metaTags += `<meta property="${control.id}" label="${label}" type="textfield" default="${defaultVal}"${tooltip}/>\n`
                 break
         }
     }
