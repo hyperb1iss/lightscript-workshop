@@ -1,6 +1,6 @@
 <div align="center">
 
-# 💜⚡ 𝕃𝕚𝕘𝕙𝕥𝕊𝕔𝕣𝕚𝕡𝕥 𝕎𝕠𝕣𝕜𝕤𝕙𝕠𝕡 ⚡💜
+<img src="public/assets/logo.png" alt="LightScript Workshop" width="400">
 
 ### _Mind-bending RGB effects for the chronically creative_
 
@@ -13,13 +13,29 @@
 [![License](https://img.shields.io/github/license/hyperb1iss/lightscript-workshop?style=flat-square&color=e135ff)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/hyperb1iss/lightscript-workshop?style=flat-square&color=80ffea)](https://github.com/hyperb1iss/lightscript-workshop/stargazers)
 
-[💎 Documentation](https://hyperb1iss.github.io/lightscript-workshop/) · [🌌 Effect Gallery](#-effect-gallery) · [💫 Quick Start](#-quick-start)
+[📚 Documentation](https://hyperb1iss.github.io/lightscript-workshop/) · [🎮 Playground](https://hyperb1iss.github.io/lightscript-workshop/playground/) · [🌀 Quick Start](#-quick-start)
 
 </div>
 
 ---
 
-## 💫 Quick Start
+## 🔮 What is LightScript Workshop?
+
+**LightScript Workshop** is a TypeScript framework for creating custom lighting effects for [SignalRGB](https://signalrgb.com/) — the app that unifies control of your RGB keyboards, mice, headsets, and other PC peripherals.
+
+Instead of being limited to SignalRGB's built-in effects, LightScript lets you write your own using **WebGL shaders** or **Canvas 2D**, with a modern development experience:
+
+- 🎨 **TypeScript decorators** that automatically generate SignalRGB's control UI
+- 🔥 **Hot reloading** so you see changes instantly as you code
+- 🎵 **Audio reactivity** built-in — sync your lights to music
+- 💎 **GPU-accelerated rendering** via Three.js and WebGL
+- 📦 One command to **build standalone HTML files** that drop right into SignalRGB
+
+Whether you want pulsing black holes, glitchy cyberpunk rain, or particle swarms that react to your music — if you can imagine it, you can build it.
+
+---
+
+## 🌀 Quick Start
 
 ```bash
 git clone https://github.com/hyperb1iss/lightscript-workshop.git
@@ -28,56 +44,39 @@ pnpm install
 pnpm dev
 ```
 
-Open [localhost:4096](http://localhost:4096) and watch your keyboard become a canvas. The dev UI remembers your last effect, so you can pick up right where you left off.
+Open [localhost:4096](http://localhost:4096) — you'll see a live preview with controls. Pick an effect from the sidebar, tweak the sliders, and watch your creation in real-time.
 
-## 💎 Features
-
-| Feature | Description |
-|---------|-------------|
-| **WebGL + Canvas 2D** | GPU-accelerated shaders _or_ traditional drawing — your choice |
-| **Decorator Controls** | Type-safe UI with `@NumberControl`, `@BooleanControl`, `@ComboboxControl` |
-| **Hot Reloading** | Change shader code, see it instantly — no refresh needed |
-| **AI-Native** | Designed for Claude, Cursor, and Copilot to generate effects |
-| **Monorepo** | Clean separation: `@lightscript/core` for the API, `@lightscript/dev` for tooling |
-| **GLSL Tooling** | Lint, format, and share shader code with built-in utilities |
+---
 
 ## 🌌 Effect Gallery
 
-### ⚛️ Physics & Mathematics
-| Effect | Vibe |
-|--------|------|
-| **Black Hole** | Gravitational lensing with accretion disk and Hawking radiation |
-| **Voronoi Flow** | Cellular patterns morphing with fluid dynamics |
-| **Quantum Foam** | Planck-scale virtual particles popping in and out of existence |
+LightScript ships with a collection of effects to use, remix, or learn from:
 
-### 💾 Digital & Glitch
-| Effect | Vibe |
-|--------|------|
-| **Cyber Descent** | Cyberpunk matrix rainfall with scanline artifacts |
-| **Reality.exe Error** | Windows BSOD and error dialogs as RGB chaos |
-| **Kaleido Tunnel** | Raymarched kaleidoscopic infinity tunnel |
+| Effect | What It Does |
+|--------|--------------|
+| 🕳️ **Black Hole** | Gravitational lensing with an accretion disk and Hawking radiation |
+| 💎 **Voronoi Flow** | Cellular patterns morphing with fluid dynamics |
+| ⚛️ **Quantum Foam** | Planck-scale virtual particles popping in and out of existence |
+| 🌧️ **Cyber Descent** | Cyberpunk matrix rainfall with scanline artifacts |
+| 🔮 **Kaleido Tunnel** | Raymarched kaleidoscopic infinity tunnel |
+| 💜 **Glow Particles** | Vibrant particle swarms with luminous trails |
+| 🎵 **Audio Pulse** | Reactive rings that pulse to your music |
+| 👁️ **Iris** | Geometric audio visualizer with dynamic tessellation |
+| 🧠 **Neural Synapse Fire** | Synaptic networks firing in cascading patterns |
+| 🎯 **ADHD Hyperfocus** | Tunnel vision with dopamine-seeking sparkles |
 
-### 🌀 Mind-Bending
-| Effect | Vibe |
-|--------|------|
-| **Glow Particles** | Vibrant particle swarms with luminous trails |
-| **ADHD Hyperfocus** | Tunnel vision with dopamine-seeking sparkles |
-| **Temporal Hallucination** | Time-warping patterns that predict the future |
+---
 
-## 🔮 Creating Effects
+## 🔧 How It Works
 
-Effects are TypeScript classes with GLSL shaders. Here's the pattern:
+Effects are TypeScript classes paired with GLSL fragment shaders. Decorators define the controls that appear in SignalRGB:
 
 ```typescript
-import {
-  Effect, NumberControl, WebGLEffect, initializeEffect, normalizeSpeed
-} from '@lightscript/core'
+import { Effect, NumberControl, WebGLEffect, initializeEffect } from '@lightscript/core'
 import fragmentShader from './fragment.glsl'
 
-interface MyControls { speed: number }
-
 @Effect({ name: 'Neon Dreams', author: 'You' })
-export class NeonDreams extends WebGLEffect<MyControls> {
+export class NeonDreams extends WebGLEffect<{ speed: number }> {
   @NumberControl({ label: 'Speed', min: 1, max: 10, default: 5 })
   speed!: number
 
@@ -85,18 +84,13 @@ export class NeonDreams extends WebGLEffect<MyControls> {
     super({ id: 'neon-dreams', name: 'Neon Dreams', fragmentShader })
   }
 
-  protected initializeControls() { window.speed = 5 }
-  protected getControlValues() { return { speed: normalizeSpeed(window.speed ?? 5) } }
-  protected createUniforms() { return { iSpeed: { value: 1.0 } } }
-  protected updateUniforms(c: MyControls) {
-    if (this.material) this.material.uniforms.iSpeed.value = c.speed
-  }
+  // ... control value mapping and uniform updates
 }
 
 initializeEffect(() => new NeonDreams().initialize())
 ```
 
-And the shader (`fragment.glsl`):
+The shader receives your control values as uniforms:
 
 ```glsl
 uniform float iTime;
@@ -113,14 +107,29 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
 void main() { mainImage(gl_FragColor, gl_FragCoord.xy); }
 ```
 
-Drop these in `src/effects/neon-dreams/` and it's auto-discovered. No registration needed.
+Drop these files in `src/effects/neon-dreams/` — the framework auto-discovers them. No registration needed.
+
+---
+
+## 💎 Features
+
+| | Feature | Description |
+|--|---------|-------------|
+| 🎮 | **WebGL + Canvas 2D** | GPU-accelerated shaders or traditional Canvas drawing — your choice |
+| 🎛️ | **Decorator Controls** | `@NumberControl`, `@BooleanControl`, `@ComboboxControl` — type-safe UI generation |
+| 🔥 | **Hot Reloading** | Edit shader code, see it instantly. No refresh, no waiting. |
+| 🎵 | **Audio Reactive** | Built-in FFT analysis with bass/mid/treble helpers and spectrum textures |
+| 🤖 | **AI-Native** | Structured patterns that Claude, Cursor, and Copilot understand |
+| 📦 | **Monorepo** | `@lightscript/core` for the API, `@lightscript/dev` for tooling |
+
+---
 
 ## 🗂️ Project Structure
 
 ```
 lightscript-workshop/
 ├── packages/
-│   ├── core/              # @lightscript/core — The framework API
+│   ├── core/              # @lightscript/core — Framework API
 │   └── dev/               # @lightscript/dev — Dev server & build tools
 ├── src/
 │   ├── effects/           # Your effects live here
@@ -129,62 +138,69 @@ lightscript-workshop/
 └── dist/                  # Built effects ready for SignalRGB
 ```
 
+---
+
 ## ⌨️ Commands
 
-```bash
-pnpm dev              # Start dev server with hot reload
-pnpm build:effects    # Build all effects to dist/
-pnpm docs             # Preview documentation locally
-pnpm typecheck        # Check TypeScript types
-pnpm test             # Run tests
-pnpm lint             # Lint code
-```
+| Command | What It Does |
+|---------|--------------|
+| `pnpm dev` | Start dev server with hot reload |
+| `pnpm build:effects` | Build all effects to `dist/` |
+| `pnpm docs` | Preview documentation locally |
+| `pnpm typecheck` | Run TypeScript type checking |
+| `pnpm test` | Run test suite |
+| `pnpm lint` | Lint with Biome |
+
+---
 
 ## 🪐 Deploy to SignalRGB
 
+Build your effect:
+
 ```bash
-# Build your effect
 EFFECT=black-hole pnpm build:effects
-
-# Copy to SignalRGB effects folder
-# Windows: ~/Documents/WhirlwindFX/Effects/
-# macOS:   ~/Documents/SignalRGB/Effects/
 ```
 
-Restart SignalRGB, find your effect in "Lighting Effects", and bask in the glow.
+Copy the generated HTML file to SignalRGB's effects folder:
+- **Windows:** `~/Documents/WhirlwindFX/Effects/`
+- **macOS:** `~/Documents/SignalRGB/Effects/`
 
-## 🧬 AI-Powered Development
+Restart SignalRGB, find your effect under "Lighting Effects", and bask in the glow.
 
-LightScript Workshop is built for AI collaboration. The consistent patterns and typed interfaces make it trivial for AI to generate complete, working effects.
+---
 
-**Try this prompt:**
-```
-Create a WebGL effect called "aurora-waves" that simulates northern lights.
-Add controls for speed (1-10), intensity (0-200), and a color palette dropdown.
-Reference src/effects/black-hole/main.ts for the pattern.
-```
+## 🤖 AI-Powered Development
 
-See [CLAUDE.md](CLAUDE.md) for complete AI agent documentation.
+LightScript's consistent patterns make it ideal for AI-assisted development. Try this prompt:
 
-## 🌙 Documentation
+> Create a WebGL effect called "aurora-waves" that simulates northern lights. Add controls for speed (1-10), intensity (0-200), and a color palette dropdown. Reference `src/effects/black-hole/main.ts` for the pattern.
 
-Full docs at [hyperb1iss.github.io/lightscript-workshop](https://hyperb1iss.github.io/lightscript-workshop/)
+See [CLAUDE.md](CLAUDE.md) for complete AI agent documentation and the patterns that make generation reliable.
 
-- [Getting Started](https://hyperb1iss.github.io/lightscript-workshop/getting-started/) — Installation and first effect
-- [Guide](https://hyperb1iss.github.io/lightscript-workshop/guide/) — Core concepts and patterns
-- [Reference](https://hyperb1iss.github.io/lightscript-workshop/reference/) — Complete API documentation
-- [Examples](https://hyperb1iss.github.io/lightscript-workshop/examples/) — Code patterns and snippets
-- [AI Development](https://hyperb1iss.github.io/lightscript-workshop/ai/) — Working with AI assistants
+---
+
+## 📚 Documentation
+
+Full documentation at **[hyperb1iss.github.io/lightscript-workshop](https://hyperb1iss.github.io/lightscript-workshop/)**
+
+- 🌌 [Getting Started](https://hyperb1iss.github.io/lightscript-workshop/getting-started/) — Installation and your first effect
+- 📖 [Reference](https://hyperb1iss.github.io/lightscript-workshop/reference/) — Complete API documentation
+- 💡 [Examples](https://hyperb1iss.github.io/lightscript-workshop/examples/) — Code patterns and snippets
+- 🎮 [Playground](https://hyperb1iss.github.io/lightscript-workshop/playground/) — Try effects in your browser
+
+---
 
 ## 💜 Contributing
 
-Got a wild effect idea? Performance optimization? Bug fix? We want it all.
+Got a wild effect idea? Performance optimization? Bug fix? Contributions welcome.
 
 ```bash
 pnpm install && pnpm dev   # Get running
 # Make something awesome
 pnpm test && pnpm lint     # Make sure it's solid
 ```
+
+---
 
 ## 📜 License
 
@@ -196,6 +212,6 @@ MIT License — see [LICENSE](LICENSE)
 
 Created by [Stefanie Jane 🌠](https://github.com/hyperb1iss)
 
-If your RGB has transcended, [buy me a Monster Ultra Violet](https://ko-fi.com/hyperb1iss)! ⚡️
+If your RGB setup has transcended, [buy me a Monster Ultra Violet](https://ko-fi.com/hyperb1iss)! ⚡️
 
 </div>

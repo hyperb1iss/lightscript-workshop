@@ -5,6 +5,9 @@ hero:
   name: "LightScript Workshop"
   text: Mind-bending RGB effects
   tagline: For the chronically creative
+  image:
+    src: /logo.png
+    alt: LightScript Workshop
   actions:
     - theme: brand
       text: Get Started
