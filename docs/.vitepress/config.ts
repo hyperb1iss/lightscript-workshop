@@ -34,6 +34,7 @@ export default defineConfig({
             { link: '/reference/', text: 'Reference' },
             { link: '/examples/', text: 'Examples' },
             { link: '/ai/', text: 'AI' },
+            { link: 'https://hyperb1iss.github.io/lightscript-workshop/playground/', text: 'Playground' },
         ],
 
         search: {

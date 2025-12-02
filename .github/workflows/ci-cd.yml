@@ -1,112 +1,135 @@
-name: ✨ LightScript Workshop
+name: ✦ LightScript Workshop
 
 on:
   push:
-    branches:
-      - main
-    tags:
-      - "v*.*.*"
+    branches: [main]
+    tags: ["v*.*.*"]
   pull_request:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
 
-env:
-  NODE_VERSION: "20" # Current LTS version
-  ARTIFACT_NAME: lightscript-effects
-  ARTIFACT_PATH: ./dist/
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
-  build_and_test:
-    name: 🔨 Build + Test
+  build:
+    name: ▸ Build & Test
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout code
+      - name: ← Checkout
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup Node.js ${{ env.NODE_VERSION }}
+      - name: ⚙ Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: ⚙ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: "**/package-lock.json"
+          node-version: 20
+          cache: pnpm
 
-      - name: 📦 Install dependencies
-        run: npm ci --prefer-offline --no-audit
+      - name: ↓ Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: 📊 Cache build artifacts
-        uses: actions/cache@v4
-        with:
-          path: |
-            dist/
-            .vite/
-          key: ${{ runner.os }}-build-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('src/**/*') }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ hashFiles('**/package-lock.json') }}-
-            ${{ runner.os }}-build-
+      - name: ✓ Lint
+        run: pnpm lint
 
-      - name: 🧹 Run linter
-        run: npm run lint
+      - name: ✓ Typecheck
+        run: pnpm typecheck
 
-      - name: 🧪 Run tests
-        run: npm test
+      - name: ✓ Test
+        run: pnpm test
 
-      - name: 🏗️ Build project
-        run: npm run build
+      - name: ⬡ Build packages
+        run: pnpm build:packages
 
-      - name: 📊 Analyze bundle sizes
-        run: npm run bundle:size
-        continue-on-error: true
+      - name: ⬡ Build effects
+        run: pnpm build:effects
 
-      - name: 📤 Upload build artifacts
+      - name: ↑ Upload effects
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACT_PATH }}
-          retention-days: 7 # Keep artifacts for 7 days
+          name: lightscript-effects
+          path: dist/
+          retention-days: 7
 
-  analyze:
-    name: 🔍 Analyze Project
+  pages:
+    name: ▸ Build Pages
     runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     steps:
-      - name: 📥 Checkout code
+      - name: ← Checkout
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup Node.js ${{ env.NODE_VERSION }}
+      - name: ⚙ Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: ⚙ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: "**/package-lock.json"
+          node-version: 20
+          cache: pnpm
 
-      - name: 📦 Install dependencies
-        run: npm ci
+      - name: ↓ Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: 🧹 Run ESLint
-        run: npm run lint
-        continue-on-error: true
+      - name: ⬡ Build packages
+        run: pnpm build:packages
 
-      - name: 🔎 TypeScript type check
-        run: npx tsc --noEmit
-        continue-on-error: true
+      - name: ⬡ Build docs
+        run: pnpm docs:build
+
+      - name: ⬡ Build playground
+        run: pnpm playground:build
+
+      - name: ◇ Combine builds
+        run: node scripts/combine-pages.js
+
+      - name: ↑ Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-pages
+
+  deploy:
+    name: → Deploy Pages
+    runs-on: ubuntu-latest
+    needs: pages
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: ⟶ Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
   release:
-    name: 🚀 Release
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: build_and_test
-    permissions:
-      contents: write
+    name: ★ Release
     runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: 📥 Download build artifact
+      - name: ↓ Download effects
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.ARTIFACT_NAME }}
+          name: lightscript-effects
+          path: dist/
 
-      - name: 🎉 Create GitHub Release
+      - name: ◇ Create archive
+        run: |
+          cd dist
+          zip -r ../lightscript-effects.zip .
+
+      - name: ★ Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ env.ARTIFACT_NAME }}
+          files: lightscript-effects.zip
           name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
           generate_release_notes: true
