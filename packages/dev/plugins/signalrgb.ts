@@ -1,6 +1,7 @@
 import fs, { readdirSync, statSync } from 'node:fs'
 import { extname, resolve } from 'node:path'
-import type { Plugin } from 'vite'
+import type { Plugin, ViteDevServer } from 'vite'
+import { createServer } from 'vite'
 
 interface EffectEntry {
     id: string
@@ -44,21 +45,6 @@ const effects = discoverEffects()
 const effectToBuild = process.env.EFFECT || effects[0]?.id
 
 /**
- * Helper interface for decorator options
- */
-interface DecoratorOption {
-    [key: string]: string | boolean | number | string[] | undefined
-}
-
-/**
- * Helper interface for decorator information
- */
-interface DecoratorInfo {
-    property: string
-    options: DecoratorOption
-}
-
-/**
  * Logging utility for clean, organized output
  */
 const logger = {
@@ -71,88 +57,67 @@ const logger = {
 }
 
 /**
- * Extracts decorator information from a file's content
+ * Generate meta tags from control definitions extracted via reflect-metadata
  */
-function extractAllDecorators(fileContent: string, decoratorName: string): DecoratorInfo[] {
-    const results: DecoratorInfo[] = []
+function generateMetaTags(
+    effectMetadata: { name: string; description?: string; author?: string; image?: string },
+    controls: Array<{
+        id: string
+        type: string
+        label: string
+        default: unknown
+        tooltip?: string
+        min?: number
+        max?: number
+        values?: string[]
+    }>,
+): string {
+    let metaTags = ''
 
-    // Handle both @Decorator({...}) and @Decorator("...")
-    const decoratorRegex = new RegExp(
-        `@${decoratorName}\\s*\\(\\s*(?:{([\\s\\S]*?)}|["']([\\s\\S]*?)["'])\\s*\\)\\s*([a-zA-Z0-9_]+)`,
-        'g',
-    )
+    // Effect metadata
+    metaTags += `<meta name="name" content="${effectMetadata.name}">\n`
+    if (effectMetadata.description) {
+        metaTags += `<meta name="description" content="${effectMetadata.description}">\n`
+    }
+    if (effectMetadata.author) {
+        metaTags += `<meta name="author" content="${effectMetadata.author}">\n`
+    }
 
-    let match: RegExpExecArray | null
-    // Avoid assigning inside the while condition to satisfy linter rules
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-        match = decoratorRegex.exec(fileContent)
-        if (match === null) break
-        try {
-            let options: DecoratorOption = {}
-            const propertyName = match[3] // The property/field name
+    // Control meta tags
+    for (const control of controls) {
+        const tooltip = control.tooltip ? ` tooltip="${control.tooltip}"` : ''
 
-            if (match[1]) {
-                // Object literal style: @Decorator({ ... })
-                const optionsText = match[1]
-
-                // Extract key-value pairs using more robust regex
-                const keyValuePairs =
-                    optionsText.match(
-                        /([a-zA-Z0-9_]+)\s*:\s*(?:(?:\[([\s\S]*?)\])|(?:"([^"]*)")|(?:'([^']*)')|(?:([^,\s}]+)))/g,
-                    ) || []
-
-                for (const pair of keyValuePairs) {
-                    const [key, value] = pair.split(':').map((part) => part.trim())
-
-                    if (value) {
-                        if (value.startsWith('[') && value.endsWith(']')) {
-                            // Handle array values
-                            const arrayContent = value.slice(1, -1)
-                            options[key] = arrayContent
-                                .split(',')
-                                .map((item) => item.trim().replace(/^["']|["']$/g, ''))
-                                .filter(Boolean)
-                        } else if (value.startsWith('"') || value.startsWith("'")) {
-                            // Handle string values
-                            options[key] = value.slice(1, -1)
-                        } else if (/^(true|false)$/i.test(value)) {
-                            // Handle boolean values
-                            options[key] = value.toLowerCase() === 'true'
-                        } else if (!Number.isNaN(Number.parseFloat(value))) {
-                            // Handle numeric values
-                            options[key] = Number.parseFloat(value)
-                        } else {
-                            // Handle other values as strings
-                            options[key] = value
-                        }
-                    }
-                }
-            } else if (match[2]) {
-                // String literal style: @Decorator("...")
-                if (decoratorName === 'Effect') {
-                    options = { name: match[2] }
-                } else {
-                    options = { label: match[2] }
-                }
+        switch (control.type) {
+            case 'number':
+                metaTags += `<meta property="${control.id}" label="${control.label}" type="number" min="${control.min ?? 0}" max="${control.max ?? 100}" default="${control.default}"${tooltip}>\n`
+                break
+            case 'boolean':
+                metaTags += `<meta property="${control.id}" label="${control.label}" type="boolean" default="${control.default}"${tooltip}>\n`
+                break
+            case 'combobox': {
+                const values = (control.values ?? []).join(',')
+                metaTags += `<meta property="${control.id}" label="${control.label}" type="combobox" values="${values}" default="${control.default}"${tooltip}>\n`
+                break
             }
-
-            results.push({
-                options: options,
-                property: propertyName,
-            })
-        } catch (_err) {
-            logger.error(`Error parsing ${decoratorName} decorator`)
+            case 'hue':
+                metaTags += `<meta property="${control.id}" label="${control.label}" type="hue" min="${control.min ?? 0}" max="${control.max ?? 360}" default="${control.default}"${tooltip}>\n`
+                break
+            case 'color':
+                metaTags += `<meta property="${control.id}" label="${control.label}" type="color" default="${control.default}"${tooltip}>\n`
+                break
+            case 'textfield':
+                metaTags += `<meta property="${control.id}" label="${control.label}" type="textfield" default="${control.default}"${tooltip}>\n`
+                break
         }
     }
 
-    return results
+    return metaTags
 }
 
 /**
  * Process a single effect (create HTML file from JS)
  */
-function processEffect(effect: (typeof effects)[0]) {
+async function processEffect(effect: EffectEntry) {
     try {
         // Read the compiled output JavaScript
         const jsOutputPath = resolve(process.cwd(), `dist/${effect.id}.js`)
@@ -165,253 +130,128 @@ function processEffect(effect: (typeof effects)[0]) {
             jsContent = '// No JS content found'
         }
 
-        // Extract metadata for decorator effects using a more robust approach
         let metaTags = ''
         let effectName = effect.id
-        let effectDescription = ''
-        let effectAuthor = ''
 
+        // Create a minimal vite server for SSR module loading
+        let viteServer: ViteDevServer | null = null
         try {
-            // Read the source files to extract decorator information
-            const sourcePath = effect.entry.replace(/^\.\//, '')
-            const fullSourcePath = resolve(process.cwd(), 'src', sourcePath)
+            // Dynamically import the effect module to extract metadata via reflect-metadata
+            // The decorators will execute and store metadata that we can read back
+            const modulePath = resolve(process.cwd(), 'src', effect.entry.replace(/^\.\//, ''))
 
-            if (fs.existsSync(fullSourcePath)) {
-                const sourceContent = fs.readFileSync(fullSourcePath, 'utf-8')
+            // Create a vite server instance for SSR loading (allows importing TS files)
+            // Use the actual vite config so package aliases work
+            viteServer = await createServer({
+                configFile: resolve(process.cwd(), 'vite.config.ts'),
+                plugins: [], // Don't load our plugin recursively
+                server: { middlewareMode: true },
+            })
 
-                // Array to store files we need to check for decorators
-                const filesToCheck = [{ content: sourceContent, path: fullSourcePath }]
+            // Load modules through vite's transform pipeline
+            const coreModule = await viteServer.ssrLoadModule('@lightscript/core')
+            const { extractControlsFromClass, extractEffectMetadata } = coreModule
 
-                // Find all import statements that might contain effect implementation classes
-                const importRegex = /import\s+(?:{[^}]*}|\*\s+as\s+[^;]+)\s+from\s+['"]([^'"]+)['"]/g
-                let importMatch: RegExpExecArray | null
-                const mainFileDir = resolve(process.cwd(), 'src', sourcePath.substring(0, sourcePath.lastIndexOf('/')))
+            // Import the effect module - this triggers decorator execution
+            const effectModule = await viteServer.ssrLoadModule(modulePath)
+            const effectInstance = effectModule.default
 
-                // Avoid assigning inside the while condition to satisfy linter rules
-                // eslint-disable-next-line no-constant-condition
-                while (true) {
-                    importMatch = importRegex.exec(sourceContent)
-                    if (importMatch === null) break
-                    const importPath = importMatch[1]
-                    // Skip node_modules imports
-                    if (importPath.startsWith('.')) {
-                        // Resolve the import path
-                        let importPathResolved = resolve(mainFileDir, importPath)
+            if (effectInstance) {
+                // Extract metadata using the reflect-metadata system
+                const effectMeta = extractEffectMetadata(effectInstance)
+                const controls = extractControlsFromClass(effectInstance)
 
-                        // Try both .ts and .tsx extensions
-                        if (!importPathResolved.endsWith('.ts') && !importPathResolved.endsWith('.tsx')) {
-                            // Try with .ts first, then .tsx
-                            if (fs.existsSync(`${importPathResolved}.ts`)) {
-                                importPathResolved += '.ts'
-                            } else if (fs.existsSync(`${importPathResolved}.tsx`)) {
-                                importPathResolved += '.tsx'
-                            } else {
-                                // Try as a directory with index.ts
-                                const indexPath = resolve(importPathResolved, 'index.ts')
-                                if (fs.existsSync(indexPath)) {
-                                    importPathResolved = indexPath
-                                } else {
-                                    continue // Skip if we can't resolve the import
-                                }
-                            }
-                        }
+                effectName = effectMeta.name || effect.id
 
-                        if (fs.existsSync(importPathResolved)) {
-                            const importContent = fs.readFileSync(importPathResolved, 'utf-8')
+                // Generate meta tags from the extracted metadata
+                metaTags = generateMetaTags(effectMeta, controls)
 
-                            // Check if the file contains Effect or Control decorators
-                            if (
-                                importContent.includes('@Effect') ||
-                                importContent.includes('@NumberControl') ||
-                                importContent.includes('@BooleanControl') ||
-                                importContent.includes('@ComboboxControl') ||
-                                importContent.includes('@HueControl') ||
-                                importContent.includes('@ColorControl') ||
-                                importContent.includes('@TextFieldControl')
-                            ) {
-                                filesToCheck.push({
-                                    content: importContent,
-                                    path: importPathResolved,
-                                })
-                            }
+                // Handle image from decorator
+                if (effectMeta.image) {
+                    const imageValue = effectMeta.image
+                    if (
+                        imageValue.startsWith('http://') ||
+                        imageValue.startsWith('https://') ||
+                        imageValue.startsWith('data:')
+                    ) {
+                        metaTags += `<meta property="image" content="${imageValue}">\n`
+                    } else {
+                        // Local path relative to effect directory
+                        const effectDir = resolve(modulePath, '..')
+                        const imagePath = resolve(effectDir, imageValue)
+                        if (fs.existsSync(imagePath)) {
+                            const ext = extname(imagePath) || '.png'
+                            const outPath = resolve(process.cwd(), 'dist', `${effect.id}${ext}`)
+                            fs.copyFileSync(imagePath, outPath)
+                            metaTags += `<meta property="image" content="${effect.id}${ext}">\n`
+                            logger.effect(effect.id, `Preview image attached: ${effect.id}${ext}`)
                         }
                     }
                 }
 
-                // Process all potential implementation files
-                for (const file of filesToCheck) {
-                    // Extract Effect decorator information
-                    const effectDecorators = extractAllDecorators(file.content, 'Effect')
-                    if (effectDecorators.length > 0) {
-                        // Use the first Effect decorator found
-                        const effectData = effectDecorators[0].options
-                        if (effectData.name && typeof effectData.name === 'string') {
-                            effectName = effectData.name
-                        }
+                logger.effect(effect.id, `Extracted ${controls.length} controls via reflect-metadata`)
+            } else {
+                logger.error(`No default export found for ${effect.id}`)
+            }
+        } catch (err) {
+            logger.error(`Error extracting metadata for ${effect.id}: ${err}`)
+        } finally {
+            // Clean up vite server
+            if (viteServer) {
+                await viteServer.close()
+            }
+        }
 
-                        if (effectData.description && typeof effectData.description === 'string') {
-                            effectDescription = effectData.description
-                        }
+        // Auto-discover preview image if not set via decorator
+        if (!/property="image"/.test(metaTags)) {
+            const sourcePath = effect.entry.replace(/^\.\//, '')
+            const candidateNames = [
+                'preview.png',
+                'preview.jpg',
+                'preview.jpeg',
+                'cover.png',
+                'cover.jpg',
+                'cover.jpeg',
+                'thumbnail.png',
+                'thumbnail.jpg',
+                'thumbnail.jpeg',
+                `${effect.id}.png`,
+                `${effect.id}.jpg`,
+                `${effect.id}.jpeg`,
+            ]
 
-                        if (effectData.author && typeof effectData.author === 'string') {
-                            effectAuthor = effectData.author
-                        }
-                        // If the Effect decorator explicitly provides an image, handle that first
-                        if (typeof effectData.image === 'string' && effectData.image.length > 0) {
-                            const imageValue = String(effectData.image)
-                            if (
-                                imageValue.startsWith('http://') ||
-                                imageValue.startsWith('https://') ||
-                                imageValue.startsWith('data:')
-                            ) {
-                                // Remote or data URI – just reference directly
-                                metaTags += `<meta property="image" content="${imageValue}">\n`
-                            } else {
-                                // Treat as a local path relative to the main file directory
-                                const explicitLocalPath = resolve(mainFileDir, imageValue)
-                                if (fs.existsSync(explicitLocalPath)) {
-                                    const ext = extname(explicitLocalPath) || '.png'
-                                    const outPath = resolve(process.cwd(), 'dist', `${effect.id}${ext}`)
-                                    try {
-                                        fs.copyFileSync(explicitLocalPath, outPath)
-                                        metaTags += `<meta property="image" content="${effect.id}${ext}">\n`
-                                        logger.effect(
-                                            effect.id,
-                                            `Preview image attached from decorator: ${effect.id}${ext}`,
-                                        )
-                                    } catch (_copyErr) {
-                                        logger.error(`Failed to copy decorator-provided image for ${effect.id}`)
-                                    }
-                                } else {
-                                    logger.error(
-                                        `Decorator-provided image not found for ${effect.id}: ${explicitLocalPath}`,
-                                    )
-                                }
-                            }
-                        }
-                    }
+            const searchDirs = [
+                resolve(process.cwd(), 'src', sourcePath.substring(0, sourcePath.lastIndexOf('/'))),
+                resolve(process.cwd(), 'public', 'assets', 'effects'),
+                resolve(process.cwd(), 'public', 'assets'),
+            ]
 
-                    // Add effect metadata tags
-                    metaTags += `<meta name="name" content="${effectName}">\n`
-                    if (effectDescription) {
-                        metaTags += `<meta name="description" content="${effectDescription}">\n`
-                    }
-                    if (effectAuthor) {
-                        metaTags += `<meta name="author" content="${effectAuthor}">\n`
-                    }
-
-                    // Extract control decorators
-                    const controlsData = {
-                        Boolean: extractAllDecorators(file.content, 'BooleanControl'),
-                        Color: extractAllDecorators(file.content, 'ColorControl'),
-                        Combobox: extractAllDecorators(file.content, 'ComboboxControl'),
-                        Hue: extractAllDecorators(file.content, 'HueControl'),
-                        Number: extractAllDecorators(file.content, 'NumberControl'),
-                        TextField: extractAllDecorators(file.content, 'TextFieldControl'),
-                    }
-
-                    // Process all control decorators
-                    let controlCount = 0
-                    for (const [controlType, decorators] of Object.entries(controlsData)) {
-                        for (const decorator of decorators) {
-                            const propertyName = decorator.property
-                            const options = decorator.options
-
-                            const label = options.label || propertyName
-                            const defaultValue = options.default?.toString().replace(/["']/g, '') || ''
-                            const tooltip = options.tooltip || ''
-
-                            if (controlType === 'Number') {
-                                const min = options.min?.toString() || '0'
-                                const max = options.max?.toString() || '100'
-                                metaTags += `<meta property="${propertyName}" label="${label}" type="number" min="${min}" max="${max}" default="${defaultValue}"${tooltip ? ` tooltip="${tooltip}"` : ''}>\n`
-                                controlCount++
-                            } else if (controlType === 'Boolean') {
-                                metaTags += `<meta property="${propertyName}" label="${label}" type="boolean" default="${defaultValue}"${tooltip ? ` tooltip="${tooltip}"` : ''}>\n`
-                                controlCount++
-                            } else if (controlType === 'Combobox') {
-                                let values = ''
-                                if (options.values && Array.isArray(options.values)) {
-                                    values = options.values.map((v) => v.toString().replace(/["']/g, '')).join(',')
-                                }
-                                metaTags += `<meta property="${propertyName}" label="${label}" type="combobox" values="${values}" default="${defaultValue}"${tooltip ? ` tooltip="${tooltip}"` : ''}>\n`
-                                controlCount++
-                            } else if (controlType === 'Hue') {
-                                const min = options.min?.toString() || '0'
-                                const max = options.max?.toString() || '360'
-                                metaTags += `<meta property="${propertyName}" label="${label}" type="hue" min="${min}" max="${max}" default="${defaultValue}"${tooltip ? ` tooltip="${tooltip}"` : ''}>\n`
-                                controlCount++
-                            } else if (controlType === 'Color') {
-                                metaTags += `<meta property="${propertyName}" label="${label}" type="color" default="${defaultValue}"${tooltip ? ` tooltip="${tooltip}"` : ''}>\n`
-                                controlCount++
-                            } else if (controlType === 'TextField') {
-                                metaTags += `<meta property="${propertyName}" label="${label}" type="textfield" default="${defaultValue}"${tooltip ? ` tooltip="${tooltip}"` : ''}>\n`
-                                controlCount++
-                            }
-                        }
-                    }
-
-                    if (controlCount > 0) {
-                        // If we found controls, we can stop checking other files
+            let discoveredPath: string | undefined
+            for (const dir of searchDirs) {
+                for (const name of candidateNames) {
+                    const candidate = resolve(dir, name)
+                    if (fs.existsSync(candidate)) {
+                        discoveredPath = candidate
                         break
                     }
                 }
+                if (discoveredPath) break
+            }
 
-                // If no image meta was added yet, try to auto-discover preview asset
-                if (!/property="image"/.test(metaTags)) {
-                    const candidateNames = [
-                        'preview.png',
-                        'preview.jpg',
-                        'preview.jpeg',
-                        'cover.png',
-                        'cover.jpg',
-                        'cover.jpeg',
-                        'thumbnail.png',
-                        'thumbnail.jpg',
-                        'thumbnail.jpeg',
-                        `${effect.id}.png`,
-                        `${effect.id}.jpg`,
-                        `${effect.id}.jpeg`,
-                    ]
-
-                    const searchDirs = [
-                        // Primary: alongside the effect implementation
-                        resolve(process.cwd(), 'src', sourcePath.substring(0, sourcePath.lastIndexOf('/'))),
-                        // Common public asset locations
-                        resolve(process.cwd(), 'public', 'assets', 'effects'),
-                        resolve(process.cwd(), 'public', 'assets'),
-                    ]
-
-                    let discoveredPath: string | undefined
-                    for (const dir of searchDirs) {
-                        for (const name of candidateNames) {
-                            const candidate = resolve(dir, name)
-                            if (fs.existsSync(candidate)) {
-                                discoveredPath = candidate
-                                break
-                            }
-                        }
-                        if (discoveredPath) break
-                    }
-
-                    if (discoveredPath) {
-                        const ext = extname(discoveredPath) || '.png'
-                        const outPath = resolve(process.cwd(), 'dist', `${effect.id}${ext}`)
-                        try {
-                            fs.copyFileSync(discoveredPath, outPath)
-                            metaTags += `<meta property="image" content="${effect.id}${ext}">\n`
-                            logger.effect(effect.id, `Preview image attached: ${effect.id}${ext}`)
-                        } catch (_copyErr) {
-                            logger.error(`Failed to copy discovered preview image for ${effect.id}`)
-                        }
-                    }
+            if (discoveredPath) {
+                const ext = extname(discoveredPath) || '.png'
+                const outPath = resolve(process.cwd(), 'dist', `${effect.id}${ext}`)
+                try {
+                    fs.copyFileSync(discoveredPath, outPath)
+                    metaTags += `<meta property="image" content="${effect.id}${ext}">\n`
+                    logger.effect(effect.id, `Preview image attached: ${effect.id}${ext}`)
+                } catch {
+                    logger.error(`Failed to copy discovered preview image for ${effect.id}`)
                 }
             }
-        } catch (_err) {
-            logger.error(`Error extracting metadata for ${effect.id}`)
         }
 
-        // Generate a template with the extracted metadata
+        // Generate the final HTML
         const template = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -429,16 +269,13 @@ function processEffect(effect: (typeof effects)[0]) {
 </body>
 </html>`
 
-        // Replace the bundle marker comment with the actual script content
         const bundleMarker = '<!-- BUNDLE_SCRIPT_INJECT -->'
         const finalHtml = template.replace(bundleMarker, jsContent)
 
-        // Write the output files
         fs.writeFileSync(resolve(process.cwd(), `dist/${effect.id}.html`), finalHtml)
-
         logger.effect(effect.id, 'HTML file created successfully')
-    } catch (_err) {
-        logger.error(`Error processing effect ${effect.id}`)
+    } catch (err) {
+        logger.error(`Error processing effect ${effect.id}: ${err}`)
     }
 }
 
@@ -447,10 +284,9 @@ function processEffect(effect: (typeof effects)[0]) {
  */
 export function signalRGBPlugin(): Plugin {
     return {
-        apply: 'build', // only apply during build
+        apply: 'build',
 
-        // After build is complete
-        closeBundle() {
+        async closeBundle() {
             if (!effectToBuild) {
                 logger.error('No effects found in the effects array!')
                 return
@@ -462,7 +298,7 @@ export function signalRGBPlugin(): Plugin {
                 return
             }
 
-            processEffect(effect)
+            await processEffect(effect)
         },
         name: 'signalrgb-plugin',
     }
