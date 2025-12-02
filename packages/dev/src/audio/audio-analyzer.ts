@@ -5,7 +5,7 @@
  * Supports microphone input and system audio (where available)
  */
 
-import { createDebugLogger } from '@lightscript/core/utils/debug'
+import { createDebugLogger } from '@lightscript/core'
 
 const debug = createDebugLogger('AudioAnalyzer')
 

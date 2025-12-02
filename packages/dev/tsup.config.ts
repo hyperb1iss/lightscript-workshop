@@ -2,7 +2,7 @@ import { defineConfig } from 'tsup'
 
 export default defineConfig({
     clean: true,
-    dts: true,
+    dts: false, // Skip DTS - dev package has imports outside package root
     entry: {
         index: 'src/index.ts',
         'plugins/index': 'plugins/index.ts',

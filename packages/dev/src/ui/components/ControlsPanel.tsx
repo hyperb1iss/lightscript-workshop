@@ -1,5 +1,5 @@
-import { ControlDefinition, ControlValues } from '@lightscript/core/controls/definitions'
-import { debug } from '@lightscript/core/utils/debug'
+import type { ControlDefinition, ControlValues } from '@lightscript/core'
+import { debug } from '@lightscript/core'
 import { FunctionComponent } from 'preact'
 import { useEffect, useRef, useState } from 'preact/hooks'
 

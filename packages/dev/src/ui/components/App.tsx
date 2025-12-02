@@ -1,4 +1,4 @@
-import { ControlDefinition, ControlValues } from '@lightscript/core/controls/definitions'
+import type { ControlDefinition, ControlValues } from '@lightscript/core'
 import { FunctionComponent } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { FPS_CAP_OPTIONS, RESOLUTION_PRESETS, ResolutionPreset } from '../../engine/preact-engine'

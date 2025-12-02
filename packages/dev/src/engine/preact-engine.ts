@@ -3,9 +3,13 @@
  * Provides a UI for controlling and testing effects
  */
 
-import { extractControlsFromClass, extractEffectMetadata } from '@lightscript/core/controls/decorators'
-import { ControlDefinition, ControlValues } from '@lightscript/core/controls/definitions'
-import { createDebugLogger, printStartupBanner } from '@lightscript/core/utils/debug'
+import type { ControlDefinition, ControlValues } from '@lightscript/core'
+import {
+    createDebugLogger,
+    extractControlsFromClass,
+    extractEffectMetadata,
+    printStartupBanner,
+} from '@lightscript/core'
 import { h, render } from 'preact'
 import { discoverEffects } from '../../../../src/effects'
 import { getAudioAnalyzer } from '../audio/audio-analyzer'

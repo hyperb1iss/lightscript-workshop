@@ -4,7 +4,7 @@
  */
 
 import './ui' // Import styles via UI index
-import { printStartupBanner } from '@lightscript/core/utils/debug'
+import { printStartupBanner } from '@lightscript/core'
 import { discoverEffects } from '../../../src/effects'
 import { PreactDevEngine } from './engine/preact-engine'
 
