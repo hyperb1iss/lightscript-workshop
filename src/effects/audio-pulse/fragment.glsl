@@ -224,9 +224,10 @@ vec3 pulseFieldStyle(vec2 uv, float time) {
     float glowGain = getGlowGain();
     float audioMomentum = clamp(iAudioMomentum, -1.0, 1.0);
     float swell = clamp(iAudioSwell, 0.0, 1.0);
-    float baseFlow = clamp(iFlow + audioMomentum * 0.45, -1.7, 1.7);
-    float beatOffset = iAudioBeatPulse * (baseFlow >= 0.0 ? 1.0 : -1.0) * (0.8 + swell * 0.5);
-    float flow = clamp(baseFlow + beatOffset, -2.2, 2.2);
+    float baseFlow = clamp(iFlow + audioMomentum * 0.35, -1.5, 1.5);
+    // Reduced beat offset to prevent jarring jumps (was 0.8 + swell * 0.5)
+    float beatOffset = iAudioBeatPulse * (baseFlow >= 0.0 ? 1.0 : -1.0) * 0.35;
+    float flow = clamp(baseFlow + beatOffset, -1.8, 1.8);
     float travelDir = flow >= 0.0 ? -1.0 : 1.0;
     float dir = iDirection * PI;
     float bend = clamp(iBend, -2.0, 2.0);
@@ -244,7 +245,8 @@ vec3 pulseFieldStyle(vec2 uv, float time) {
     ) * (0.35 + swell * 0.2);
     ro += vec3(0.0, 0.0, travelDir * (0.6 + bassPulse * 0.9 + swell * 0.4));
 
-    float zoom = 1.0 + bassPulse * 0.35 + vol * 0.25 + iAudioBeatPulse * (1.0 + swell * 0.4);
+    // Reduced zoom modulation to prevent jarring jumps (was iAudioBeatPulse * (1.0 + swell * 0.4))
+    float zoom = 1.0 + bassPulse * 0.25 + vol * 0.2 + iAudioBeatPulse * 0.25;
     vec3 rd = normalize(vec3(uv * (0.85 + bassPulse * 0.12 - audioMomentum * 0.08), zoom));
     rd.xy = rotate2d(time * 0.06 + vol * 0.08 + dir + audioMomentum * 0.2) * rd.xy;
     rd.y += sin(time * 0.15 + uv.x * 2.0) * (0.03 + swell * 0.02);
@@ -325,8 +327,9 @@ vec3 gridStyle(vec2 uv, float time) {
     float swell = clamp(iAudioSwell, 0.0, 1.0);
     float flow = clamp(iFlow + audioMomentum * 0.4, -1.8, 1.8);
     float flowDir = flow >= 0.0 ? -1.0 : 1.0;
-    float travelSpeed = 1.4 + abs(flow) * 2.1 + swell * 1.5;
-    float beatDrive = 1.0 + iAudioBeatPulse * (0.7 + abs(flow));
+    // Reduced travel speed modulation for smoother motion
+    float travelSpeed = 1.2 + abs(flow) * 1.5 + swell * 0.8;
+    float beatDrive = 1.0 + iAudioBeatPulse * 0.3;
 
     vec2 warped = rotate2d(dir) * uv;
     warped.x += sin(time * 0.22 + warped.y * 2.1) * 0.1 * bend;
@@ -455,7 +458,8 @@ vec3 vortexStyle(vec2 uv, float time) {
         cos(time * 0.26 - rotated.x * 2.0)
     ) * bend * 0.1;
 
-    vec2 swirlUV = rotate2d(time * swirlSpeed * swirlDir + iAudioBeatPulse * 0.5) * rotated;
+    // Reduced beat pulse rotation to prevent jarring jumps (was 0.5)
+    vec2 swirlUV = rotate2d(time * swirlSpeed * swirlDir + iAudioBeatPulse * 0.15) * rotated;
     float r = length(swirlUV);
     float a = atan(swirlUV.y, swirlUV.x);
     float rings = float(iRingCount);
@@ -467,7 +471,8 @@ vec3 vortexStyle(vec2 uv, float time) {
         float freqIdx = fi / max(rings - 1.0, 1.0);
         float amp = max(0.05, getPitch(freqIdx, 1.0 + treble * 0.7 + swell * 0.6));
         float ringR = 0.12 + fi * spacing + amp * 0.12 + vol * 0.05 + bassPulse * 0.05;
-        ringR += sin(time * 0.4 + fi * 0.6 + iAudioBeatPulse * 2.4) * (0.015 + swell * 0.05);
+        // Reduced beat pulse ring wobble (was 2.4)
+        ringR += sin(time * 0.4 + fi * 0.6 + iAudioBeatPulse * 0.8) * (0.015 + swell * 0.03);
         float spiralPhase = fract(a / TAU + fi * 0.11 - time * swirlSpeed * swirlDir * 0.5);
         float spiral = sin(spiralPhase * TAU + flow * 2.0) * (0.04 + amp * 0.05);
 
@@ -497,7 +502,8 @@ vec3 vortexStyle(vec2 uv, float time) {
     float armGlow = exp(-abs(armPattern - r * 0.8) * 5.5) * exp(-r * 1.4);
     col += getSchemeColor(vec3(arms, 0.5, 0.0), time * 0.45) * armGlow * (0.3 + treble * 0.6);
 
-    float centerGlow = exp(-r * 3.6) * (0.5 + vol * 0.6 + iAudioBeatPulse * 0.7 + swell * 0.4);
+    // Reduced center glow beat pulse (was 0.7)
+    float centerGlow = exp(-r * 3.6) * (0.5 + vol * 0.5 + iAudioBeatPulse * 0.25 + swell * 0.3);
     col += getSchemeColor(vec3(0.0, 3.0, 0.0), time * 0.9) * centerGlow * glowGain;
 
     float rim = smoothstep(0.2, 1.4, r);

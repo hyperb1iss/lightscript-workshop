@@ -94,6 +94,13 @@ const beatState = {
     midLong: 0,
     midShort: 0,
     shortBass: 0,
+    // Smoothed frequency bands for less jitter
+    smoothBass: 0,
+    smoothLevel: 0,
+    smoothMid: 0,
+    // Smoothed spectrum for texture (reduces per-pixel flicker)
+    smoothSpectrum: new Float32Array(200),
+    smoothTreble: 0,
     tempo: 120,
     trebleLong: 0,
     trebleShort: 0,
@@ -162,11 +169,22 @@ export function getAudioData(): AudioData {
         frequency[i] = (Math.abs(frequencyRaw[i]) - min) / (max - min || 1)
     }
 
-    const bass = getFrequencyRange(frequency, BASS_RANGE.start, BASS_RANGE.end)
-    const mid = getFrequencyRange(frequency, MID_RANGE.start, MID_RANGE.end)
-    const treble = getFrequencyRange(frequency, TREBLE_RANGE.start, TREBLE_RANGE.end)
-    const level = normalizeAudioLevel(levelRaw)
-    const beat = computeBeat(bass, mid, treble, level)
+    const bassRaw = getFrequencyRange(frequency, BASS_RANGE.start, BASS_RANGE.end)
+    const midRaw = getFrequencyRange(frequency, MID_RANGE.start, MID_RANGE.end)
+    const trebleRaw = getFrequencyRange(frequency, TREBLE_RANGE.start, TREBLE_RANGE.end)
+    const levelRawNorm = normalizeAudioLevel(levelRaw)
+
+    // Apply smoothing to reduce frame-to-frame jitter
+    beatState.smoothBass = lerp(beatState.smoothBass, bassRaw, 0.35)
+    beatState.smoothMid = lerp(beatState.smoothMid, midRaw, 0.35)
+    beatState.smoothTreble = lerp(beatState.smoothTreble, trebleRaw, 0.35)
+    beatState.smoothLevel = lerp(beatState.smoothLevel, levelRawNorm, 0.3)
+
+    const bass = beatState.smoothBass
+    const mid = beatState.smoothMid
+    const treble = beatState.smoothTreble
+    const level = beatState.smoothLevel
+    const beat = computeBeat(bassRaw, midRaw, trebleRaw, levelRawNorm)
 
     return {
         bass,
@@ -270,8 +288,9 @@ function computeBeat(bass: number, mid: number, treble: number, level: number) {
         beatState.lastBeatTime = now
     }
 
-    beatState.impulse *= 0.9
-    beatState.cooldown = Math.max(0, beatState.cooldown - 0.02)
+    // Faster decay for smoother visuals (was 0.9, now 0.75)
+    beatState.impulse *= 0.75
+    beatState.cooldown = Math.max(0, beatState.cooldown - 0.025)
 
     const beat = Math.min(1, diff / (0.2 + level * 0.4))
     const bassEnv = Math.max(0, beatState.bassShort - beatState.bassLong)
@@ -473,15 +492,22 @@ export function updateAudioUniforms(uniforms: Record<string, THREE.IUniform>, au
     if (uniforms.iAudioTreble) uniforms.iAudioTreble.value = audio.treble
     if (uniforms.iAudioTrebleEnv) uniforms.iAudioTrebleEnv.value = audio.trebleEnv
 
-    // Update spectrum texture
+    // Update spectrum texture with smoothing
     if (uniforms.iAudioSpectrum?.value instanceof THREE.DataTexture) {
         const texture = uniforms.iAudioSpectrum.value
         const data = texture.image.data as Uint8Array
 
-        // Pack frequency data into RGBA texture (200 values → 256 slots)
+        // Smooth spectrum data to reduce flicker (lerp factor 0.4 = responsive but smooth)
+        const smoothFactor = 0.4
+        for (let i = 0; i < 200; i++) {
+            beatState.smoothSpectrum[i] =
+                beatState.smoothSpectrum[i] * (1 - smoothFactor) + audio.frequency[i] * smoothFactor
+        }
+
+        // Pack smoothed frequency data into RGBA texture (200 values → 256 slots)
         for (let i = 0; i < 200; i++) {
             const idx = i * 4
-            const val = Math.floor(audio.frequency[i] * 255)
+            const val = Math.floor(beatState.smoothSpectrum[i] * 255)
             data[idx] = val // R
             data[idx + 1] = val // G
             data[idx + 2] = val // B
