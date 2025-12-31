@@ -3,7 +3,7 @@ import swcPlugin from '@vitejs/plugin-react-swc'
 import { defineConfig } from 'vite'
 import glsl from 'vite-plugin-glsl'
 
-import { lightscriptDecoratorsPlugin } from './plugins'
+import { lightscriptDecoratorsPlugin } from './packages/dev/plugins'
 
 /**
  * Vite config for building the playground as a static SPA
